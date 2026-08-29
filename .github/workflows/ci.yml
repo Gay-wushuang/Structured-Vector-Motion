@@ -28,7 +28,7 @@ jobs:
           cache: pip
 
       - name: Install project and development tools
-        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,geometry,svg]"
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,geometry,svg,trace]"
 
       - name: Check formatting
         run: python -m ruff format --check .
@@ -62,3 +62,9 @@ jobs:
           svm render-svg examples/008-golden-d.svm.json
           --geometry-backend shapely --output golden-d-ci.svg
           --view-box 0 0 140 115
+
+      - name: Smoke-test Golden E
+        run: >
+          svm render-svg examples/imported/009-bitmap-trace.svm.json
+          --geometry-backend shapely --output golden-e-ci.svg
+          --view-box 0 0 96 80

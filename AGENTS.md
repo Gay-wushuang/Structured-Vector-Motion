@@ -40,8 +40,9 @@ Read these files before changing core behavior:
 8. `spec/10-svg-import-adapter.md` — deterministic external Adapter contract.
 9. `spec/11-geometry-backend.md` — deterministic Geometry Backend contract.
 10. `spec/12-path-to-planar-geometry.md` — PathToPolygon normative contract.
-11. `examples/001-head-basic.svm.json` — current example Document.
-12. `tests/test_golden_a.py` — executable expectations.
+11. `spec/13-bitmap-trace-adapter.md` — deterministic bitmap tracing boundary.
+12. `examples/001-head-basic.svm.json` — current example Document.
+13. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -168,7 +169,7 @@ python -m pyright
 Install declared development tooling with:
 
 ```powershell
-python -m pip install -e ".[dev,geometry,svg]"
+python -m pip install -e ".[dev,geometry,svg,trace]"
 ```
 
 Do not weaken Ruff or Pyright configuration to hide a local error. Narrow types
@@ -249,6 +250,9 @@ Next milestones:
    Golden D now covers Bézier flattening, canonical polygon output, Boolean
    topology, tolerance invalidation, and final SVG. Future path work must retain
    its explicit Document parameters and fail-closed subset.
+6. Bitmap Trace Adapter and Golden E now prove PNG Artifact -> Proposal ->
+   CreatePath -> PathToPolygon -> canonical polygon_set -> stable SVG. Keep
+   third-party tracing engines optional and outside Core.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

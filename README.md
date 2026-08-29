@@ -109,12 +109,28 @@ the recorded fill rule. See `spec/12-path-to-planar-geometry.md`, Golden D in
 `examples/008-golden-d.svm.json`, its byte-stable rendered SVG, and
 `tests/test_path_to_polygon_contract.py`.
 
+## Deterministic bitmap trace
+
+Golden E proves the first bitmap-to-planar vertical slice:
+
+```powershell
+svm trace-bitmap examples/005-empty-canvas.svm.json `
+  examples/assets/003-bitmap-trace-source.png `
+  --namespace fixture `
+  --output traced.svm.json
+```
+
+The Adapter proposes an explicit `CreatePath -> PathToPolygon` chain and never
+mutates the base Revision. The reference `potracer` engine is GPL-2.0-or-later
+and is isolated in the optional `trace` dependency; see
+`spec/13-bitmap-trace-adapter.md` for recorded parameters and license boundary.
+
 ## Development
 
 Install the project and development tools in editable mode:
 
 ```powershell
-python -m pip install -e ".[dev,geometry,svg]"
+python -m pip install -e ".[dev,geometry,svg,trace]"
 ```
 
 Run the same checks used by CI:

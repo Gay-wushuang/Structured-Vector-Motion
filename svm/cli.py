@@ -341,6 +341,62 @@ def command_import_svg(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def command_trace_bitmap(args: argparse.Namespace) -> dict[str, Any]:
+    from .adapters import BitmapTraceAdapter
+
+    document = load_and_validate(args.document)
+    try:
+        source_bytes = args.bitmap.read_bytes()
+    except OSError as exc:
+        raise CliError(f"Cannot read {args.bitmap}: {exc}") from exc
+    artifact_store = ArtifactStore()
+    artifact = artifact_store.import_bytes(
+        source_bytes,
+        media_type="image/png",
+        kind=ArtifactKind.REFERENCE,
+        provenance={"source_name": args.bitmap.name},
+    )
+    store = RevisionStore.create(document)
+    base_revision_id = store.head
+    if base_revision_id is None:
+        raise CliError("Revision Store did not create an initial head")
+    options = {
+        "threshold": args.threshold,
+        "invert": args.invert,
+        "turd_size": args.turd_size,
+        "turn_policy": args.turn_policy,
+        "alpha_max": args.alpha_max,
+        "optimize_curve": not args.no_optimize_curve,
+        "optimization_tolerance": args.optimization_tolerance,
+        "path_tolerance": args.path_tolerance,
+        "fill_rule": args.fill_rule,
+    }
+    if args.namespace:
+        options["namespace"] = args.namespace
+    request = AdapterRequest.from_store(
+        store,
+        base_revision_id,
+        ("document",),
+        artifact_ids=(artifact.artifact_id,),
+        options=options,
+    )
+    proposal = BitmapTraceAdapter().propose(request, artifact_store)
+    revision = ProposalAcceptor().accept(store, proposal, artifact_store)
+    traced = store.get_document(revision.revision_id)
+    output_bytes = (json.dumps(traced, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
+        "utf-8"
+    )
+    args.output.write_bytes(output_bytes)
+    return {
+        "written": str(args.output),
+        "artifact_id": artifact.artifact_id,
+        "proposal_id": proposal.proposal_id,
+        "revision_id": revision.revision_id,
+        "traced_paths": proposal.report.metrics["traced_paths"],
+        "bytes": len(output_bytes),
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="svm", description="SVM v0.1 reference CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -406,6 +462,28 @@ def build_parser() -> argparse.ArgumentParser:
     import_svg.add_argument("--output", type=Path, required=True)
     import_svg.add_argument("--namespace")
     import_svg.set_defaults(handler=command_import_svg)
+
+    trace_bitmap = subparsers.add_parser(
+        "trace-bitmap", help="trace a PNG through the deterministic Adapter boundary"
+    )
+    trace_bitmap.add_argument("document", type=Path, help="base SVM Document")
+    trace_bitmap.add_argument("bitmap", type=Path, help="source PNG Artifact")
+    trace_bitmap.add_argument("--output", type=Path, required=True)
+    trace_bitmap.add_argument("--namespace")
+    trace_bitmap.add_argument("--threshold", type=int, default=128)
+    trace_bitmap.add_argument("--invert", action="store_true")
+    trace_bitmap.add_argument("--turd-size", type=int, default=2)
+    trace_bitmap.add_argument(
+        "--turn-policy",
+        choices=("black", "white", "left", "right", "minority", "majority"),
+        default="minority",
+    )
+    trace_bitmap.add_argument("--alpha-max", type=float, default=1.0)
+    trace_bitmap.add_argument("--no-optimize-curve", action="store_true")
+    trace_bitmap.add_argument("--optimization-tolerance", type=float, default=0.2)
+    trace_bitmap.add_argument("--path-tolerance", type=float, default=0.25)
+    trace_bitmap.add_argument("--fill-rule", choices=("nonzero", "evenodd"), default="nonzero")
+    trace_bitmap.set_defaults(handler=command_trace_bitmap)
     return parser
 
 

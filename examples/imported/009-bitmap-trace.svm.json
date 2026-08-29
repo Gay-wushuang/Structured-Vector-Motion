@@ -1,0 +1,87 @@
+{
+  "animation": {
+    "construction_scheduling_hints": [],
+    "content": []
+  },
+  "constraints": [],
+  "construction": {
+    "operations": [
+      {
+        "id": "op:trace-fixture-path",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            6.987384869595486,
+            8.5,
+            90.30460192798957,
+            75.39220869187724
+          ],
+          "d": "M 30.2049579899 71.1669326316 C 16.3005853427 66.2036854739 6.9873848696 52.1039206568 8.27004920365 37.9584715806 C 9.2971378314 26.6315565844 16.4288622573 16.3923194338 26.8584932397 11.2704680373 C 31.5955255659 8.94417522069 33.7825998054 8.5 40.5 8.5 C 50.7221337091 8.5 57.7383642283 11.6655125445 64.7244057334 19.4293245171 C 67.35098258 22.3483236033 74.029601928 28.0583615767 79.5657820622 32.1182977914 C 85.1019621964 36.1782340061 89.8269621964 39.806031671 90.0657820622 40.1800703799 C 90.304601928 40.5541090889 85.775 44.3258750827 80 48.5617725885 C 74.225 52.7976700942 67.35098258 58.6516763967 64.7244057334 61.5706754829 C 55.70535552 71.5938352334 42.041929032 75.3922086919 30.2049579899 71.1669326316 Z M 46.0938824754 49.4514514852 C 52.4303874205 46.1747174302 54.7008270533 38.3017107437 51.0404844881 32.2985485148 C 46.0463493405 24.107893419 34.9536506595 24.107893419 29.9595155119 32.2985485148 C 26.3734226977 38.1799370865 28.2290237121 45.3396782898 34.2985485148 49.0404844881 C 38.1617832657 51.3960367885 42.0701396922 51.5322097455 46.0938824754 49.4514514852 Z"
+        },
+        "type": "CreatePath"
+      },
+      {
+        "id": "op:trace-fixture-planar",
+        "inputs": {
+          "path": "op:trace-fixture-path.geometry"
+        },
+        "parameters": {
+          "fill_rule": "nonzero",
+          "tolerance": 0.25
+        },
+        "type": "PathToPolygon"
+      }
+    ],
+    "output_bindings": [
+      {
+        "entity": "entity:trace-fixture",
+        "property": "geometry",
+        "slot": "op:trace-fixture-planar.geometry"
+      }
+    ],
+    "refinement_stages": [
+      "mass",
+      "contour",
+      "detail"
+    ]
+  },
+  "document_id": "document:svg-import-target",
+  "edit_permissions": [],
+  "entities": [
+    {
+      "id": "entity:trace-fixture",
+      "name": "Bitmap trace fixture"
+    }
+  ],
+  "evaluation_policies": [],
+  "presentation": {
+    "render_stack": [
+      "entity:trace-fixture"
+    ],
+    "styles": [
+      {
+        "entity": "entity:trace-fixture",
+        "fill": "#000000",
+        "opacity": 1.0,
+        "stroke": "none",
+        "stroke_width": 1.0
+      }
+    ]
+  },
+  "references": [
+    {
+      "content_hash": "sha256:81afa819928a0233443fecc438c17d79ed2567de43c8a20b0ad5ef6571c94410",
+      "id": "artifact:81afa819928a0233443fecc438c17d79ed2567de43c8a20b0ad5ef6571c94410",
+      "import_metadata": {
+        "artifact_kind": "ReferenceArtifact",
+        "provenance": {
+          "source_name": "003-bitmap-trace-source.png"
+        }
+      },
+      "media_type": "image/png",
+      "uri": "artifact:81afa819928a0233443fecc438c17d79ed2567de43c8a20b0ad5ef6571c94410"
+    }
+  ],
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1"
+}

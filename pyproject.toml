@@ -20,6 +20,10 @@ geometry = [
   "shapely>=2.1.2,<2.2",
   "svgpathtools>=1.7.2,<2",
 ]
+trace = [
+  "Pillow>=11,<13",
+  "potracer==0.0.4",
+]
 dev = [
   "pyright>=1.1.390,<2",
   "ruff>=0.8,<1",
