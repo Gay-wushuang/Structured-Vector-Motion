@@ -92,7 +92,15 @@ class OpenCVAnalysisGoldenHTest(unittest.TestCase):
         self.assertEqual(analysis.content, (DERIVED / "component-analysis.json").read_bytes())
         self.assertEqual(mask.provenance["derived_type"], "binary-mask")
         self.assertEqual(analysis.provenance["derived_type"], "component-analysis")
-        self.assertIn(b"SVMArtifact\x00binary-mask-v0.1", mask.content)
+        self.assertEqual(proposal.generator.adapter_version, "0.2")
+        self.assertEqual(
+            proposal.generator.parameters["analysis_identity"], "svm-opencv-components@0.2"
+        )
+        self.assertEqual(proposal.generator.parameters["mask_identity"], "svm-binary-mask-png@0.2")
+        self.assertIn(b"SVMArtifact\x00binary-mask-v0.2", mask.content)
+        self.assertEqual(
+            json.loads(analysis.content)["schema_version"], "svm-component-analysis-0.2"
+        )
         self.assertNotIn(self.source.content_hash.encode("ascii"), mask.content)
         import cv2
         import numpy as np

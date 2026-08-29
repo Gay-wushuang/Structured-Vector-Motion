@@ -149,7 +149,7 @@ svm analyze-bitmap examples/005-empty-canvas.svm.json source.png `
   --threshold 128 --derived-dir analysis-output
 ```
 
-The v0.1 input subset is intentionally limited to 8-bit opaque grayscale PNGs,
+The v0.2 input subset is intentionally limited to 8-bit opaque grayscale PNGs,
 so threshold samples do not depend on an implicit color conversion. It emits a
 provenance-free content-addressed binary mask, canonical connected-component
 JSON, and previewable structural candidates containing half-open pixel bounds,

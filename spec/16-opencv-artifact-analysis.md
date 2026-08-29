@@ -1,4 +1,4 @@
-# OpenCV Artifact Analysis v0.1
+# OpenCV Artifact Analysis v0.2
 
 ## Status
 
@@ -23,19 +23,19 @@ Entity. Converting or matching a candidate requires a later explicit Proposal.
 
 ## Input semantics
 
-The v0.1 subset accepts one 8-bit opaque grayscale PNG (bit depth 8, color type
+The v0.2 subset accepts one 8-bit opaque grayscale PNG (bit depth 8, color type
 0) up to 32 MiB and 16 megapixels. The PNG signature and IHDR dimensions are
 checked before OpenCV decoding. RGB, indexed/palette, alpha, and PNG
 transparency are rejected. The decoded grayscale value MUST be the PNG sample
-value; v0.1 performs no color, gamma, profile, or palette conversion.
+value; v0.2 performs no color, gamma, profile, or palette conversion.
 
 Recorded parameters are:
 
 - integer threshold in `[0, 255]`;
 - foreground polarity `dark` or `light`;
-- connectivity, fixed to `8` in v0.1;
-- `svm-opencv-components@0.1` analysis identity;
-- `svm-binary-mask-png@0.1` mask encoding identity;
+- connectivity, fixed to `8` in v0.2;
+- `svm-opencv-components@0.2` analysis identity;
+- `svm-binary-mask-png@0.2` mask encoding identity;
 - `svm-png-gray8-samples@0.1` grayscale preprocessing identity;
 - exact `opencv-python-headless` distribution version and OpenCV runtime version.
 
@@ -58,9 +58,14 @@ Centroids are canonical `.12g` numbers. The canonical JSON media type is
 
 The binary mask uses an SVM-owned deterministic grayscale PNG encoder with
 filter 0 scanlines and stored DEFLATE blocks. Its text chunk records only
-`SVMArtifact=binary-mask-v0.1`. Source identity and provenance exist only in the
+`SVMArtifact=binary-mask-v0.2`. Source identity and provenance exist only in the
 Artifact descriptor, never in mask bytes. Equal mask pixels and dimensions
 therefore produce the same Artifact Blob identity regardless of source.
+
+Canonical component JSON declares `svm-component-analysis-0.2` because
+`component_digest` is a required output field. The `0.2` analysis and mask
+identities supersede the pre-baseline `0.1` behavior that admitted implicit
+color conversion and embedded source provenance in mask bytes.
 
 ## Acceptance
 

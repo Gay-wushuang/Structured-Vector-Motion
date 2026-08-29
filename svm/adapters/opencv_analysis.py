@@ -27,8 +27,8 @@ from ..revisions import AppendReferencesChange, Transaction
 from .bitmap_trace import BITMAP_MEDIA_TYPES
 
 ANALYSIS_MEDIA_TYPE = "application/vnd.svm.component-analysis+json"
-ANALYSIS_IDENTITY = "svm-opencv-components@0.1"
-MASK_IDENTITY = "svm-binary-mask-png@0.1"
+ANALYSIS_IDENTITY = "svm-opencv-components@0.2"
+MASK_IDENTITY = "svm-binary-mask-png@0.2"
 GRAYSCALE_IDENTITY = "svm-png-gray8-samples@0.1"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
@@ -54,13 +54,13 @@ class OpenCVAnalysisOptions:
         if options.foreground not in {"dark", "light"}:
             raise OpenCVAnalysisError("foreground must be dark or light")
         if options.connectivity != 8:
-            raise OpenCVAnalysisError("OpenCV analysis v0.1 requires 8-connectivity")
+            raise OpenCVAnalysisError("OpenCV analysis v0.2 requires 8-connectivity")
         return options
 
 
 class OpenCVAnalysisAdapter:
     adapter_id = "adapter:opencv-analysis"
-    adapter_version = "0.1"
+    adapter_version = "0.2"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactRepository) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -78,7 +78,7 @@ class OpenCVAnalysisAdapter:
         if width * height > 16_000_000:
             raise OpenCVAnalysisError("PNG exceeds the 16 megapixel analysis limit")
         if bit_depth != 8 or color_type != 0:
-            raise OpenCVAnalysisError("OpenCV analysis v0.1 requires an 8-bit opaque grayscale PNG")
+            raise OpenCVAnalysisError("OpenCV analysis v0.2 requires an 8-bit opaque grayscale PNG")
         encoded = np.frombuffer(source.content, dtype=np.uint8)
         grayscale = cv2.imdecode(encoded, cv2.IMREAD_UNCHANGED)
         if grayscale is None or grayscale.shape != (height, width) or grayscale.dtype != np.uint8:
@@ -150,7 +150,7 @@ class OpenCVAnalysisAdapter:
             provenance={**provenance, "derived_type": "binary-mask"},
         )
         analysis_payload = {
-            "schema_version": "svm-component-analysis-0.1",
+            "schema_version": "svm-component-analysis-0.2",
             "source_artifact_id": source.artifact_id,
             "source_content_hash": source.content_hash,
             "image": {"width": width, "height": height},
@@ -265,7 +265,7 @@ def _png_header(content: bytes) -> tuple[int, int, int, int]:
             raise OpenCVAnalysisError("PNG contains a truncated chunk")
         chunk_type = content[offset + 4 : offset + 8]
         if chunk_type == b"tRNS":
-            raise OpenCVAnalysisError("PNG alpha/transparency is not supported in v0.1")
+            raise OpenCVAnalysisError("PNG alpha/transparency is not supported in v0.2")
         offset = end
         if chunk_type == b"IEND":
             break
@@ -278,7 +278,7 @@ def _encode_mask_png(mask: Any, width: int, height: int) -> bytes:
         raise OpenCVAnalysisError("Binary mask storage does not match PNG dimensions")
     scanlines = b"".join(b"\x00" + pixels[row * width : (row + 1) * width] for row in range(height))
     ihdr = struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0)
-    metadata = b"binary-mask-v0.1"
+    metadata = b"binary-mask-v0.2"
     return b"".join(
         (
             PNG_SIGNATURE,

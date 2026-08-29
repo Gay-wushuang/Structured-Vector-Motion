@@ -35,22 +35,22 @@
       "uri": "artifact:5b104408f9f1d9a26d8e022cc2dcdfe95e905493d6ba0b543fdde124c2a6a2f8"
     },
     {
-      "content_hash": "sha256:cfd45bdf78fbc758be40159c5d2c6caa7a94fadf10b024b47d8c5598e2eb571e",
-      "id": "artifact:cfd45bdf78fbc758be40159c5d2c6caa7a94fadf10b024b47d8c5598e2eb571e",
+      "content_hash": "sha256:8343228c2f0bb465089174a98e39a3f5b062c74c7b24efe2cc111b2b5b109688",
+      "id": "artifact:8343228c2f0bb465089174a98e39a3f5b062c74c7b24efe2cc111b2b5b109688",
       "import_metadata": {
         "artifact_kind": "DerivedArtifact",
         "provenance": {
           "adapter_id": "adapter:opencv-analysis",
-          "adapter_version": "0.1",
+          "adapter_version": "0.2",
           "derived_type": "binary-mask",
           "engine": "opencv-python-headless",
           "engine_version": "4.14.0.94",
           "parameters": {
-            "analysis_identity": "svm-opencv-components@0.1",
+            "analysis_identity": "svm-opencv-components@0.2",
             "connectivity": 8,
             "foreground": "dark",
             "grayscale_identity": "svm-png-gray8-samples@0.1",
-            "mask_identity": "svm-binary-mask-png@0.1",
+            "mask_identity": "svm-binary-mask-png@0.2",
             "opencv_runtime_version": "4.14.0",
             "threshold": 128
           },
@@ -59,25 +59,25 @@
         }
       },
       "media_type": "image/png",
-      "uri": "artifact:cfd45bdf78fbc758be40159c5d2c6caa7a94fadf10b024b47d8c5598e2eb571e"
+      "uri": "artifact:8343228c2f0bb465089174a98e39a3f5b062c74c7b24efe2cc111b2b5b109688"
     },
     {
-      "content_hash": "sha256:aaab5dacd1af713f6db08d2b37e4d43be24138a565193e34a92c448aaf97e965",
-      "id": "artifact:aaab5dacd1af713f6db08d2b37e4d43be24138a565193e34a92c448aaf97e965",
+      "content_hash": "sha256:77122ed8011a65a89f1f1e7247c7d255bc23f0ec741dcb5c183d1a54d2a978c5",
+      "id": "artifact:77122ed8011a65a89f1f1e7247c7d255bc23f0ec741dcb5c183d1a54d2a978c5",
       "import_metadata": {
         "artifact_kind": "DerivedArtifact",
         "provenance": {
           "adapter_id": "adapter:opencv-analysis",
-          "adapter_version": "0.1",
+          "adapter_version": "0.2",
           "derived_type": "component-analysis",
           "engine": "opencv-python-headless",
           "engine_version": "4.14.0.94",
           "parameters": {
-            "analysis_identity": "svm-opencv-components@0.1",
+            "analysis_identity": "svm-opencv-components@0.2",
             "connectivity": 8,
             "foreground": "dark",
             "grayscale_identity": "svm-png-gray8-samples@0.1",
-            "mask_identity": "svm-binary-mask-png@0.1",
+            "mask_identity": "svm-binary-mask-png@0.2",
             "opencv_runtime_version": "4.14.0",
             "threshold": 128
           },
@@ -86,7 +86,7 @@
         }
       },
       "media_type": "application/vnd.svm.component-analysis+json",
-      "uri": "artifact:aaab5dacd1af713f6db08d2b37e4d43be24138a565193e34a92c448aaf97e965"
+      "uri": "artifact:77122ed8011a65a89f1f1e7247c7d255bc23f0ec741dcb5c183d1a54d2a978c5"
     }
   ],
   "schema_version": "0.1",
