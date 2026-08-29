@@ -93,6 +93,23 @@ canonical polygon sets only. Review the golden result at
 `examples/rendered/007-boolean-geometry.svg` and the contract in
 `spec/11-geometry-backend.md`.
 
+## Path to planar geometry contract
+
+The next explicit construction boundary is specified before its algorithm is
+implemented:
+
+```text
+CreatePath -> path_data
+PathToPolygon(tolerance, fill_rule) -> polygon_set
+BooleanGeometry -> polygon_set
+```
+
+`tolerance` is recorded in Document coordinate units; open subpaths and arcs
+fail closed in the initial subset; self-intersections are interpreted through
+the recorded fill rule. See `spec/12-path-to-planar-geometry.md`, the pending
+Golden D Document in `examples/contracts/008-golden-d.pending.json`, and the
+contract tests in `tests/test_path_to_polygon_contract.py`.
+
 ## Development
 
 Install the project and development tools in editable mode:

@@ -44,3 +44,8 @@ Additional semantic validation coverage in `tests/test_operations.py` verifies
 registered type dispatch, exact input signatures, parameter rules, static and
 dynamic output signatures, Value-type compatibility, binding resolution, and
 atomic parameter mutation.
+
+`tests/test_path_to_polygon_contract.py` records the pending Golden D execution
+contract. Its active tests verify SVG-to-CreatePath evidence and fail-closed
+Registry behavior; algorithm-dependent assertions remain explicitly skipped
+until `PathToPolygon` is registered.

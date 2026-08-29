@@ -327,3 +327,7 @@ Adapter specified in `10-svg-import-adapter.md`.
 The first implemented capability Backend is the Shapely-backed planar Geometry
 Backend specified in `11-geometry-backend.md`. Its public boundary is
 `GeometryBackend`, not a vendor-named Core abstraction.
+
+Path-to-planar conversion is an explicit `PathToPolygon` Operation contract in
+`12-path-to-planar-geometry.md`. `BooleanGeometry` and its Backend must never
+flatten `path_data` implicitly.

@@ -1,0 +1,35 @@
+{
+  "status": "pending-implementation",
+  "algorithm_identity": "svm-path-planar:0.1",
+  "operation": {
+    "type": "PathToPolygon",
+    "inputs": {"path": "geometry:path_data"},
+    "parameters": {
+      "tolerance": {"type": "finite-number", "exclusive_minimum": 0},
+      "fill_rule": {"enum": ["nonzero", "evenodd"]}
+    },
+    "outputs": {"geometry": "geometry:polygon_set"},
+    "quality_sensitive": false
+  },
+  "golden_d": {
+    "source": "examples/assets/002-bezier-boolean-source.svg",
+    "document": "examples/contracts/008-golden-d.pending.json",
+    "tolerance": 0.5,
+    "fill_rule": "nonzero",
+    "path_operations": 2,
+    "planar_operations": 2,
+    "boolean_operator": "union",
+    "expected_intermediate_kind": "polygon_set",
+    "expected_final_kind": "polygon_set"
+  },
+  "negative_cases": [
+    "open-subpath",
+    "elliptical-arc",
+    "zero-tolerance",
+    "negative-tolerance",
+    "non-finite-tolerance",
+    "invalid-fill-rule",
+    "degenerate-subpath",
+    "empty-planar-result"
+  ]
+}

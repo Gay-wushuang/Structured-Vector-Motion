@@ -39,8 +39,9 @@ Read these files before changing core behavior:
 7. `spec/09-policy-enforcement.md` — supported Proposal policy subset.
 8. `spec/10-svg-import-adapter.md` — deterministic external Adapter contract.
 9. `spec/11-geometry-backend.md` — deterministic Geometry Backend contract.
-10. `examples/001-head-basic.svm.json` — current example Document.
-11. `tests/test_golden_a.py` — executable expectations.
+10. `spec/12-path-to-planar-geometry.md` — PathToPolygon normative contract.
+11. `examples/001-head-basic.svm.json` — current example Document.
+12. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -244,6 +245,10 @@ Next milestones:
 4. Introduce the first deterministic capability Backend. Shapely-backed planar
    Boolean geometry now proves accepted Operation execution without Proposal or
    Revision coupling.
+5. Specify Path-to-planar conversion before implementing it. The v0.1 contract
+   and Golden D fixtures are checked in; `PathToPolygon` execution remains the
+   next milestone and must satisfy those pending tests without hidden Backend
+   tolerance defaults.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

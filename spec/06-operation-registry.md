@@ -131,3 +131,7 @@ rejected at semantic validation rather than materialized as invisible geometry.
 `BooleanGeometry.operator` is one of `union`, `intersection`, `difference`, or
 `xor`. It declares the `geometry` capability; its accepted meaning belongs to
 the Registry while execution is delegated through `GeometryBackend`.
+
+`PathToPolygon` is reserved by `12-path-to-planar-geometry.md` but is not yet a
+registered v0.1 implementation. Until its contract is implemented, Documents
+containing it must fail semantic validation as an unsupported Operation.
