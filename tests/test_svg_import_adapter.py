@@ -114,6 +114,7 @@ class SVGImportAdapterTest(unittest.TestCase):
         self.assertEqual(proposal.base_revision_id, self.store.head)
         self.assertEqual(proposal.report.metrics["imported_shapes"], 3.0)
         self.assertEqual(proposal.generator.engine, "svgpathtools")
+        self.assertTrue(proposal.generator.engine_version.endswith("+svm-path-bounds@0.1"))
 
         revision = ProposalAcceptor().accept(self.store, proposal, self.artifact_store)
         imported = self.store.get_document(revision.revision_id)

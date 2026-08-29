@@ -9,9 +9,9 @@ from typing import Any, Protocol
 
 from ..artifacts import ArtifactKind, ArtifactResolver, ArtifactSnapshot
 from ..evaluator import canonical_bytes
+from ..path_bounds import PATH_BOUNDS_IDENTITY, PathBoundsError, canonical_path_bounds
 from ..proposals import AdapterRequest, EvaluationReport, GeneratorProvenance, Proposal
 from ..revisions import AppendSceneFragmentChange, Transaction
-from .path_bounds import PathBoundsError, canonical_path_bounds
 
 BITMAP_MEDIA_TYPES = {"image/png"}
 _TURN_POLICIES = {
@@ -109,7 +109,7 @@ class PotracerEngine:
             f"+pillow@{importlib.metadata.version('Pillow')}"
             "+svm-bitmap-preprocess@0.1"
             f"+svgpathtools@{importlib.metadata.version('svgpathtools')}"
-            "+svm-path-bounds@0.1"
+            f"+{PATH_BOUNDS_IDENTITY}"
         )
 
     def trace(self, content: bytes, options: TraceOptions) -> TraceResult:
@@ -186,9 +186,7 @@ class PotracerEngine:
             except PathBoundsError as exc:
                 raise BitmapTraceError(str(exc)) from exc
             paths.append(TracedPath(path_data, bounds, len(group)))
-        paths.sort(
-            key=lambda path: (path.bounds[1], path.bounds[0], path.bounds[3], path.bounds[2])
-        )
+        paths.sort(key=_trace_path_order)
         return TraceResult(tuple(paths))
 
 
@@ -366,6 +364,10 @@ def _canonical_coordinate(value: float) -> float:
 
 def _number(value: float) -> str:
     return format(value, ".12g")
+
+
+def _trace_path_order(path: TracedPath) -> tuple[float, float, float, float, str]:
+    return (path.bounds[1], path.bounds[0], path.bounds[3], path.bounds[2], path.d)
 
 
 def _component_groups(

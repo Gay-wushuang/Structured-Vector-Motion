@@ -4,13 +4,15 @@ import math
 
 from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
 
+PATH_BOUNDS_IDENTITY = "svm-path-bounds@0.1"
+
 
 class PathBoundsError(ValueError):
     pass
 
 
 def canonical_path_bounds(path_data: str) -> tuple[float, float, float, float]:
-    """Return the exact axis-aligned bounds of the geometry encoded by path_data."""
+    """Return canonical exact axis-aligned bounds for SVG path geometry."""
 
     if not isinstance(path_data, str) or not path_data.strip():
         raise PathBoundsError("Path data must be a non-empty string")

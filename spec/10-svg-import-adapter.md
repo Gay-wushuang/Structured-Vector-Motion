@@ -27,11 +27,12 @@ geometry is represented only through registered SVM Operations.
 
 ## 2. External dependency
 
-The Adapter uses [svgpathtools](https://pypi.org/project/svgpathtools/) to parse
-and validate SVG path data and calculate path bounds. The declared compatibility
-range is `>=1.7.2,<2` in the optional `svg` extra. svgpathtools is MIT licensed
-and is an Adapter implementation dependency, not a Core abstraction. Core
-validation and evaluation remain importable without it.
+The Adapter and Core `CreatePath` validator use
+[svgpathtools](https://pypi.org/project/svgpathtools/) to parse path data and
+calculate exact path bounds. The declared compatibility range is `>=1.7.2,<2`
+in the Core dependencies because exact `d`/bounds consistency is a Core
+invariant, not merely Adapter hygiene. svgpathtools is MIT licensed; its objects
+and private data model are not part of the SVM Document contract.
 
 Accepted `CreatePath` Operations contain SVG path data plus recorded bounds, so
 an accepted Document remains evaluable and renderable without rerunning the
@@ -40,6 +41,9 @@ Adapter or accessing the source file.
 Path bounds are computed by the shared `canonical_path_bounds` implementation
 from the accepted `d` string. They are true axis-aligned curve bounds rather
 than control-hull bounds and are normalized to `.12g` numbers.
+
+Generator provenance records the svgpathtools package version together with the
+shared `svm-path-bounds@0.1` implementation identity.
 
 ## 3. Artifact Store
 

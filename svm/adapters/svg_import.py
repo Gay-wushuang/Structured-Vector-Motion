@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..artifacts import ArtifactKind, ArtifactResolver, ArtifactSnapshot
+from ..path_bounds import PATH_BOUNDS_IDENTITY, PathBoundsError, canonical_path_bounds
 from ..proposals import (
     AdapterRequest,
     EvaluationReport,
@@ -13,7 +14,6 @@ from ..proposals import (
     Proposal,
 )
 from ..revisions import AppendSceneFragmentChange, Transaction
-from .path_bounds import PathBoundsError, canonical_path_bounds
 
 SVG_MEDIA_TYPES = {"image/svg+xml", "application/svg+xml"}
 SVG_NAMESPACE = "http://www.w3.org/2000/svg"
@@ -83,7 +83,9 @@ class SVGImportAdapter:
                 adapter_id=self.adapter_id,
                 adapter_version=self.adapter_version,
                 engine="svgpathtools",
-                engine_version=importlib.metadata.version("svgpathtools"),
+                engine_version=(
+                    f"{importlib.metadata.version('svgpathtools')}+{PATH_BOUNDS_IDENTITY}"
+                ),
                 parameters={"namespace": namespace},
             ),
             transaction=Transaction(

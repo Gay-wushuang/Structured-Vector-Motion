@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Any
 
 from .backends import GeometryBackend, GeometryBackendError
+from .path_bounds import PathBoundsError, canonical_path_bounds
 
 
 class ValueType(StrEnum):
@@ -114,6 +115,15 @@ def _path_parameters(parameters: Mapping[str, Any]) -> None:
     min_x, min_y, max_x, max_y = (float(value) for value in bounds)
     if min_x > max_x or min_y > max_y:
         raise OperationValidationError("CreatePath bounds must be ordered")
+    try:
+        expected = canonical_path_bounds(parameters["d"])
+    except PathBoundsError as exc:
+        raise OperationValidationError(f"CreatePath d is invalid: {exc}") from exc
+    supplied = (min_x, min_y, max_x, max_y)
+    if supplied != expected:
+        raise OperationValidationError(
+            f"CreatePath bounds must equal canonical path bounds {list(expected)}"
+        )
 
 
 def _split_parameters(parameters: Mapping[str, Any]) -> None:

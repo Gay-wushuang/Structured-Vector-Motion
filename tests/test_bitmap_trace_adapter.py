@@ -20,10 +20,16 @@ from svm import (
     build_evaluated_scene,
 )
 from svm.adapters import BitmapTraceAdapter, BitmapTraceError, PotracerEngine
-from svm.adapters.bitmap_trace import TracedPath, _number, _point
-from svm.adapters.path_bounds import canonical_path_bounds
+from svm.adapters.bitmap_trace import (
+    TracedPath,
+    _component_groups,
+    _number,
+    _point,
+    _trace_path_order,
+)
 from svm.backends.shapely_geometry import ShapelyGeometryBackend
 from svm.evaluator import Quality
+from svm.path_bounds import canonical_path_bounds
 from svm.renderers import SVGRenderer, SVGRenderOptions
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -247,6 +253,23 @@ class BitmapTraceGoldenETest(unittest.TestCase):
         second_change = second.transaction.changes[0]
         self.assertNotEqual(first_change.entities[0]["id"], second_change.entities[0]["id"])
         self.assertNotEqual(first_change.operations[0]["id"], second_change.operations[0]["id"])
+
+    def test_nested_island_remains_in_one_contour_tree_entity(self) -> None:
+        outer = ((0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0))
+        hole = ((2.0, 2.0), (8.0, 2.0), (8.0, 8.0), (2.0, 8.0))
+        island = ((4.0, 4.0), (6.0, 4.0), (6.0, 6.0), (4.0, 6.0))
+
+        self.assertEqual(
+            _component_groups([("outer", outer), ("hole", hole), ("island", island)]),
+            [(0, 1, 2)],
+        )
+
+    def test_component_order_has_path_data_tie_break(self) -> None:
+        bounds = (0.0, 0.0, 10.0, 10.0)
+        later = TracedPath("M 1 1 L 9 1 L 9 9 Z", bounds, 1)
+        earlier = TracedPath("M 0 0 L 10 0 L 10 10 Z", bounds, 1)
+
+        self.assertEqual(sorted((later, earlier), key=_trace_path_order), [earlier, later])
 
     @staticmethod
     def _trace_options():

@@ -130,6 +130,20 @@ class OperationRegistryTest(unittest.TestCase):
         with self.assertRaisesRegex(DocumentError, "rx must be a number"):
             Evaluator(invalid_parameter)
 
+    def test_create_path_bounds_must_match_canonical_path_geometry(self) -> None:
+        invalid = json.loads(
+            (ROOT / "examples" / "008-golden-d.svm.json").read_text(encoding="utf-8")
+        )
+        path = next(
+            operation
+            for operation in invalid["construction"]["operations"]
+            if operation["type"] == "CreatePath"
+        )
+        path["parameters"]["bounds"] = [0, 0, 1, 1]
+
+        with self.assertRaisesRegex(DocumentError, "must equal canonical path bounds"):
+            validate_document(invalid)
+
     def test_unknown_operation_type_is_rejected_by_semantics_registry(self) -> None:
         invalid = copy.deepcopy(self.document)
         invalid["construction"]["operations"][0]["type"] = "MagicTrace"
