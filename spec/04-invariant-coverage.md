@@ -49,3 +49,9 @@ atomic parameter mutation.
 covers SVG-to-CreatePath evidence, deterministic intermediate/final polygon
 Values, tolerance-key invalidation, fill rules, self-intersection, explicit
 rejections, shared canonicalization, and byte-stable SVG rendering.
+
+`tests/test_component_promotion_adapter.py` implements Golden I. It verifies
+that an accepted Derived analysis Artifact can feed a later interpretation
+Adapter without reopening raster input, that preview is non-mutating, and that
+explicit acceptance atomically creates provenance-linked neutral Entities under
+artifact, schema, revision, and permission enforcement.

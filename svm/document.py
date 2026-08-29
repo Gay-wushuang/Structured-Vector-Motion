@@ -42,6 +42,9 @@ def validate_document(document: dict[str, Any]) -> None:
 
     parents: dict[str, str] = {}
     for entity in entities:
+        provenance = entity.get("provenance")
+        if provenance is not None:
+            _validate_entity_provenance(entity["id"], provenance, reference_ids)
         parent_id = entity.get("parent_id")
         if parent_id is not None:
             if parent_id not in known_entities:
@@ -121,3 +124,29 @@ def _is_supported_color(value: str) -> bool:
     if len(value) not in {7, 9} or not value.startswith("#"):
         return False
     return all(character in "0123456789abcdefABCDEF" for character in value[1:])
+
+
+def _validate_entity_provenance(entity_id: str, provenance: Any, reference_ids: set[str]) -> None:
+    expected = {"type", "artifact_id", "candidate_id", "component_digest"}
+    if not isinstance(provenance, dict) or set(provenance) != expected:
+        raise DocumentError(f"Entity {entity_id} has invalid provenance fields")
+    if provenance["type"] != "PromotedComponent":
+        raise DocumentError(f"Entity {entity_id} has unsupported provenance type")
+    if provenance["artifact_id"] not in reference_ids:
+        raise DocumentError(f"Entity {entity_id} provenance references a missing Artifact")
+    candidate_id = provenance["candidate_id"]
+    if (
+        not isinstance(candidate_id, str)
+        or not candidate_id.startswith("candidate:component-")
+        or len(candidate_id) != 24
+        or not candidate_id[-4:].isdigit()
+    ):
+        raise DocumentError(f"Entity {entity_id} has invalid provenance candidate ID")
+    digest = provenance["component_digest"]
+    if (
+        not isinstance(digest, str)
+        or len(digest) != 71
+        or not digest.startswith("sha256:")
+        or any(character not in "0123456789abcdef" for character in digest[7:])
+    ):
+        raise DocumentError(f"Entity {entity_id} has invalid provenance component digest")

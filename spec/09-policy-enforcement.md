@@ -32,6 +32,7 @@ The v0.1 intents are:
 | `AppendSceneFragmentChange` | `import_scene` | `document` | none |
 | `ReplaceSceneFragmentChange` | `reconcile_scene` | `document` and each scoped Entity ID | none |
 | `AppendReferencesChange` | `attach_analysis` | `document` | none |
+| `PromoteComponentsChange` | `promote_components` | `document` | none |
 
 An unknown Change under policy enforcement fails closed because Core cannot
 prove that accepting it is allowed.

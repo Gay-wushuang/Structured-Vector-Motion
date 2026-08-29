@@ -579,6 +579,86 @@ def command_analyze_bitmap(args: argparse.Namespace) -> dict[str, Any]:
     return result
 
 
+def command_promote_components(args: argparse.Namespace) -> dict[str, Any]:
+    from .adapters import ComponentPromotionAdapter
+
+    document = load_and_validate(args.document)
+    try:
+        analysis_bytes = args.analysis.read_bytes()
+    except OSError as exc:
+        raise CliError(f"Cannot read {args.analysis}: {exc}") from exc
+    content_hash = f"sha256:{hashlib.sha256(analysis_bytes).hexdigest()}"
+    artifact_id = f"artifact:{content_hash[7:]}"
+    references = [
+        reference for reference in document["references"] if reference["id"] == artifact_id
+    ]
+    if len(references) != 1:
+        raise CliError(
+            "component-analysis bytes must match an Artifact already accepted by the Document"
+        )
+    reference = references[0]
+    metadata = reference["import_metadata"]
+    artifacts = ArtifactStore()
+    analysis = artifacts.import_bytes(
+        analysis_bytes,
+        media_type=reference["media_type"],
+        kind=ArtifactKind(metadata["artifact_kind"]),
+        provenance=metadata.get("provenance", {}),
+        locator=None if reference["uri"] == artifact_id else reference["uri"],
+    )
+    store = RevisionStore.create(document)
+    base_revision_id = store.head
+    if base_revision_id is None:
+        raise CliError("Revision Store did not create an initial head")
+    options: dict[str, Any] = {"candidate_ids": args.candidate}
+    if args.namespace:
+        options["namespace"] = args.namespace
+    proposal = ComponentPromotionAdapter().propose(
+        AdapterRequest.from_store(
+            store,
+            base_revision_id,
+            ("document",),
+            artifact_ids=(analysis.artifact_id,),
+            options=options,
+        ),
+        artifacts,
+    )
+    if proposal.preview is None:
+        raise CliError("Component Promotion Adapter did not produce a preview")
+    result: dict[str, Any] = {
+        "accepted": False,
+        "proposal_id": proposal.proposal_id,
+        "base_revision_id": proposal.base_revision_id,
+        "analysis_artifact_id": analysis.artifact_id,
+        "metrics": proposal.report.metrics,
+        "entity_diffs": [
+            {
+                "status": diff.status,
+                "proposed_entity_id": diff.proposed_entity_id,
+                "after_bounds": diff.after_bounds,
+            }
+            for diff in proposal.preview.entity_diffs
+        ],
+    }
+    if args.accept:
+        if args.output is None:
+            raise CliError("promote-components --accept requires --output")
+        revision = ProposalAcceptor().accept(store, proposal, artifacts)
+        promoted = store.get_document(revision.revision_id)
+        args.output.write_text(
+            json.dumps(promoted, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        result.update(
+            {
+                "accepted": True,
+                "revision_id": revision.revision_id,
+                "written": str(args.output),
+            }
+        )
+    return result
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="svm", description="SVM v0.1 reference CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -712,6 +792,20 @@ def build_parser() -> argparse.ArgumentParser:
     analyze_bitmap.add_argument("--accept", action="store_true")
     analyze_bitmap.add_argument("--output", type=Path)
     analyze_bitmap.set_defaults(handler=command_analyze_bitmap)
+
+    promote_components = subparsers.add_parser(
+        "promote-components",
+        help="preview and optionally promote accepted component-analysis candidates",
+    )
+    promote_components.add_argument("document", type=Path, help="base SVM Document")
+    promote_components.add_argument(
+        "analysis", type=Path, help="accepted component-analysis Artifact bytes"
+    )
+    promote_components.add_argument("--candidate", action="append", required=True)
+    promote_components.add_argument("--namespace")
+    promote_components.add_argument("--accept", action="store_true")
+    promote_components.add_argument("--output", type=Path)
+    promote_components.set_defaults(handler=command_promote_components)
     return parser
 
 

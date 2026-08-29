@@ -44,8 +44,9 @@ Read these files before changing core behavior:
 12. `spec/14-structured-trace-components.md` — deterministic component decomposition.
 13. `spec/15-entity-reconciliation.md` — previewable re-trace identity matching.
 14. `spec/16-opencv-artifact-analysis.md` — deterministic raster analysis evidence.
-15. `examples/001-head-basic.svm.json` — current example Document.
-16. `tests/test_golden_a.py` — executable expectations.
+15. `spec/17-component-promotion.md` — explicit evidence-to-Entity promotion.
+16. `examples/001-head-basic.svm.json` — current example Document.
+17. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -266,7 +267,10 @@ Next milestones:
 9. OpenCV Artifact Analysis and Golden H now accept only 8-bit opaque grayscale
    PNGs and produce provenance-free content-addressed binary masks, canonical
    component statistics/digests, and structural candidates without creating
-   Entities. Candidate promotion remains a later explicit Proposal.
+   Entities. Promotion remains a separate explicit Proposal stage.
+10. Component Promotion and Golden I consume only accepted component-analysis
+    v0.2 evidence and explicitly create neutral, non-rendered Region Entities.
+    They must never reopen the PNG, rerun OpenCV, or imply semantic recognition.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

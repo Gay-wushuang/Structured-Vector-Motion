@@ -88,3 +88,13 @@ jobs:
         run: >
           svm analyze-bitmap examples/005-empty-canvas.svm.json
           examples/assets/006-opencv-analysis-source.png --threshold 128
+
+      - name: Validate Golden I
+        run: svm validate examples/imported/013-component-promotion.svm.json
+
+      - name: Smoke-test Component Promotion
+        run: >
+          svm promote-components examples/imported/012-opencv-analysis.svm.json
+          examples/derived/012-opencv-analysis/component-analysis.json
+          --candidate candidate:component-0001
+          --candidate candidate:component-0002

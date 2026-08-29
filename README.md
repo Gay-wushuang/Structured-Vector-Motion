@@ -158,6 +158,21 @@ Entity or Operation. Add `--accept --output` only to attach the analysis
 evidence to a new Revision. See Golden H and
 `spec/16-opencv-artifact-analysis.md`.
 
+Promote selected accepted evidence regions without rerunning image analysis:
+
+```powershell
+svm promote-components examples/imported/012-opencv-analysis.svm.json `
+  examples/derived/012-opencv-analysis/component-analysis.json `
+  --candidate candidate:component-0001 `
+  --candidate candidate:component-0002
+```
+
+The command previews deterministic neutral Region Entities. Add `--accept
+--output promoted.svm.json` to create a Revision. Promotion reads only the
+accepted canonical analysis JSON; it does not open the PNG, call OpenCV, create
+vector geometry, or claim real-world semantic classes. See Golden I and
+`spec/17-component-promotion.md`.
+
 ## Development
 
 Install the project and development tools in editable mode:

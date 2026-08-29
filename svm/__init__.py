@@ -40,6 +40,7 @@ from .proposals import (
 from .revisions import (
     AppendReferencesChange,
     AppendSceneFragmentChange,
+    PromoteComponentsChange,
     ReplaceSceneFragmentChange,
     RevisionStore,
     SetOperationParameterChange,
@@ -73,6 +74,7 @@ __all__ = [
     "RevisionStore",
     "AppendSceneFragmentChange",
     "AppendReferencesChange",
+    "PromoteComponentsChange",
     "ReplaceSceneFragmentChange",
     "SetOperationParameterChange",
     "SplitEntityChange",

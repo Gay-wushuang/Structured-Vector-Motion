@@ -72,6 +72,7 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
                     "import_scene",
                     "reconcile_scene",
                     "attach_analysis",
+                    "promote_components",
                 }
                 for action in actions
             )

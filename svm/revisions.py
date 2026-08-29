@@ -84,6 +84,30 @@ class AppendReferencesChange:
 
 
 @dataclass(frozen=True)
+class PromoteComponentsChange:
+    """Promote accepted analysis evidence into addressable, non-rendered Entities."""
+
+    entities: tuple[dict[str, Any], ...]
+    references: tuple[dict[str, Any], ...]
+
+    def policy_intent(self) -> tuple[str, str, str | None]:
+        return "promote_components", "document", None
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if not self.entities:
+            raise DocumentError("Component promotion requires at least one Entity")
+        if len(self.references) != 1:
+            raise DocumentError("Component promotion requires one analysis Artifact reference")
+        accepted_references = {reference["id"]: reference for reference in document["references"]}
+        reference = self.references[0]
+        if accepted_references.get(reference["id"]) != reference:
+            raise DocumentError(
+                "Component promotion source must already be an accepted Artifact reference"
+            )
+        document["entities"].extend(copy.deepcopy(self.entities))
+
+
+@dataclass(frozen=True)
 class ReplaceSceneFragmentChange:
     """Atomically replace an explicitly scoped, self-contained scene fragment."""
 
