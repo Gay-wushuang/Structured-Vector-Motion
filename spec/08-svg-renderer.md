@@ -43,11 +43,14 @@ The v0.1 renderer supports:
 - rectangle;
 - affine transform;
 - `ConvertToPath` and `RefineBezier` wrappers;
+- canonical `polygon_set` filled-area geometry;
 - clipping.
 
 Ellipse-to-path lowering uses four deterministic cubic Bezier segments.
 Rectangle-to-path lowering uses line commands. Transforms remain SVG groups with
 matrix transforms. Clip geometry is emitted under `<defs><clipPath>`.
+Polygon sets are emitted as one path with even-odd filling so interior rings and
+multiple polygon parts preserve their filled-area meaning.
 
 The current reference `RefineBezier` value is a structural wrapper and does not
 yet change control points; the renderer lowers its accepted source as a path.
@@ -79,6 +82,8 @@ mutate the Document.
 
 The checked-in `examples/rendered/004-styled-character.svg` is a byte-for-byte
 visual golden generated from `examples/004-styled-character.svm.json`.
+`examples/rendered/007-boolean-geometry.svg` is the equivalent golden for
+canonical Geometry Backend output.
 
 ## 7. CLI
 

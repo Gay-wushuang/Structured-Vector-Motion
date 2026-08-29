@@ -1,0 +1,62 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:boolean-geometry",
+  "references": [],
+  "entities": [
+    {"id": "entity:left", "name": "Left Source"},
+    {"id": "entity:right", "name": "Right Source"},
+    {"id": "entity:boolean-result", "name": "Boolean Union"}
+  ],
+  "construction": {
+    "operations": [
+      {
+        "id": "op:left",
+        "type": "CreateRectangle",
+        "inputs": {},
+        "parameters": {"x": 10, "y": 20, "width": 80, "height": 80}
+      },
+      {
+        "id": "op:right",
+        "type": "CreateRectangle",
+        "inputs": {},
+        "parameters": {"x": 60, "y": 50, "width": 100, "height": 70}
+      },
+      {
+        "id": "op:boolean",
+        "type": "BooleanGeometry",
+        "inputs": {
+          "left": "op:left.geometry",
+          "right": "op:right.geometry"
+        },
+        "parameters": {"operator": "union"}
+      }
+    ],
+    "output_bindings": [
+      {"entity": "entity:left", "property": "geometry", "slot": "op:left.geometry"},
+      {"entity": "entity:right", "property": "geometry", "slot": "op:right.geometry"},
+      {
+        "entity": "entity:boolean-result",
+        "property": "geometry",
+        "slot": "op:boolean.geometry"
+      }
+    ],
+    "refinement_stages": ["mass", "contour", "detail"]
+  },
+  "presentation": {
+    "render_stack": ["entity:boolean-result"],
+    "styles": [
+      {
+        "entity": "entity:boolean-result",
+        "fill": "#4D96FF",
+        "stroke": "#173B57",
+        "stroke_width": 3,
+        "opacity": 1
+      }
+    ]
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {"content": [], "construction_scheduling_hints": []}
+}

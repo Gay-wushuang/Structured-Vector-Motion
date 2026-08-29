@@ -50,7 +50,13 @@ class SVGImportAdapter:
     adapter_version = "0.1"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
-        artifact = self._select_artifact(artifacts.resolve(request.artifact_ids))
+        artifact = self._select_artifact(
+            artifacts.resolve_as(
+                request.artifact_ids,
+                kind=ArtifactKind.REFERENCE,
+                media_types=frozenset(SVG_MEDIA_TYPES),
+            )
+        )
         root = self._parse_svg(artifact)
         namespace = self._namespace(request, artifact)
         shapes = self._extract_shapes(root, namespace)
@@ -89,6 +95,7 @@ class SVGImportAdapter:
             report=EvaluationReport(
                 metrics={"imported_shapes": float(len(shapes))},
             ),
+            required_artifact_ids=(artifact.artifact_id,),
             confidence=1.0,
             notes="Deterministic flat SVG shape import",
         )
@@ -235,7 +242,7 @@ def _default_style() -> dict[str, Any]:
     return {
         "fill": "#000000",
         "stroke": "none",
-        "stroke_width": 0.0,
+        "stroke_width": 1.0,
         "opacity": 1.0,
     }
 

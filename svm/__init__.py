@@ -1,15 +1,19 @@
 """Structured Vector Motion v0.1 reference core."""
 
 from .artifacts import (
+    ArtifactBlob,
+    ArtifactDescriptor,
     ArtifactError,
     ArtifactKind,
     ArtifactResolver,
     ArtifactSnapshot,
     ArtifactStore,
 )
+from .backends import GeometryBackend, GeometryBackendError
 from .evaluator import EvaluationState, Evaluator, Quality
 from .operations import (
     OperationDefinition,
+    OperationExecutionContext,
     OperationRegistry,
     OperationValidationError,
     ValueType,
@@ -22,6 +26,7 @@ from .proposals import (
     PreviewArtifact,
     Proposal,
     ProposalAcceptor,
+    ProposalArtifactError,
     ProposalConflictError,
     ProposalPolicyError,
     ProposalProvider,
@@ -39,13 +44,18 @@ from .scene import EvaluatedEntity, EvaluatedScene, EvaluatedStyle, build_evalua
 __all__ = [
     "Evaluator",
     "ArtifactError",
+    "ArtifactBlob",
+    "ArtifactDescriptor",
     "ArtifactKind",
     "ArtifactResolver",
     "ArtifactSnapshot",
     "ArtifactStore",
+    "GeometryBackend",
+    "GeometryBackendError",
     "EvaluationState",
     "Quality",
     "OperationDefinition",
+    "OperationExecutionContext",
     "OperationRegistry",
     "OperationValidationError",
     "ValueType",
@@ -66,6 +76,7 @@ __all__ = [
     "PreviewArtifact",
     "Proposal",
     "ProposalAcceptor",
+    "ProposalArtifactError",
     "ProposalConflictError",
     "ProposalPolicyError",
     "ProposalProvider",

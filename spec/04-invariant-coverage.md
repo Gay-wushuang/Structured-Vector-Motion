@@ -16,7 +16,7 @@ Status values:
 | INV-ID-004 | covered | Golden B allocates new Face and Hair Entity IDs. |
 | INV-ID-005 | specified | Revision snapshots preserve prior entities; explicit tombstone records are not implemented. |
 | INV-EVAL-001 | covered | Evaluation produces new immutable payloads and never mutates inputs. |
-| INV-EVAL-002 | covered | Golden A and A.1 cover deterministic context and Quality-sensitive reevaluation. |
+| INV-EVAL-002 | covered | Golden A/A.1 cover deterministic context and Quality; Geometry Backend tests cover engine identity in capability evaluation. |
 | INV-EVAL-003 | specified | Current operations have no clock, network, UI, or unrecorded randomness access. |
 | INV-EVAL-004 | covered | Golden A verifies isolated transitive invalidation. |
 | INV-EVAL-005 | covered | Golden A preserves stale output separately; A.1 rejects PREVIEW equivalence for FINAL. |

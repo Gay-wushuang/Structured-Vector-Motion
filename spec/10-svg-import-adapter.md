@@ -46,10 +46,13 @@ content_hash = sha256:<digest>
 artifact_id  = artifact:<digest>
 ```
 
-Artifact identity is derived from bytes only. Kind, media type, provenance, and
-locator describe a use or interpretation and do not participate in identity.
-Repeated equivalent imports therefore deduplicate even when those descriptors
-differ. Retrieval verifies the content hash.
+Artifact identity is derived from bytes only. The Store keeps the immutable
+`ArtifactBlob` separately from one or more `ArtifactDescriptor` interpretations.
+Kind, media type, provenance, and locator belong to the descriptor and do not
+participate in identity. Repeated equivalent imports therefore deduplicate the
+bytes without making the first descriptor authoritative. ID-only resolution
+fails when multiple interpretations are present; resolving an accepted Document
+Reference selects and verifies the exact descriptor and content hash.
 
 `AdapterRequest` carries Artifact IDs, never caller-supplied byte snapshots. An
 Adapter resolves those IDs through an `ArtifactResolver`; the reference Store
@@ -57,7 +60,9 @@ only returns accepted entries and verifies their hashes during resolution.
 
 When accepted, the Artifact contributes a Document Reference containing its ID,
 hash, media type, locator, kind, and provenance. Artifact bytes are not embedded
-in the v0.1 Document.
+in the v0.1 Document. The Proposal declares the corresponding Artifact ID as
+required. The Proposal Acceptor resolves the exact reference and verifies the
+required-ID/reference set before policy enforcement or atomic commit.
 
 ## 4. Supported SVG subset
 
@@ -75,6 +80,9 @@ The Adapter supports:
 The Adapter preserves source element order as render-stack order. Element IDs
 become display names. SVM Entity and Operation IDs are deterministic from the
 Artifact namespace and element index.
+
+SVG initial values are preserved for supported style properties: `fill` is
+black, `stroke` is `none`, `stroke-width` is `1`, and `opacity` is `1`.
 
 ## 5. Explicit rejections
 

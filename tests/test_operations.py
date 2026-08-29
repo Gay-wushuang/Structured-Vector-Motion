@@ -23,6 +23,7 @@ class OperationRegistryTest(unittest.TestCase):
         self.assertEqual(
             self.registry.type_names,
             (
+                "BooleanGeometry",
                 "Clip",
                 "ConvertToPath",
                 "CreateEllipse",

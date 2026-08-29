@@ -12,6 +12,7 @@ from svm import (
     ArtifactStore,
     Evaluator,
     ProposalAcceptor,
+    ProposalArtifactError,
     ProposalPolicyError,
     RevisionStore,
     build_evaluated_scene,
@@ -70,6 +71,23 @@ class SVGImportAdapterTest(unittest.TestCase):
             kind=ArtifactKind.DERIVED,
         )
         self.assertEqual(reinterpreted.artifact_id, self.artifact.artifact_id)
+        self.assertEqual(reinterpreted.kind, ArtifactKind.DERIVED)
+        self.assertEqual(reinterpreted.media_type, "application/octet-stream")
+        self.assertEqual(self.artifact.kind, ArtifactKind.REFERENCE)
+        self.assertEqual(self.artifact.media_type, "image/svg+xml")
+        self.assertEqual(reinterpreted.content, self.artifact.content)
+        with self.assertRaisesRegex(ValueError, "multiple interpretations"):
+            self.artifact_store.resolve((self.artifact.artifact_id,))
+        with self.assertRaisesRegex(ValueError, "exactly one matching interpretation"):
+            self.artifact_store.resolve_as(
+                (self.artifact.artifact_id,),
+                kind=ArtifactKind.REFERENCE,
+                media_types=frozenset({"image/svg+xml"}),
+            )
+        self.assertEqual(
+            self.artifact_store.resolve_reference(self.artifact.document_reference()),
+            self.artifact,
+        )
 
     def test_request_resolves_artifact_ids_through_the_store(self) -> None:
         request = AdapterRequest.from_store(
@@ -86,7 +104,7 @@ class SVGImportAdapterTest(unittest.TestCase):
             b'<svg xmlns="http://www.w3.org/2000/svg"/>',
             media_type="image/svg+xml",
         )
-        object.__setattr__(tampered, "content", b"tampered")
+        object.__setattr__(tampered.blob, "content", b"tampered")
         with self.assertRaisesRegex(ValueError, "content hash mismatch"):
             tampered_store.resolve((tampered.artifact_id,))
 
@@ -97,7 +115,7 @@ class SVGImportAdapterTest(unittest.TestCase):
         self.assertEqual(proposal.report.metrics["imported_shapes"], 3.0)
         self.assertEqual(proposal.generator.engine, "svgpathtools")
 
-        revision = ProposalAcceptor().accept(self.store, proposal)
+        revision = ProposalAcceptor().accept(self.store, proposal, self.artifact_store)
         imported = self.store.get_document(revision.revision_id)
         self.assertEqual(len(imported["entities"]), 3)
         self.assertEqual(len(imported["references"]), 1)
@@ -144,6 +162,40 @@ class SVGImportAdapterTest(unittest.TestCase):
             )
             self.assertEqual(rendered.returncode, 0, rendered.stderr)
             self.assertEqual(ET.parse(rendered_path).getroot().attrib["viewBox"], "0 0 200 160")
+
+    def test_acceptor_rejects_missing_or_mismatched_required_artifacts(self) -> None:
+        proposal = SVGImportAdapter().propose(self.request(), self.artifact_store)
+        revision_count = len(self.store.revisions)
+
+        with self.assertRaisesRegex(ProposalArtifactError, "resolver"):
+            ProposalAcceptor().accept(self.store, proposal)
+        with self.assertRaisesRegex(ProposalArtifactError, "Unknown artifact"):
+            ProposalAcceptor().accept(self.store, proposal, ArtifactStore())
+
+        reference = proposal.transaction.changes[0].references[0]
+        reference["content_hash"] = "sha256:" + "0" * 64
+        with self.assertRaisesRegex(ProposalArtifactError, "content hash"):
+            ProposalAcceptor().accept(self.store, proposal, self.artifact_store)
+        self.assertEqual(len(self.store.revisions), revision_count)
+
+    def test_svg_default_stroke_width_is_one(self) -> None:
+        artifact_store = ArtifactStore()
+        artifact = artifact_store.import_bytes(
+            b'<svg xmlns="http://www.w3.org/2000/svg">'
+            b'<path d="M 0 0 L 1 1" fill="none" stroke="#000000"/>'
+            b"</svg>",
+            media_type="image/svg+xml",
+        )
+        request = AdapterRequest.from_store(
+            self.store,
+            self.store.head,
+            ("document",),
+            artifact_ids=(artifact.artifact_id,),
+        )
+        proposal = SVGImportAdapter().propose(request, artifact_store)
+
+        style = proposal.transaction.changes[0].styles[0]
+        self.assertEqual(style["stroke_width"], 1.0)
 
     def test_unsafe_or_unsupported_svg_is_rejected(self) -> None:
         unsafe = self.artifact_store.import_bytes(
@@ -214,7 +266,7 @@ class SVGImportAdapterTest(unittest.TestCase):
         proposal = SVGImportAdapter().propose(request, self.artifact_store)
 
         with self.assertRaisesRegex(ProposalPolicyError, "denies adapter:svg-import"):
-            ProposalAcceptor().accept(protected_store, proposal)
+            ProposalAcceptor().accept(protected_store, proposal, self.artifact_store)
 
     def test_imported_document_and_render_match_checked_in_goldens(self) -> None:
         request = AdapterRequest.from_store(
@@ -225,7 +277,7 @@ class SVGImportAdapterTest(unittest.TestCase):
             options={"namespace": "golden"},
         )
         proposal = SVGImportAdapter().propose(request, self.artifact_store)
-        revision = ProposalAcceptor().accept(self.store, proposal)
+        revision = ProposalAcceptor().accept(self.store, proposal, self.artifact_store)
         imported = self.store.get_document(revision.revision_id)
         self.assertEqual(
             imported,

@@ -83,6 +83,18 @@ def _quality(value: str) -> Quality:
     return Quality(value.upper())
 
 
+def _geometry_backend(name: str | None) -> Any:
+    if name is None:
+        return None
+    if name != "shapely":
+        raise CliError(f"Unknown geometry backend {name!r}")
+    try:
+        from .backends.shapely_geometry import ShapelyGeometryBackend
+    except ImportError as exc:
+        raise CliError("Shapely geometry backend requires the 'geometry' extra") from exc
+    return ShapelyGeometryBackend()
+
+
 def _parse_assignment(expression: str) -> tuple[str, str, Any]:
     if "=" not in expression:
         raise CliError(
@@ -114,6 +126,7 @@ def _runtime_report(evaluator: Evaluator, include_values: bool) -> dict[str, Any
         operations[operation_id] = {
             "state": node.state.value,
             "evaluated_quality": node.evaluated_quality.value if node.evaluated_quality else None,
+            "backend_identity": node.backend_identity,
             "evaluation_key": node.evaluation_key,
             "outputs": outputs,
             "error": node.error,
@@ -151,6 +164,7 @@ def command_inspect(args: argparse.Namespace) -> dict[str, Any]:
                     for name, value_type in definition.output_signature(operation).items()
                 },
                 "quality_sensitive": definition.quality_sensitive,
+                "capability": definition.capability,
             }
         )
     return {
@@ -166,7 +180,7 @@ def command_inspect(args: argparse.Namespace) -> dict[str, Any]:
 
 def command_evaluate(args: argparse.Namespace) -> dict[str, Any]:
     document = load_and_validate(args.document)
-    evaluator = Evaluator(document)
+    evaluator = Evaluator(document, geometry_backend=_geometry_backend(args.geometry_backend))
     evaluator.evaluate_all(args.quality)
     report = _runtime_report(evaluator, args.include_values)
     report.update(
@@ -222,7 +236,7 @@ def command_reevaluate(args: argparse.Namespace) -> dict[str, Any]:
     for operation_id, parameter, value in assignments:
         candidate.set_parameter(operation_id, parameter, value)
 
-    evaluator = Evaluator(document)
+    evaluator = Evaluator(document, geometry_backend=_geometry_backend(args.geometry_backend))
     evaluator.evaluate_all(args.from_quality)
     before = {
         operation_id: {name: value.value_id for name, value in (node.outputs or {}).items()}
@@ -259,7 +273,7 @@ def command_reevaluate(args: argparse.Namespace) -> dict[str, Any]:
 
 def command_render_svg(args: argparse.Namespace) -> dict[str, Any]:
     document = load_and_validate(args.document)
-    evaluator = Evaluator(document)
+    evaluator = Evaluator(document, geometry_backend=_geometry_backend(args.geometry_backend))
     scene = build_evaluated_scene(document, evaluator, Quality.FINAL)
     options = SVGRenderOptions(
         width=args.width,
@@ -310,7 +324,7 @@ def command_import_svg(args: argparse.Namespace) -> dict[str, Any]:
         options={"namespace": args.namespace} if args.namespace else {},
     )
     proposal = SVGImportAdapter().propose(request, artifact_store)
-    revision = ProposalAcceptor().accept(store, proposal)
+    revision = ProposalAcceptor().accept(store, proposal, artifact_store)
     imported = store.get_document(revision.revision_id)
     output_bytes = (
         json.dumps(imported, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
@@ -342,6 +356,7 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("document", type=Path)
     evaluate.add_argument("--quality", type=_quality, default=Quality.PREVIEW)
     evaluate.add_argument("--include-values", action="store_true")
+    evaluate.add_argument("--geometry-backend", choices=("shapely",))
     evaluate.set_defaults(handler=command_evaluate)
 
     mutate = subparsers.add_parser("mutate", help="atomically change Operation parameters")
@@ -359,6 +374,7 @@ def build_parser() -> argparse.ArgumentParser:
     reevaluate.add_argument("--from-quality", type=_quality, default=Quality.PREVIEW)
     reevaluate.add_argument("--quality", type=_quality, default=Quality.PREVIEW)
     reevaluate.add_argument("--include-values", action="store_true")
+    reevaluate.add_argument("--geometry-backend", choices=("shapely",))
     reevaluate.set_defaults(handler=command_reevaluate)
 
     render_svg = subparsers.add_parser(
@@ -378,6 +394,7 @@ def build_parser() -> argparse.ArgumentParser:
     render_svg.add_argument("--fill", default="none")
     render_svg.add_argument("--stroke", default="#000000")
     render_svg.add_argument("--stroke-width", type=float, default=0.01)
+    render_svg.add_argument("--geometry-backend", choices=("shapely",))
     render_svg.set_defaults(handler=command_render_svg)
 
     import_svg = subparsers.add_parser(

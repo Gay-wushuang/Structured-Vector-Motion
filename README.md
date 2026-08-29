@@ -16,6 +16,8 @@ The current v0.1 baseline contains:
   Backends, Evaluator, Renderer, and Exporter.
 - a semantics-versioned Operation Registry with explicit static and dynamic
   input/output signatures.
+- a capability-oriented Geometry Backend boundary with deterministic Shapely
+  Boolean operations and canonical polygon Values.
 
 Run the golden test with:
 
@@ -74,12 +76,29 @@ Review the complete golden chain:
 
 See `spec/10-svg-import-adapter.md` for the supported subset and rejection rules.
 
+## Deterministic geometry backend
+
+The second external capability executes an accepted `BooleanGeometry` Operation
+through the capability-oriented `GeometryBackend` interface:
+
+```powershell
+svm render-svg examples/007-boolean-geometry.svm.json `
+  --geometry-backend shapely `
+  --output boolean.svg `
+  --view-box 0 0 180 140
+```
+
+The current Shapely implementation intentionally supports rectangles and
+canonical polygon sets only. Review the golden result at
+`examples/rendered/007-boolean-geometry.svg` and the contract in
+`spec/11-geometry-backend.md`.
+
 ## Development
 
 Install the project and development tools in editable mode:
 
 ```powershell
-python -m pip install -e ".[dev,svg]"
+python -m pip install -e ".[dev,geometry,svg]"
 ```
 
 Run the same checks used by CI:

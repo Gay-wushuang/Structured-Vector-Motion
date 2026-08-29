@@ -111,6 +111,11 @@ class SVGRenderer:
             return self._render_geometry(geometry["source"], defs, force_path=True)
         if kind == "path_data":
             return ET.Element("path", {"d": geometry["d"]})
+        if kind == "polygon_set":
+            return ET.Element(
+                "path",
+                {"d": _polygon_set_path(geometry), "fill-rule": "evenodd"},
+            )
         if kind == "clip":
             clip_id = f"svm-clip-{self._clip_index}"
             self._clip_index += 1
@@ -169,3 +174,17 @@ def _rectangle_path(geometry: dict[str, Any]) -> str:
         f"H {_number(x + width)} V {_number(y + height)} "
         f"H {_number(x)} Z"
     )
+
+
+def _polygon_set_path(geometry: dict[str, Any]) -> str:
+    commands: list[str] = []
+    for polygon in geometry["polygons"]:
+        for ring in (polygon["exterior"], *polygon["holes"]):
+            if len(ring) < 4 or ring[0] != ring[-1]:
+                raise SVGRenderError("Polygon rings must be closed with at least four points")
+            commands.append(f"M {_number(ring[0][0])} {_number(ring[0][1])}")
+            commands.extend(f"L {_number(point[0])} {_number(point[1])}" for point in ring[1:-1])
+            commands.append("Z")
+    if not commands:
+        raise SVGRenderError("Polygon set must not be empty")
+    return " ".join(commands)

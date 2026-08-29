@@ -100,6 +100,18 @@ This command performs FINAL evaluation, builds an Evaluated Scene from accepted
 geometry bindings and render-stack order, then invokes the SVG Renderer. It
 requires an explicit output path and returns a JSON export summary.
 
+Documents containing capability-backed geometry Operations select the Backend
+explicitly. The same option is available to `evaluate` and `reevaluate`:
+
+```powershell
+python -m svm render-svg examples/007-boolean-geometry.svm.json `
+  --geometry-backend shapely `
+  --output boolean.svg `
+  --view-box 0 0 180 140
+```
+
+The CLI lazily imports optional Backends. Core commands do not require Shapely.
+
 ## Import SVG
 
 ```powershell

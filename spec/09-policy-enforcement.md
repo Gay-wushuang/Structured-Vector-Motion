@@ -75,6 +75,7 @@ At acceptance time:
 
 - a stale base Revision is rejected first;
 - adapter-reported unresolved violations are rejected;
+- required Artifact IDs and Transaction references are resolved and verified;
 - Core derives intents and enforces accepted policy definitions;
 - a violation creates no Revision;
 - an unrelated valid Proposal may commit normally.

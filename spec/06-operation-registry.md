@@ -113,6 +113,7 @@ from third-party package identity.
 
 | Operation | Inputs | Outputs | Quality-sensitive |
 | --- | --- | --- | --- |
+| `BooleanGeometry` | `left`, `right` | `geometry` | no |
 | `CreateEllipse` | none | `geometry` | no |
 | `CreatePath` | none | `geometry` | no |
 | `CreateRectangle` | none | `geometry` | no |
@@ -126,3 +127,7 @@ from third-party package identity.
 greater than zero. `CreateRectangle` requires finite `x`, `y`, `width`, and
 `height`; both dimensions must be greater than zero. Degenerate primitives are
 rejected at semantic validation rather than materialized as invisible geometry.
+
+`BooleanGeometry.operator` is one of `union`, `intersection`, `difference`, or
+`xor`. It declares the `geometry` capability; its accepted meaning belongs to
+the Registry while execution is delegated through `GeometryBackend`.

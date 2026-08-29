@@ -38,8 +38,9 @@ Read these files before changing core behavior:
 6. `spec/08-svg-renderer.md` — Evaluated Scene and SVG rendering contract.
 7. `spec/09-policy-enforcement.md` — supported Proposal policy subset.
 8. `spec/10-svg-import-adapter.md` — deterministic external Adapter contract.
-9. `examples/001-head-basic.svm.json` — current example Document.
-10. `tests/test_golden_a.py` — executable expectations.
+9. `spec/11-geometry-backend.md` — deterministic Geometry Backend contract.
+10. `examples/001-head-basic.svm.json` — current example Document.
+11. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -166,7 +167,7 @@ python -m pyright
 Install declared development tooling with:
 
 ```powershell
-python -m pip install -e ".[dev,svg]"
+python -m pip install -e ".[dev,geometry,svg]"
 ```
 
 Do not weaken Ruff or Pyright configuration to hide a local error. Narrow types
@@ -240,6 +241,9 @@ Next milestones:
 3. Introduce the first deterministic external Adapter without allowing its data
    model into Core. SVG Import now proves this boundary; future Adapters must
    follow the same Artifact/Proposal/Transaction pattern.
+4. Introduce the first deterministic capability Backend. Shapely-backed planar
+   Boolean geometry now proves accepted Operation execution without Proposal or
+   Revision coupling.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

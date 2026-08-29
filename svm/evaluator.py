@@ -6,7 +6,9 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
+from .backends import GeometryBackend
 from .operations import (
+    OperationExecutionContext,
     OperationRegistry,
     OperationValidationError,
     get_operation_registry,
@@ -52,6 +54,7 @@ class RuntimeNode:
     stale_outputs: dict[str, ImmutableValue] | None = None
     evaluation_key: str | None = None
     evaluated_quality: Quality | None = None
+    backend_identity: str | None = None
     error: str | None = None
 
 
@@ -62,8 +65,11 @@ class DocumentError(ValueError):
 class Evaluator:
     """Small deterministic evaluator used to force-test the v0.1 model."""
 
-    def __init__(self, document: dict[str, Any]):
+    def __init__(
+        self, document: dict[str, Any], *, geometry_backend: GeometryBackend | None = None
+    ):
         self.document = document
+        self.geometry_backend = geometry_backend
         try:
             self.registry: OperationRegistry = get_operation_registry(
                 document.get("semantics_version", "")
@@ -207,6 +213,12 @@ class Evaluator:
             node.stale_outputs = None
             node.evaluation_key = evaluation_key
             node.evaluated_quality = quality
+            node.backend_identity = (
+                self.geometry_backend.identity
+                if self.registry.definition(operation["type"]).capability == "geometry"
+                and self.geometry_backend is not None
+                else None
+            )
             node.error = None
             node.state = EvaluationState.CLEAN
         except Exception as exc:  # reference runtime records failures for inspection
@@ -227,10 +239,21 @@ class Evaluator:
             "quality": quality.value
             if self.registry.definition(operation["type"]).quality_sensitive
             else None,
+            "backend": self.geometry_backend.identity
+            if self.registry.definition(operation["type"]).capability == "geometry"
+            and self.geometry_backend is not None
+            else None,
         }
         return f"sha256:{hashlib.sha256(canonical_bytes(context)).hexdigest()}"
 
     def _execute(
         self, operation: dict[str, Any], inputs: dict[str, Any], quality: Quality
     ) -> dict[str, Any]:
-        return self.registry.evaluate(operation, inputs, quality.value)
+        return self.registry.evaluate(
+            operation,
+            inputs,
+            OperationExecutionContext(
+                quality=quality.value,
+                geometry_backend=self.geometry_backend,
+            ),
+        )

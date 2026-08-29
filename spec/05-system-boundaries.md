@@ -151,9 +151,12 @@ An analysis or preview product, for example:
 - optimizer checkpoint;
 - rasterized Proposal preview.
 
-Artifacts carry a content hash, media type, provenance, and optional locator.
-The locator is not identity. A DerivedArtifact does not become part of the
-accepted construction program merely because it exists.
+Artifact storage separates an immutable byte blob from its descriptors. The
+blob identity and content hash depend only on bytes. Kind, media type,
+provenance, and optional locator belong to an Artifact Descriptor (a use or
+interpretation of that blob), do not participate in identity, and may have
+multiple valid values for the same Artifact ID. A DerivedArtifact does not
+become part of the accepted construction program merely because it exists.
 
 ## 6. Immutable Value
 
@@ -181,8 +184,8 @@ must not promote an Artifact directly into the Runtime Value Store.
 ## 7. Proposal and Proposal Acceptor
 
 A Proposal is an unaccepted change package tied to an exact base Revision. It
-contains a Transaction, generator provenance, evaluation report, and optional
-preview Artifacts.
+contains a Transaction, generator provenance, evaluation report, required
+Artifact IDs, and optional preview Artifacts.
 
 The Proposal Acceptor is a Core service, not a passive data object. It is the
 only boundary that may convert a Proposal into a committed Transaction and new
@@ -193,6 +196,7 @@ Revision. It verifies:
 - constraints;
 - Edit Permissions;
 - accepted Artifact identity;
+- correspondence between required Artifact IDs and Transaction references;
 - atomic Transaction validity.
 
 Unsupported policy semantics must fail closed.
@@ -319,3 +323,7 @@ dependencies.
 
 The first implemented external integration is the deterministic SVG Import
 Adapter specified in `10-svg-import-adapter.md`.
+
+The first implemented capability Backend is the Shapely-backed planar Geometry
+Backend specified in `11-geometry-backend.md`. Its public boundary is
+`GeometryBackend`, not a vendor-named Core abstraction.

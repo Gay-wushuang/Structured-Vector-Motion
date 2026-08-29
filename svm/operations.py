@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
+from .backends import GeometryBackend, GeometryBackendError
+
 
 class ValueType(StrEnum):
     GEOMETRY = "geometry"
@@ -16,7 +18,17 @@ class OperationValidationError(ValueError):
 
 
 ParameterValidator = Callable[[Mapping[str, Any]], None]
-OperationExecutor = Callable[[Mapping[str, Any], Mapping[str, Any], str], dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class OperationExecutionContext:
+    quality: str
+    geometry_backend: GeometryBackend | None = None
+
+
+OperationExecutor = Callable[
+    [Mapping[str, Any], Mapping[str, Any], OperationExecutionContext], dict[str, Any]
+]
 OutputResolver = Callable[[Mapping[str, Any]], Mapping[str, ValueType]]
 
 
@@ -62,6 +74,14 @@ def _rectangle_parameters(parameters: Mapping[str, Any]) -> None:
 
 def _no_parameters(parameters: Mapping[str, Any]) -> None:
     _require_exact_keys(parameters, set(), "Parameter")
+
+
+def _boolean_parameters(parameters: Mapping[str, Any]) -> None:
+    _require_exact_keys(parameters, {"operator"}, "Parameter")
+    if parameters["operator"] not in {"union", "intersection", "difference", "xor"}:
+        raise OperationValidationError(
+            "BooleanGeometry operator must be union, intersection, difference, or xor"
+        )
 
 
 def _transform_parameters(parameters: Mapping[str, Any]) -> None:
@@ -143,6 +163,7 @@ class OperationDefinition:
     validate_parameters: ParameterValidator
     executor: OperationExecutor
     quality_sensitive: bool = False
+    capability: str | None = None
 
     def output_signature(self, operation: Mapping[str, Any]) -> Mapping[str, ValueType]:
         if callable(self.outputs):
@@ -160,9 +181,9 @@ class OperationDefinition:
         self,
         operation: Mapping[str, Any],
         inputs: Mapping[str, Any],
-        quality: str,
+        context: OperationExecutionContext,
     ) -> dict[str, Any]:
-        result = self.executor(operation.get("parameters", {}), inputs, quality)
+        result = self.executor(operation.get("parameters", {}), inputs, context)
         expected = set(self.output_signature(operation))
         if set(result) != expected:
             raise OperationValidationError(
@@ -202,16 +223,18 @@ class OperationRegistry:
         self,
         operation: Mapping[str, Any],
         inputs: Mapping[str, Any],
-        quality: str,
+        context: OperationExecutionContext,
     ) -> dict[str, Any]:
-        return self.definition(operation["type"]).evaluate(operation, inputs, quality)
+        return self.definition(operation["type"]).evaluate(operation, inputs, context)
 
     @property
     def type_names(self) -> tuple[str, ...]:
         return tuple(sorted(self._definitions))
 
 
-def _create_ellipse(parameters: Mapping[str, Any], _: Mapping[str, Any], __: str) -> dict[str, Any]:
+def _create_ellipse(
+    parameters: Mapping[str, Any], _: Mapping[str, Any], __: OperationExecutionContext
+) -> dict[str, Any]:
     return {
         "geometry": {
             "kind": "ellipse",
@@ -224,12 +247,16 @@ def _create_ellipse(parameters: Mapping[str, Any], _: Mapping[str, Any], __: str
 
 
 def _create_rectangle(
-    parameters: Mapping[str, Any], _: Mapping[str, Any], __: str
+    parameters: Mapping[str, Any], _: Mapping[str, Any], __: OperationExecutionContext
 ) -> dict[str, Any]:
     return {"geometry": {"kind": "rectangle", **parameters}}
 
 
-def _transform(parameters: Mapping[str, Any], inputs: Mapping[str, Any], _: str) -> dict[str, Any]:
+def _transform(
+    parameters: Mapping[str, Any],
+    inputs: Mapping[str, Any],
+    _: OperationExecutionContext,
+) -> dict[str, Any]:
     return {
         "geometry": {
             "kind": "transform",
@@ -239,11 +266,15 @@ def _transform(parameters: Mapping[str, Any], inputs: Mapping[str, Any], _: str)
     }
 
 
-def _convert_to_path(_: Mapping[str, Any], inputs: Mapping[str, Any], __: str) -> dict[str, Any]:
+def _convert_to_path(
+    _: Mapping[str, Any], inputs: Mapping[str, Any], __: OperationExecutionContext
+) -> dict[str, Any]:
     return {"geometry": {"kind": "path", "source": inputs["geometry"]}}
 
 
-def _create_path(parameters: Mapping[str, Any], _: Mapping[str, Any], __: str) -> dict[str, Any]:
+def _create_path(
+    parameters: Mapping[str, Any], _: Mapping[str, Any], __: OperationExecutionContext
+) -> dict[str, Any]:
     return {
         "geometry": {
             "kind": "path_data",
@@ -254,19 +285,23 @@ def _create_path(parameters: Mapping[str, Any], _: Mapping[str, Any], __: str) -
 
 
 def _refine_bezier(
-    parameters: Mapping[str, Any], inputs: Mapping[str, Any], quality: str
+    parameters: Mapping[str, Any],
+    inputs: Mapping[str, Any],
+    context: OperationExecutionContext,
 ) -> dict[str, Any]:
     return {
         "geometry": {
             "kind": "refined_path",
             "source": inputs["geometry"],
             "tolerance": parameters["tolerance"],
-            "quality": quality,
+            "quality": context.quality,
         }
     }
 
 
-def _clip(_: Mapping[str, Any], inputs: Mapping[str, Any], __: str) -> dict[str, Any]:
+def _clip(
+    _: Mapping[str, Any], inputs: Mapping[str, Any], __: OperationExecutionContext
+) -> dict[str, Any]:
     return {
         "geometry": {
             "kind": "clip",
@@ -277,7 +312,9 @@ def _clip(_: Mapping[str, Any], inputs: Mapping[str, Any], __: str) -> dict[str,
 
 
 def _split_entity(
-    parameters: Mapping[str, Any], inputs: Mapping[str, Any], _: str
+    parameters: Mapping[str, Any],
+    inputs: Mapping[str, Any],
+    _: OperationExecutionContext,
 ) -> dict[str, Any]:
     source = inputs["geometry"]
     min_x, min_y, max_x, max_y = _geometry_bounds(source)
@@ -299,6 +336,20 @@ def _split_entity(
     }
 
 
+def _boolean_geometry(
+    parameters: Mapping[str, Any],
+    inputs: Mapping[str, Any],
+    context: OperationExecutionContext,
+) -> dict[str, Any]:
+    if context.geometry_backend is None:
+        raise GeometryBackendError("BooleanGeometry requires a GeometryBackend")
+    return {
+        "geometry": context.geometry_backend.boolean(
+            parameters["operator"], inputs["left"], inputs["right"]
+        )
+    }
+
+
 def _geometry_bounds(geometry: Mapping[str, Any]) -> tuple[float, float, float, float]:
     kind = geometry.get("kind")
     if kind == "ellipse":
@@ -314,6 +365,9 @@ def _geometry_bounds(geometry: Mapping[str, Any]) -> tuple[float, float, float, 
     if kind in {"path", "refined_path"}:
         return _geometry_bounds(geometry["source"])
     if kind == "path_data":
+        min_x, min_y, max_x, max_y = (float(value) for value in geometry["bounds"])
+        return min_x, min_y, max_x, max_y
+    if kind == "polygon_set":
         min_x, min_y, max_x, max_y = (float(value) for value in geometry["bounds"])
         return min_x, min_y, max_x, max_y
     if kind == "transform":
@@ -348,6 +402,14 @@ def _build_core_registry() -> OperationRegistry:
     geometry = ValueType.GEOMETRY
     registry = OperationRegistry("svm-core-0.1")
     definitions = (
+        OperationDefinition(
+            "BooleanGeometry",
+            {"left": geometry, "right": geometry},
+            {"geometry": geometry},
+            _boolean_parameters,
+            _boolean_geometry,
+            capability="geometry",
+        ),
         OperationDefinition(
             "CreateEllipse",
             {},
