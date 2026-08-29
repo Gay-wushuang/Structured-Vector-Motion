@@ -1,8 +1,12 @@
 import copy
+import importlib.metadata
+import io
 import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from test_cli import run_cli
 
@@ -15,7 +19,8 @@ from svm import (
     RevisionStore,
     build_evaluated_scene,
 )
-from svm.adapters import BitmapTraceAdapter, BitmapTraceError
+from svm.adapters import BitmapTraceAdapter, BitmapTraceError, PotracerEngine
+from svm.adapters.bitmap_trace import _number, _point
 from svm.backends.shapely_geometry import ShapelyGeometryBackend
 from svm.evaluator import Quality
 from svm.renderers import SVGRenderer, SVGRenderOptions
@@ -51,7 +56,13 @@ class BitmapTraceGoldenETest(unittest.TestCase):
     def test_golden_e_bitmap_to_explicit_planar_geometry_and_svg(self) -> None:
         proposal = BitmapTraceAdapter().propose(self.request(), self.artifacts)
         self.assertEqual(self.store.get_document(self.store.head), self.document)
-        self.assertEqual(proposal.generator.engine, "potracer")
+        self.assertEqual(proposal.generator.engine, "bitmap-trace/potracer")
+        self.assertEqual(
+            proposal.generator.engine_version,
+            f"{importlib.metadata.version('potracer')}"
+            f"+pillow@{importlib.metadata.version('Pillow')}"
+            "+svm-bitmap-preprocess@0.1",
+        )
         self.assertEqual(proposal.report.metrics["traced_paths"], 2.0)
 
         revision = ProposalAcceptor().accept(self.store, proposal, self.artifacts)
@@ -112,6 +123,105 @@ class BitmapTraceGoldenETest(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "matching interpretation"):
             BitmapTraceAdapter().propose(wrong_request, wrong_media)
+
+    def test_non_png_bytes_and_png_transparency_fail_closed(self) -> None:
+        from PIL import Image
+
+        encoded = io.BytesIO()
+        Image.new("RGB", (2, 2), "white").save(encoded, format="JPEG")
+        jpeg = self.artifacts.import_bytes(encoded.getvalue(), media_type="image/png")
+        jpeg_request = AdapterRequest.from_store(
+            self.store,
+            self.store.head,
+            ("document",),
+            artifact_ids=(jpeg.artifact_id,),
+        )
+        with self.assertRaisesRegex(BitmapTraceError, "must be PNG format"):
+            BitmapTraceAdapter().propose(jpeg_request, self.artifacts)
+
+        encoded = io.BytesIO()
+        Image.new("RGBA", (2, 2), (0, 0, 0, 0)).save(encoded, format="PNG")
+        transparent = self.artifacts.import_bytes(encoded.getvalue(), media_type="image/png")
+        transparent_request = AdapterRequest.from_store(
+            self.store,
+            self.store.head,
+            ("document",),
+            artifact_ids=(transparent.artifact_id,),
+        )
+        with self.assertRaisesRegex(BitmapTraceError, "alpha/transparency"):
+            BitmapTraceAdapter().propose(transparent_request, self.artifacts)
+
+    def test_decode_limit_is_checked_before_image_load(self) -> None:
+        class OversizedImage:
+            format = "PNG"
+            width = 16_000_001
+            height = 1
+            info = {}
+            loaded = False
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+            def getbands(self):
+                return ("L",)
+
+            def load(self):
+                self.loaded = True
+
+        source = OversizedImage()
+        with patch("PIL.Image.open", return_value=source):
+            with self.assertRaisesRegex(BitmapTraceError, "16 megapixel"):
+                PotracerEngine().trace(b"header fixture", self._trace_options())
+        self.assertFalse(source.loaded)
+
+    def test_non_finite_trace_options_fail_closed(self) -> None:
+        for name in ("alpha_max", "optimization_tolerance", "path_tolerance"):
+            for value in (float("nan"), float("inf"), float("-inf")):
+                with self.subTest(name=name, value=value):
+                    with self.assertRaisesRegex(BitmapTraceError, "finite positive"):
+                        BitmapTraceAdapter().propose(self.request(**{name: value}), self.artifacts)
+
+    def test_namespace_checks_entity_and_all_operation_ids(self) -> None:
+        document = copy.deepcopy(self.document)
+        document["construction"]["operations"].append(
+            {
+                "id": "op:trace-fixture-path",
+                "type": "CreateRectangle",
+                "inputs": {},
+                "parameters": {"x": 0, "y": 0, "width": 1, "height": 1},
+            }
+        )
+        store = RevisionStore.create(document)
+        request = AdapterRequest.from_store(
+            store,
+            store.head,
+            ("document",),
+            artifact_ids=(self.artifact.artifact_id,),
+            options={"namespace": "fixture"},
+        )
+        proposal = BitmapTraceAdapter().propose(request, self.artifacts)
+        change = proposal.transaction.changes[0]
+
+        self.assertEqual(change.entities[0]["id"], "entity:trace-fixture2")
+        self.assertEqual(
+            [operation["id"] for operation in change.operations],
+            ["op:trace-fixture2-path", "op:trace-fixture2-planar"],
+        )
+
+    def test_path_numbers_and_bounds_share_canonical_coordinates(self) -> None:
+        point = _point(SimpleNamespace(x=1.23456789012349, y=-0.0000000000004))
+
+        self.assertEqual(point, (1.23456789012, -4e-13))
+        self.assertEqual((_number(point[0]), _number(point[1])), ("1.23456789012", "-4e-13"))
+
+    @staticmethod
+    def _trace_options():
+        from svm.adapters.bitmap_trace import TraceOptions
+
+        return TraceOptions()
 
     def test_cli_trace_bitmap_writes_a_valid_golden_document(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

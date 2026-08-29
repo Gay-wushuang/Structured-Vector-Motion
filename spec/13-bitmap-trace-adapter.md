@@ -30,8 +30,24 @@ provenance: `threshold`, `invert`, `turd_size`, `turn_policy`, `alpha_max`,
 parameters. Coordinates are bitmap pixel coordinates and do not depend on DPI,
 viewport, or zoom.
 
-The v0.1 media subset is PNG only. Inputs above 32 MiB, decoded images above 16
-megapixels, invalid images, empty traces, and unknown options fail closed.
+The v0.1 media subset is PNG only. Both the Artifact media type and decoded
+format signature MUST identify PNG. The Adapter opens the image header, verifies
+the format and dimensions, and enforces the 16-megapixel limit before decoding
+pixel storage. Inputs above 32 MiB, invalid images, empty traces, and unknown
+options fail closed.
+
+PNG alpha/transparency is unsupported in v0.1. Images with an alpha band or a
+PNG transparency declaration MUST be rejected before decoding. The accepted
+preprocessing semantics are opaque PNG decoding followed by Pillow `L` mode
+conversion and optional inversion. A future compositing rule requires an
+explicit versioned parameter; Pillow defaults are not SVM semantics.
+
+`alpha_max`, `optimization_tolerance`, and `path_tolerance` MUST be finite and
+greater than zero. NaN and positive or negative infinity are invalid.
+
+Potrace coordinates are first normalized to finite canonical `.12g` numbers.
+The accepted `CreatePath.d` and its recorded bounds MUST both be derived from
+those same canonical coordinates.
 
 ## Capability and license boundary
 
@@ -41,9 +57,15 @@ the third-party `potracer` distribution, which is GPL-2.0-or-later. SVM does not
 copy that implementation and Core does not import it. Distributors enabling the
 extra are responsible for reviewing the third-party license obligations.
 
-The engine name and version MUST be recorded in `GeneratorProvenance`. Accepted
+The engine and preprocessing identity MUST be recorded in
+`GeneratorProvenance`. The reference identity includes the potracer package
+version, Pillow package version, and `svm-bitmap-preprocess@0.1`. Accepted
 Documents contain ordinary SVM Operations and remain evaluable without the
 tracing engine.
+
+Namespace allocation MUST check every generated Entity and Operation ID before
+constructing the Proposal. A collision is resolved deterministically inside the
+Adapter rather than deferred to Transaction acceptance.
 
 ## Golden Test E
 

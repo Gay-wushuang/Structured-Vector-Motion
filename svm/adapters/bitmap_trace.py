@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.metadata
 import io
+import math
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -57,8 +58,13 @@ class TraceOptions:
             )
         for name in ("alpha_max", "optimization_tolerance", "path_tolerance"):
             value = getattr(options, name)
-            if not isinstance(value, (int, float)) or isinstance(value, bool) or value <= 0:
-                raise BitmapTraceError(f"{name} must be a positive number")
+            if (
+                not isinstance(value, (int, float))
+                or isinstance(value, bool)
+                or not math.isfinite(float(value))
+                or value <= 0
+            ):
+                raise BitmapTraceError(f"{name} must be a finite positive number")
         if type(options.optimize_curve) is not bool:
             raise BitmapTraceError("optimize_curve must be a boolean")
         if options.fill_rule not in {"nonzero", "evenodd"}:
@@ -84,11 +90,15 @@ class BitmapTracer(Protocol):
 
 
 class PotracerEngine:
-    engine_name = "potracer"
+    engine_name = "bitmap-trace/potracer"
 
     @property
     def engine_version(self) -> str:
-        return importlib.metadata.version("potracer")
+        return (
+            f"{importlib.metadata.version('potracer')}"
+            f"+pillow@{importlib.metadata.version('Pillow')}"
+            "+svm-bitmap-preprocess@0.1"
+        )
 
     def trace(self, content: bytes, options: TraceOptions) -> TracedPath:
         try:
@@ -100,13 +110,17 @@ class PotracerEngine:
             ) from exc
         try:
             with Image.open(io.BytesIO(content)) as source:
-                source.load()
+                if source.format != "PNG":
+                    raise BitmapTraceError("Bitmap Artifact bytes must be PNG format")
                 if (
                     source.width <= 0
                     or source.height <= 0
                     or source.width * source.height > 16_000_000
                 ):
                     raise BitmapTraceError("Bitmap exceeds the 16 megapixel trace limit")
+                if "A" in source.getbands() or "transparency" in source.info:
+                    raise BitmapTraceError("PNG alpha/transparency is not supported in v0.1")
+                source.load()
                 grayscale = source.convert("L")
                 if options.invert:
                     grayscale = ImageOps.invert(grayscale)
@@ -255,20 +269,36 @@ class BitmapTraceAdapter:
                 artifact.content_hash.encode() + canonical_bytes(options.provenance())
             ).hexdigest()
             base = digest[:12]
-        ids = {entity["id"] for entity in request.document["entities"]}
+        entity_ids = {entity["id"] for entity in request.document["entities"]}
+        operation_ids = {
+            operation["id"] for operation in request.document["construction"]["operations"]
+        }
+
+        def collides(namespace: str) -> bool:
+            return (
+                f"entity:trace-{namespace}" in entity_ids
+                or f"op:trace-{namespace}-path" in operation_ids
+                or f"op:trace-{namespace}-planar" in operation_ids
+            )
+
         candidate = base
         suffix = 2
-        while f"entity:trace-{candidate}" in ids:
+        while collides(candidate):
             candidate = f"{base}{suffix}"
             suffix += 1
         return candidate
 
 
 def _point(value: Any) -> tuple[float, float]:
-    return float(value.x), float(value.y)
+    return _canonical_coordinate(float(value.x)), _canonical_coordinate(float(value.y))
+
+
+def _canonical_coordinate(value: float) -> float:
+    if not math.isfinite(value):
+        raise BitmapTraceError("Bitmap trace produced a non-finite coordinate")
+    canonical = float(format(value, ".12g"))
+    return 0.0 if canonical == 0 else canonical
 
 
 def _number(value: float) -> str:
-    if value == 0:
-        value = 0.0
     return format(value, ".12g")
