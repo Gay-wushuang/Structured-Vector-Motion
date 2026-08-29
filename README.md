@@ -79,7 +79,7 @@ See `spec/10-svg-import-adapter.md` for the supported subset and rejection rules
 Install the project and development tools in editable mode:
 
 ```powershell
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[dev,svg]"
 ```
 
 Run the same checks used by CI:

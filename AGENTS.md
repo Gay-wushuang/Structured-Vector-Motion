@@ -166,7 +166,7 @@ python -m pyright
 Install declared development tooling with:
 
 ```powershell
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[dev,svg]"
 ```
 
 Do not weaken Ruff or Pyright configuration to hide a local error. Narrow types

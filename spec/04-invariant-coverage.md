@@ -24,7 +24,7 @@ Status values:
 | INV-EVAL-007 | covered | Evaluator runtime is reconstructed from the Document in tests. |
 | INV-DOC-001 | covered | Validator requires both versions. |
 | INV-DOC-002 | specified | Separate schema and semantics fields are defined. |
-| INV-REF-001 | covered | Artifact Store and SVG Import tests verify SHA-256 identity and accepted references. |
+| INV-REF-001 | covered | Artifact Store and SVG Import tests verify byte-only SHA-256 identity, resolver verification, and accepted references. |
 | INV-REF-002 | covered | Artifact tests keep content identity separate from URI/provenance locators. |
 | INV-REF-003 | specified | Adapter boundary requires accepted fixed artifacts; model adapters are pending. |
 | INV-REL-001 | covered | Example Documents keep hierarchy, render stack, and stages separate. |

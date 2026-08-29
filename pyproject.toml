@@ -10,10 +10,12 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "jsonschema>=4.23,<5",
-  "svgpathtools>=1.7.2,<2",
 ]
 
 [project.optional-dependencies]
+svg = [
+  "svgpathtools>=1.7.2,<2",
+]
 dev = [
   "pyright>=1.1.390,<2",
   "ruff>=0.8,<1",

@@ -7,7 +7,7 @@ from typing import Any
 
 from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
 
-from ..artifacts import ArtifactKind, ArtifactSnapshot
+from ..artifacts import ArtifactKind, ArtifactResolver, ArtifactSnapshot
 from ..proposals import (
     AdapterRequest,
     EvaluationReport,
@@ -18,6 +18,19 @@ from ..revisions import AppendSceneFragmentChange, Transaction
 
 SVG_MEDIA_TYPES = {"image/svg+xml", "application/svg+xml"}
 SVG_NAMESPACE = "http://www.w3.org/2000/svg"
+_STYLE_ATTRIBUTES = {"fill", "stroke", "stroke-width"}
+_LEAF_STYLE_ATTRIBUTES = _STYLE_ATTRIBUTES | {"opacity"}
+_ALLOWED_ATTRIBUTES = {
+    "svg": {"id", "viewBox"} | _STYLE_ATTRIBUTES,
+    "g": {"id"} | _STYLE_ATTRIBUTES,
+    "rect": {"id", "x", "y", "width", "height"} | _LEAF_STYLE_ATTRIBUTES,
+    "ellipse": {"id", "cx", "cy", "rx", "ry"} | _LEAF_STYLE_ATTRIBUTES,
+    "path": {"id", "d"} | _LEAF_STYLE_ATTRIBUTES,
+    "title": set(),
+    "desc": set(),
+    "metadata": set(),
+    "defs": set(),
+}
 
 
 class SVGImportError(ValueError):
@@ -36,21 +49,25 @@ class SVGImportAdapter:
     adapter_id = "adapter:svg-import"
     adapter_version = "0.1"
 
-    def propose(self, request: AdapterRequest) -> Proposal:
-        artifact = self._select_artifact(request.artifacts)
+    def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
+        artifact = self._select_artifact(artifacts.resolve(request.artifact_ids))
         root = self._parse_svg(artifact)
         namespace = self._namespace(request, artifact)
         shapes = self._extract_shapes(root, namespace)
         if not shapes:
             raise SVGImportError("SVG contains no supported renderable shapes")
 
+        reference = artifact.document_reference()
+        view_box = root.attrib.get("viewBox")
+        if view_box is not None:
+            reference["import_metadata"]["svg_view_box"] = _view_box(view_box)
         change = AppendSceneFragmentChange(
             entities=tuple(shape.entity for shape in shapes),
             operations=tuple(shape.operation for shape in shapes),
             output_bindings=tuple(shape.binding for shape in shapes),
             render_entries=tuple(shape.entity["id"] for shape in shapes),
             styles=tuple(shape.style for shape in shapes),
-            references=(artifact.document_reference(),),
+            references=(reference,),
         )
         transaction_id = f"transaction:svg-import:{namespace}"
         proposal_id = f"proposal:svg-import:{namespace}"
@@ -124,9 +141,8 @@ class SVGImportAdapter:
 
         def walk(element: ET.Element, inherited_style: dict[str, Any]) -> None:
             tag = _local_name(element.tag)
-            if "transform" in element.attrib or "style" in element.attrib:
-                raise SVGImportError("SVG transform and style attributes are not supported")
-            style = _resolved_style(element, inherited_style)
+            _validate_attributes(element, tag)
+            style = _resolved_style(element, inherited_style, allow_opacity=tag not in {"svg", "g"})
             if tag in {"svg", "g"}:
                 for child in element:
                     walk(child, style)
@@ -163,6 +179,8 @@ class SVGImportAdapter:
                 "width": _number_attribute(element, "width"),
                 "height": _number_attribute(element, "height"),
             }
+            _require_positive(parameters["width"], "width", "rect")
+            _require_positive(parameters["height"], "height", "rect")
         elif tag == "ellipse":
             operation_type = "CreateEllipse"
             parameters = {
@@ -171,6 +189,8 @@ class SVGImportAdapter:
                 "rx": _number_attribute(element, "rx"),
                 "ry": _number_attribute(element, "ry"),
             }
+            _require_positive(parameters["rx"], "rx", "ellipse")
+            _require_positive(parameters["ry"], "ry", "ellipse")
         else:
             d = element.attrib.get("d", "").strip()
             if not d:
@@ -220,7 +240,21 @@ def _default_style() -> dict[str, Any]:
     }
 
 
-def _resolved_style(element: ET.Element, inherited: dict[str, Any]) -> dict[str, Any]:
+def _validate_attributes(element: ET.Element, tag: str) -> None:
+    if tag in {"svg", "g"} and "opacity" in element.attrib:
+        raise SVGImportError("SVG group opacity is not supported")
+    allowed = _ALLOWED_ATTRIBUTES.get(tag)
+    if allowed is None:
+        return
+    unsupported = sorted(set(element.attrib) - allowed)
+    if unsupported:
+        names = ", ".join(unsupported)
+        raise SVGImportError(f"Unsupported SVG {tag} attribute(s): {names}")
+
+
+def _resolved_style(
+    element: ET.Element, inherited: dict[str, Any], *, allow_opacity: bool
+) -> dict[str, Any]:
     style = dict(inherited)
     if "fill" in element.attrib:
         style["fill"] = _color(element.attrib["fill"])
@@ -229,6 +263,8 @@ def _resolved_style(element: ET.Element, inherited: dict[str, Any]) -> dict[str,
     if "stroke-width" in element.attrib:
         style["stroke_width"] = _plain_number(element.attrib["stroke-width"], "stroke-width")
     if "opacity" in element.attrib:
+        if not allow_opacity:
+            raise SVGImportError("SVG group opacity is not supported")
         opacity = _plain_number(element.attrib["opacity"], "opacity")
         if not 0 <= opacity <= 1:
             raise SVGImportError("SVG opacity must be between 0 and 1")
@@ -265,3 +301,18 @@ def _plain_number(value: str, name: str) -> float:
     if not (-1e12 < number < 1e12):
         raise SVGImportError(f"SVG {name} is outside supported numeric range")
     return number
+
+
+def _require_positive(value: float, name: str, tag: str) -> None:
+    if value <= 0:
+        raise SVGImportError(f"SVG {tag} {name} must be greater than zero")
+
+
+def _view_box(value: str) -> list[float]:
+    parts = value.replace(",", " ").split()
+    if len(parts) != 4:
+        raise SVGImportError("SVG viewBox must contain four unitless numbers")
+    result = [_plain_number(part, "viewBox") for part in parts]
+    if result[2] <= 0 or result[3] <= 0:
+        raise SVGImportError("SVG viewBox width and height must be greater than zero")
+    return result

@@ -4,7 +4,7 @@ import copy
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from .artifacts import ArtifactSnapshot
+from .artifacts import ArtifactResolver
 from .evaluator import Quality
 from .policies import PolicyEnforcementError, enforce_transaction_policies
 from .revisions import Revision, RevisionStore, Transaction
@@ -60,7 +60,7 @@ class AdapterRequest:
     document: dict[str, Any]
     scope: tuple[str, ...]
     quality: Quality = Quality.PREVIEW
-    artifacts: tuple[ArtifactSnapshot, ...] = ()
+    artifact_ids: tuple[str, ...] = ()
     options: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -71,7 +71,7 @@ class AdapterRequest:
         scope: tuple[str, ...],
         *,
         quality: Quality = Quality.PREVIEW,
-        artifacts: tuple[ArtifactSnapshot, ...] = (),
+        artifact_ids: tuple[str, ...] = (),
         options: dict[str, Any] | None = None,
     ) -> AdapterRequest:
         return cls(
@@ -79,17 +79,13 @@ class AdapterRequest:
             document=store.get_document(revision_id),
             scope=scope,
             quality=quality,
-            artifacts=artifacts,
+            artifact_ids=artifact_ids,
             options=copy.deepcopy(options or {}),
         )
 
-    @property
-    def artifact_ids(self) -> tuple[str, ...]:
-        return tuple(artifact.artifact_id for artifact in self.artifacts)
-
 
 class ProposalProvider(Protocol):
-    def propose(self, request: AdapterRequest) -> Proposal: ...
+    def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal: ...
 
 
 class ProposalAcceptor:

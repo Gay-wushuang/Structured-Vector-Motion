@@ -121,3 +121,8 @@ from third-party package identity.
 | `RefineBezier` | `geometry` | `geometry` | yes |
 | `Clip` | `content`, `clip` | `geometry` | no |
 | `SplitEntity` | `geometry` | derived from parts | no |
+
+`CreateEllipse` requires finite `cx`, `cy`, `rx`, and `ry`; both radii must be
+greater than zero. `CreateRectangle` requires finite `x`, `y`, `width`, and
+`height`; both dimensions must be greater than zero. Degenerate primitives are
+rejected at semantic validation rather than materialized as invisible geometry.

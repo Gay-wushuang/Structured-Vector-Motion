@@ -4,7 +4,7 @@ import copy
 import hashlib
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any
+from typing import Any, Protocol
 
 
 class ArtifactKind(StrEnum):
@@ -38,6 +38,12 @@ class ArtifactSnapshot:
         }
 
 
+class ArtifactResolver(Protocol):
+    """Capability that resolves and verifies accepted content-addressed bytes."""
+
+    def resolve(self, artifact_ids: tuple[str, ...]) -> tuple[ArtifactSnapshot, ...]: ...
+
+
 class ArtifactStore:
     """Small in-memory content-addressed store for Adapter inputs and evidence."""
 
@@ -69,11 +75,7 @@ class ArtifactStore:
         )
         existing = self._artifacts.get(artifact_id)
         if existing is not None:
-            if (
-                existing.content != snapshot.content
-                or existing.media_type != snapshot.media_type
-                or existing.kind != snapshot.kind
-            ):
+            if existing.content != snapshot.content:
                 raise ArtifactError(f"Artifact identity collision for {artifact_id}")
             return existing
         self._artifacts[artifact_id] = snapshot
@@ -87,7 +89,14 @@ class ArtifactStore:
         digest = hashlib.sha256(snapshot.content).hexdigest()
         if snapshot.content_hash != f"sha256:{digest}":
             raise ArtifactError(f"Artifact content hash mismatch for {artifact_id}")
+        if snapshot.artifact_id != f"artifact:{digest}":
+            raise ArtifactError(f"Artifact ID does not match content for {artifact_id}")
         return snapshot
 
     def snapshots(self, artifact_ids: tuple[str, ...]) -> tuple[ArtifactSnapshot, ...]:
         return tuple(self.get(artifact_id) for artifact_id in artifact_ids)
+
+    def resolve(self, artifact_ids: tuple[str, ...]) -> tuple[ArtifactSnapshot, ...]:
+        """Resolve only Store-held Artifacts and verify every content hash."""
+
+        return self.snapshots(artifact_ids)

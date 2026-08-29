@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
@@ -32,6 +33,8 @@ def _require_exact_keys(values: Mapping[str, Any], required: set[str], context: 
 def _require_number(value: Any, name: str) -> None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise OperationValidationError(f"Parameter {name} must be a number")
+    if not math.isfinite(value):
+        raise OperationValidationError(f"Parameter {name} must be finite")
 
 
 def _numeric_parameters(*names: str) -> ParameterValidator:
@@ -43,6 +46,18 @@ def _numeric_parameters(*names: str) -> ParameterValidator:
             _require_number(parameters[name], name)
 
     return validate
+
+
+def _ellipse_parameters(parameters: Mapping[str, Any]) -> None:
+    _numeric_parameters("cx", "cy", "rx", "ry")(parameters)
+    if parameters["rx"] <= 0 or parameters["ry"] <= 0:
+        raise OperationValidationError("CreateEllipse rx and ry must be greater than zero")
+
+
+def _rectangle_parameters(parameters: Mapping[str, Any]) -> None:
+    _numeric_parameters("x", "y", "width", "height")(parameters)
+    if parameters["width"] <= 0 or parameters["height"] <= 0:
+        raise OperationValidationError("CreateRectangle width and height must be greater than zero")
 
 
 def _no_parameters(parameters: Mapping[str, Any]) -> None:
@@ -337,14 +352,14 @@ def _build_core_registry() -> OperationRegistry:
             "CreateEllipse",
             {},
             {"geometry": geometry},
-            _numeric_parameters("cx", "cy", "rx", "ry"),
+            _ellipse_parameters,
             _create_ellipse,
         ),
         OperationDefinition(
             "CreateRectangle",
             {},
             {"geometry": geometry},
-            _numeric_parameters("x", "y", "width", "height"),
+            _rectangle_parameters,
             _create_rectangle,
         ),
         OperationDefinition(

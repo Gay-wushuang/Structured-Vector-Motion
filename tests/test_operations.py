@@ -99,6 +99,20 @@ class OperationRegistryTest(unittest.TestCase):
         with self.assertRaisesRegex(DocumentError, "Input keys do not match signature"):
             Evaluator(missing_input)
 
+    def test_primitive_dimensions_must_be_positive_and_finite(self) -> None:
+        invalid_values = (("rx", 0), ("ry", -1), ("rx", float("inf")))
+        for parameter, value in invalid_values:
+            with self.subTest(parameter=parameter, value=value):
+                invalid = copy.deepcopy(self.document)
+                ellipse = next(
+                    operation
+                    for operation in invalid["construction"]["operations"]
+                    if operation["type"] == "CreateEllipse"
+                )
+                ellipse["parameters"][parameter] = value
+                with self.assertRaises(DocumentError):
+                    validate_document(invalid)
+
         invalid_parameter = copy.deepcopy(self.document)
         ellipse = next(
             operation

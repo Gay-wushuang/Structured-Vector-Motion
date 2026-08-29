@@ -43,7 +43,7 @@ class SVGImportAdapterTest(unittest.TestCase):
             self.store,
             self.store.head,
             ("document",),
-            artifacts=(self.artifact,),
+            artifact_ids=(self.artifact.artifact_id,),
             options={"namespace": "fixture"},
         )
 
@@ -64,9 +64,34 @@ class SVGImportAdapterTest(unittest.TestCase):
             provenance={"source_name": "relocated.svg"},
         )
         self.assertEqual(relocated.artifact_id, self.artifact.artifact_id)
+        reinterpreted = self.artifact_store.import_bytes(
+            SOURCE_SVG.read_bytes(),
+            media_type="application/octet-stream",
+            kind=ArtifactKind.DERIVED,
+        )
+        self.assertEqual(reinterpreted.artifact_id, self.artifact.artifact_id)
+
+    def test_request_resolves_artifact_ids_through_the_store(self) -> None:
+        request = AdapterRequest.from_store(
+            self.store,
+            self.store.head,
+            ("document",),
+            artifact_ids=("artifact:not-accepted",),
+        )
+        with self.assertRaisesRegex(ValueError, "Unknown artifact"):
+            SVGImportAdapter().propose(request, self.artifact_store)
+
+        tampered_store = ArtifactStore()
+        tampered = tampered_store.import_bytes(
+            b'<svg xmlns="http://www.w3.org/2000/svg"/>',
+            media_type="image/svg+xml",
+        )
+        object.__setattr__(tampered, "content", b"tampered")
+        with self.assertRaisesRegex(ValueError, "content hash mismatch"):
+            tampered_store.resolve((tampered.artifact_id,))
 
     def test_adapter_proposes_atomic_import_without_mutating_base(self) -> None:
-        proposal = SVGImportAdapter().propose(self.request())
+        proposal = SVGImportAdapter().propose(self.request(), self.artifact_store)
         self.assertEqual(self.store.get_document(self.store.head), self.document)
         self.assertEqual(proposal.base_revision_id, self.store.head)
         self.assertEqual(proposal.report.metrics["imported_shapes"], 3.0)
@@ -126,10 +151,46 @@ class SVGImportAdapterTest(unittest.TestCase):
             media_type="image/svg+xml",
         )
         request = AdapterRequest.from_store(
-            self.store, self.store.head, ("document",), artifacts=(unsafe,)
+            self.store,
+            self.store.head,
+            ("document",),
+            artifact_ids=(unsafe.artifact_id,),
         )
         with self.assertRaisesRegex(SVGImportError, "DTD"):
-            SVGImportAdapter().propose(request)
+            SVGImportAdapter().propose(request, self.artifact_store)
+
+    def test_unsupported_attributes_and_group_opacity_are_rejected(self) -> None:
+        cases = (
+            (
+                b'<svg xmlns="http://www.w3.org/2000/svg">'
+                b'<rect width="1" height="1" class="x"/></svg>',
+                "class",
+            ),
+            (
+                b'<svg xmlns="http://www.w3.org/2000/svg"><g opacity="0.5">'
+                b'<rect width="1" height="1"/></g></svg>',
+                "opacity",
+            ),
+            (
+                b'<svg xmlns="http://www.w3.org/2000/svg"><ellipse rx="0" ry="1"/></svg>',
+                "greater than zero",
+            ),
+            (
+                b'<svg xmlns="http://www.w3.org/2000/svg"><rect width="-1" height="1"/></svg>',
+                "greater than zero",
+            ),
+        )
+        for content, message in cases:
+            with self.subTest(message=message):
+                artifact = self.artifact_store.import_bytes(content, media_type="image/svg+xml")
+                request = AdapterRequest.from_store(
+                    self.store,
+                    self.store.head,
+                    ("document",),
+                    artifact_ids=(artifact.artifact_id,),
+                )
+                with self.assertRaisesRegex(SVGImportError, message):
+                    SVGImportAdapter().propose(request, self.artifact_store)
 
     def test_import_scene_permission_is_enforced_at_acceptance(self) -> None:
         protected = self.store.get_document(self.store.head)
@@ -147,10 +208,10 @@ class SVGImportAdapterTest(unittest.TestCase):
             protected_store,
             protected_store.head,
             ("document",),
-            artifacts=(self.artifact,),
+            artifact_ids=(self.artifact.artifact_id,),
             options={"namespace": "fixture"},
         )
-        proposal = SVGImportAdapter().propose(request)
+        proposal = SVGImportAdapter().propose(request, self.artifact_store)
 
         with self.assertRaisesRegex(ProposalPolicyError, "denies adapter:svg-import"):
             ProposalAcceptor().accept(protected_store, proposal)
@@ -160,10 +221,10 @@ class SVGImportAdapterTest(unittest.TestCase):
             self.store,
             self.store.head,
             ("document",),
-            artifacts=(self.artifact,),
+            artifact_ids=(self.artifact.artifact_id,),
             options={"namespace": "golden"},
         )
-        proposal = SVGImportAdapter().propose(request)
+        proposal = SVGImportAdapter().propose(request, self.artifact_store)
         revision = ProposalAcceptor().accept(self.store, proposal)
         imported = self.store.get_document(revision.revision_id)
         self.assertEqual(

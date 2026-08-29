@@ -121,7 +121,13 @@
         "artifact_kind": "ReferenceArtifact",
         "provenance": {
           "source_name": "001-import-source.svg"
-        }
+        },
+        "svg_view_box": [
+          0.0,
+          0.0,
+          200.0,
+          160.0
+        ]
       },
       "media_type": "image/svg+xml",
       "uri": "artifact:e29f7170130a8ac48430ea1ca14d53ee2fa5489d373406d19197fd42caace892"

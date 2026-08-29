@@ -10,7 +10,6 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, TextIO
 
-from .adapters import SVGImportAdapter
 from .artifacts import ArtifactKind, ArtifactStore
 from .document import validate_document
 from .evaluator import DocumentError, Evaluator, Quality, canonical_bytes
@@ -283,6 +282,10 @@ def command_render_svg(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def command_import_svg(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        from .adapters import SVGImportAdapter
+    except ImportError as exc:
+        raise CliError("SVG import requires the 'svg' optional dependency") from exc
     document = load_and_validate(args.document)
     try:
         source_bytes = args.svg.read_bytes()
@@ -303,10 +306,10 @@ def command_import_svg(args: argparse.Namespace) -> dict[str, Any]:
         store,
         base_revision_id,
         ("document",),
-        artifacts=(artifact,),
+        artifact_ids=(artifact.artifact_id,),
         options={"namespace": args.namespace} if args.namespace else {},
     )
-    proposal = SVGImportAdapter().propose(request)
+    proposal = SVGImportAdapter().propose(request, artifact_store)
     revision = ProposalAcceptor().accept(store, proposal)
     imported = store.get_document(revision.revision_id)
     output_bytes = (

@@ -1,6 +1,12 @@
 """Structured Vector Motion v0.1 reference core."""
 
-from .artifacts import ArtifactError, ArtifactKind, ArtifactSnapshot, ArtifactStore
+from .artifacts import (
+    ArtifactError,
+    ArtifactKind,
+    ArtifactResolver,
+    ArtifactSnapshot,
+    ArtifactStore,
+)
 from .evaluator import EvaluationState, Evaluator, Quality
 from .operations import (
     OperationDefinition,
@@ -34,6 +40,7 @@ __all__ = [
     "Evaluator",
     "ArtifactError",
     "ArtifactKind",
+    "ArtifactResolver",
     "ArtifactSnapshot",
     "ArtifactStore",
     "EvaluationState",
