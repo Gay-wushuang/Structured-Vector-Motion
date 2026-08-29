@@ -5,10 +5,15 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from .evaluator import Quality
+from .policies import PolicyEnforcementError, enforce_transaction_policies
 from .revisions import Revision, RevisionStore, Transaction
 
 
 class ProposalConflictError(RuntimeError):
+    pass
+
+
+class ProposalPolicyError(RuntimeError):
     pass
 
 
@@ -67,7 +72,7 @@ class AdapterRequest:
         quality: Quality = Quality.PREVIEW,
         artifact_ids: tuple[str, ...] = (),
         options: dict[str, Any] | None = None,
-    ) -> "AdapterRequest":
+    ) -> AdapterRequest:
         return cls(
             base_revision_id=revision_id,
             document=store.get_document(revision_id),
@@ -91,6 +96,12 @@ class ProposalAcceptor:
                 f"Proposal base {proposal.base_revision_id} does not match head {store.head}"
             )
         if proposal.report.constraint_violations:
-            raise ProposalConflictError("Proposal has unresolved constraint violations")
+            raise ProposalPolicyError("Proposal has unresolved constraint violations")
+        document = store.get_document(proposal.base_revision_id)
+        try:
+            enforce_transaction_policies(
+                document, proposal.generator.adapter_id, proposal.transaction
+            )
+        except PolicyEnforcementError as exc:
+            raise ProposalPolicyError(str(exc)) from exc
         return store.commit(proposal.base_revision_id, proposal.transaction)
-

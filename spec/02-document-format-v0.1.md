@@ -62,7 +62,8 @@ A list of pure computation nodes. Each operation has:
 ```
 
 Input slot references define graph dependencies. The graph must be acyclic.
-Output names are defined by the selected operation semantics.
+Input and output names and Value types are defined by the selected semantics
+version's Operation Registry. See `06-operation-registry.md`.
 
 ### `construction.output_bindings`
 
@@ -79,6 +80,15 @@ semantic hierarchy and render order.
 Back-to-front Entity IDs that currently contribute to presentation. Semantic
 parent entities need not occur in the stack when their children represent the
 rendered decomposition.
+
+### `presentation.styles`
+
+Styles are independent presentation records keyed by Entity ID. v0.1 supports
+`fill`, `stroke`, `stroke_width`, and `opacity`. Colors are `none`, six-digit hex,
+or eight-digit hex. Missing Entity styles use Renderer fallback options.
+
+Style identity does not define Entity identity, semantic hierarchy, refinement
+stage, or geometry Value identity.
 
 ### Control and animation collections
 
@@ -102,8 +112,13 @@ silently transferred to a child. Loading the parent revision restores the exact
 pre-split Document.
 
 The reference `SplitEntity` evaluator creates deterministic derived geometry
-values using recorded part selectors. It does not claim to perform semantic
-image segmentation.
+values using recorded `bounds_fraction` selectors. Each selector is an
+axis-aligned rectangle expressed as normalized fractions of source geometry
+bounds. Evaluation produces Clip geometry and does not claim to perform semantic
+image segmentation. New children inherit the source presentation Style when one
+exists. Geometry values do not contain Entity IDs; ownership and semantic
+identity remain in entity-to-output bindings, allowing multiple entities to
+share identical immutable geometry values.
 
 ## 5. Canonicalization
 
@@ -118,7 +133,8 @@ A conforming validator rejects at least:
 - missing or unsupported versions;
 - duplicate Entity or Operation IDs;
 - dangling entity parents, input slots, bindings, or render entries;
+- unregistered Operation types, invalid parameters, or signature mismatches;
+- references to output names not declared by static or dynamic signatures;
 - duplicate bindings for one entity property;
 - cyclic construction or entity graphs;
 - malformed accepted-reference hashes.
-

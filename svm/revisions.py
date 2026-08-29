@@ -22,10 +22,33 @@ class SplitPart:
 
 
 @dataclass(frozen=True)
+class SetOperationParameterChange:
+    operation_id: str
+    parameter: str
+    value: Any
+
+    def policy_intent(self) -> tuple[str, str, str | None]:
+        return "set_parameter", self.operation_id, self.parameter
+
+    def apply(self, document: dict[str, Any]) -> None:
+        operations = {
+            operation["id"]: operation for operation in document["construction"]["operations"]
+        }
+        if self.operation_id not in operations:
+            raise DocumentError(f"Cannot mutate missing operation {self.operation_id}")
+        operations[self.operation_id].setdefault("parameters", {})[self.parameter] = copy.deepcopy(
+            self.value
+        )
+
+
+@dataclass(frozen=True)
 class SplitEntityChange:
     source_entity_id: str
     operation_id: str
     parts: tuple[SplitPart, ...]
+
+    def policy_intent(self) -> tuple[str, str, str | None]:
+        return "split_entity", self.source_entity_id, None
 
     def apply(self, document: dict[str, Any]) -> None:
         entities = document["entities"]
@@ -56,6 +79,16 @@ class SplitEntityChange:
             entities.append(
                 {"id": part.entity_id, "name": part.name, "parent_id": self.source_entity_id}
             )
+
+        styles = document["presentation"].setdefault("styles", [])
+        source_style = next(
+            (style for style in styles if style["entity"] == self.source_entity_id), None
+        )
+        if source_style is not None:
+            for part in self.parts:
+                inherited_style = copy.deepcopy(source_style)
+                inherited_style["entity"] = part.entity_id
+                styles.append(inherited_style)
 
         document["construction"]["operations"].append(
             {
@@ -121,7 +154,7 @@ class RevisionStore:
     head: str | None = None
 
     @classmethod
-    def create(cls, document: dict[str, Any], message: str = "Initial revision") -> "RevisionStore":
+    def create(cls, document: dict[str, Any], message: str = "Initial revision") -> RevisionStore:
         validate_document(document)
         store = cls()
         revision = store._make_revision(document, (), None, message)

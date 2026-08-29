@@ -1,0 +1,55 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:styled-character",
+  "references": [],
+  "entities": [
+    {"id": "entity:background", "name": "Background"},
+    {"id": "entity:face", "name": "Face"},
+    {"id": "entity:hair", "name": "Hair"},
+    {"id": "entity:left-eye", "name": "Left Eye", "parent_id": "entity:face"},
+    {"id": "entity:right-eye", "name": "Right Eye", "parent_id": "entity:face"},
+    {"id": "entity:mouth", "name": "Mouth", "parent_id": "entity:face"},
+    {"id": "entity:shield", "name": "Shield"}
+  ],
+  "construction": {
+    "operations": [
+      {"id": "op:background", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": -2.0, "y": -2.0, "width": 4.0, "height": 4.0}},
+      {"id": "op:face", "type": "CreateEllipse", "inputs": {}, "parameters": {"cx": 0.0, "cy": 0.0, "rx": 0.85, "ry": 1.0}},
+      {"id": "op:face-path", "type": "ConvertToPath", "inputs": {"geometry": "op:face.geometry"}, "parameters": {}},
+      {"id": "op:hair-base", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": -1.0, "y": -1.1, "width": 2.0, "height": 0.62}},
+      {"id": "op:hair", "type": "Clip", "inputs": {"content": "op:hair-base.geometry", "clip": "op:face-path.geometry"}, "parameters": {}},
+      {"id": "op:left-eye", "type": "CreateEllipse", "inputs": {}, "parameters": {"cx": -0.3, "cy": -0.12, "rx": 0.12, "ry": 0.18}},
+      {"id": "op:right-eye", "type": "CreateEllipse", "inputs": {}, "parameters": {"cx": 0.3, "cy": -0.12, "rx": 0.12, "ry": 0.18}},
+      {"id": "op:mouth", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": -0.28, "y": 0.45, "width": 0.56, "height": 0.08}},
+      {"id": "op:shield", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": 1.05, "y": -0.45, "width": 0.62, "height": 1.05}}
+    ],
+    "output_bindings": [
+      {"entity": "entity:background", "property": "geometry", "slot": "op:background.geometry"},
+      {"entity": "entity:face", "property": "geometry", "slot": "op:face-path.geometry"},
+      {"entity": "entity:hair", "property": "geometry", "slot": "op:hair.geometry"},
+      {"entity": "entity:left-eye", "property": "geometry", "slot": "op:left-eye.geometry"},
+      {"entity": "entity:right-eye", "property": "geometry", "slot": "op:right-eye.geometry"},
+      {"entity": "entity:mouth", "property": "geometry", "slot": "op:mouth.geometry"},
+      {"entity": "entity:shield", "property": "geometry", "slot": "op:shield.geometry"}
+    ],
+    "refinement_stages": ["mass", "contour", "detail"]
+  },
+  "presentation": {
+    "render_stack": ["entity:background", "entity:face", "entity:hair", "entity:left-eye", "entity:right-eye", "entity:mouth", "entity:shield"],
+    "styles": [
+      {"entity": "entity:background", "fill": "#162238", "stroke": "none", "stroke_width": 0.0, "opacity": 1.0},
+      {"entity": "entity:face", "fill": "#F2C6A0", "stroke": "#5D4037", "stroke_width": 0.025, "opacity": 1.0},
+      {"entity": "entity:hair", "fill": "#6D4C41", "stroke": "#2D1B16", "stroke_width": 0.02, "opacity": 1.0},
+      {"entity": "entity:left-eye", "fill": "#7FDBFF", "stroke": "#173B57", "stroke_width": 0.018, "opacity": 1.0},
+      {"entity": "entity:right-eye", "fill": "#7FDBFF", "stroke": "#173B57", "stroke_width": 0.018, "opacity": 1.0},
+      {"entity": "entity:mouth", "fill": "#B74A5A", "stroke": "#6D2632", "stroke_width": 0.012, "opacity": 1.0},
+      {"entity": "entity:shield", "fill": "#4A78C2", "stroke": "#B8D4FF", "stroke_width": 0.035, "opacity": 0.95}
+    ]
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {"content": [], "construction_scheduling_hints": []}
+}
+

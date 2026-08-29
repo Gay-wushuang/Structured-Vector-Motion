@@ -1,5 +1,8 @@
 # Adapter and Proposal Boundary v0.1
 
+System-wide definitions of Adapter, Artifact, Backend, Evaluator, Renderer, and
+Exporter are provided by `05-system-boundaries.md`.
+
 ## 1. Rule
 
 An external tool never receives a mutable Revision Store and never edits an
@@ -59,9 +62,9 @@ After the base check, the Proposal transaction is applied to a copy and the
 resulting Document is fully validated. Only then is one new Revision committed.
 Rejection creates no Revision.
 
-Constraint and Edit Permission enforcement points belong in acceptance, not in
-adapter-specific code. v0.1 defines these hooks but does not yet implement the
-complete policy language.
+Constraint and Edit Permission enforcement belongs in acceptance, not in
+adapter-specific code. The supported v0.1 subset and fail-closed behavior are
+defined in `09-policy-enforcement.md`.
 
 ## 5. Artifact discipline
 
@@ -77,4 +80,3 @@ into core Transactions, but must not introduce external repository objects into
 the Document schema. Removing an adapter must not make an already accepted SVM
 Document uninterpretable, unless the Document explicitly declares a separately
 versioned operation-semantics extension.
-

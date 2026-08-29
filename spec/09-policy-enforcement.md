@@ -1,0 +1,87 @@
+# Proposal Policy Enforcement v0.1
+
+Status: normative supported policy subset.
+
+## 1. Acceptance boundary
+
+Proposal policy enforcement belongs to the Core Proposal Acceptor. Adapters may
+report expected violations, but their report is not a substitute for enforcement
+against the accepted base Document.
+
+```text
+Proposal + exact base Revision
+             |
+      derive Change intents
+             |
+  Constraints + Edit Permissions
+             |
+       allow or reject
+             |
+   atomic Transaction commit
+```
+
+## 2. Change intents
+
+Every Change accepted under a non-empty policy set must expose a policy intent.
+The v0.1 intents are:
+
+| Change | Action | Target | Parameter |
+| --- | --- | --- | --- |
+| `SetOperationParameterChange` | `set_parameter` | Operation ID | parameter name |
+| `SplitEntityChange` | `split_entity` | source Entity ID | none |
+
+An unknown Change under policy enforcement fails closed because Core cannot
+prove that accepting it is allowed.
+
+## 3. PreserveParameter Constraint
+
+```json
+{
+  "id": "constraint:head-radius",
+  "type": "PreserveParameter",
+  "operation": "op:head_base",
+  "parameter": "rx"
+}
+```
+
+This constraint rejects a Transaction containing a matching
+`SetOperationParameterChange`. Unrelated parameter changes and structural changes
+remain eligible for acceptance.
+
+## 4. Deny Edit Permission
+
+```json
+{
+  "id": "permission:no-head-split",
+  "actor": "adapter:layer-analysis",
+  "effect": "deny",
+  "actions": ["split_entity"],
+  "targets": ["entity:head"]
+}
+```
+
+The rule matches actor, action, and target. `actor` and entries in `targets` may
+use `*` as a wildcard. v0.1 supports deny rules only; allow-list composition and
+rule precedence are intentionally deferred.
+
+## 5. Validation and failure behavior
+
+Policy definitions are semantically validated when the Document is loaded.
+Unknown constraint types, effects, actions, missing targets, duplicate policy
+IDs, and dangling constrained Operation IDs are invalid.
+
+At acceptance time:
+
+- a stale base Revision is rejected first;
+- adapter-reported unresolved violations are rejected;
+- Core derives intents and enforces accepted policy definitions;
+- a violation creates no Revision;
+- an unrelated valid Proposal may commit normally.
+
+## 6. Deliberate limits
+
+The supported subset does not yet include geometry bounds, containment,
+alignment, soft scoring, property-level style permissions, allow-list rules, or
+policy inheritance through Entity hierarchy. These require explicit semantics
+and tests before use.
+

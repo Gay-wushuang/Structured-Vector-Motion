@@ -19,11 +19,14 @@
     "refinement_stages": ["mass", "contour", "detail"]
   },
   "presentation": {
-    "render_stack": ["entity:head", "entity:shield"]
+    "render_stack": ["entity:head", "entity:shield"],
+    "styles": [
+      {"entity": "entity:head", "fill": "#F2C6A0", "stroke": "#5D4037", "stroke_width": 0.015, "opacity": 1.0},
+      {"entity": "entity:shield", "fill": "#4A78C2", "stroke": "#183A70", "stroke_width": 0.02, "opacity": 1.0}
+    ]
   },
   "constraints": [],
   "evaluation_policies": [],
   "edit_permissions": [],
   "animation": {"content": [], "construction_scheduling_hints": []}
 }
-

@@ -32,8 +32,13 @@ Read these files before changing core behavior:
 
 1. `spec/01-invariants.md` — normative requirements.
 2. `spec/00-svm-core-model.md` — architectural model and boundaries.
-3. `examples/001-head-basic.svm.json` — current example Document.
-4. `tests/test_golden_a.py` — executable expectations.
+3. `spec/05-system-boundaries.md` — system roles and prohibited coupling.
+4. `spec/06-operation-registry.md` — Operation semantic signatures and dispatch.
+5. `spec/07-minimal-cli.md` — reference CLI contract.
+6. `spec/08-svg-renderer.md` — Evaluated Scene and SVG rendering contract.
+7. `spec/09-policy-enforcement.md` — supported Proposal policy subset.
+8. `examples/001-head-basic.svm.json` — current example Document.
+9. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -65,11 +70,17 @@ Do not collapse these concepts:
 - Constraint, Evaluation Policy, and Edit Permission are distinct systems.
 - Semantic hierarchy, render order, and refinement stage are orthogonal.
 - Construction animation and content animation are distinct.
+- Artifact is external evidence; Immutable Value is an accepted evaluation
+  result.
+- Adapter proposes Document changes; Backend executes accepted definitions.
+- Animation is a Document definition; Frame is a sampled render result.
 
 ## Core invariants for implementation
 
 - Operation evaluation must be pure and must not mutate input values.
 - Equivalent recorded inputs and semantics must produce equivalent outputs.
+- A quality-sensitive operation must include requested quality in its evaluation
+  key. PREVIEW output must not satisfy a FINAL request.
 - Record randomness, quality, engine/semantics version, and external artifacts
   whenever they can affect a result.
 - Accepted external resources must be content-addressed. A path or URI is only a
@@ -143,6 +154,24 @@ Run all tests from the repository root:
 python -m unittest discover -s tests -v
 ```
 
+Run formatting, lint, and type checks before completing a code change:
+
+```powershell
+python -m ruff format --check .
+python -m ruff check .
+python -m pyright
+```
+
+Install declared development tooling with:
+
+```powershell
+python -m pip install -e ".[dev]"
+```
+
+Do not weaken Ruff or Pyright configuration to hide a local error. Narrow types
+or correct the implementation. Pyright checks the production `svm` package;
+tests are behavior-checked by the full unittest suite.
+
 Compile-check Python sources when appropriate:
 
 ```powershell
@@ -203,10 +232,12 @@ Completed baseline:
 
 Next milestones:
 
-1. Minimal CLI for validate, evaluate, inspect, mutate, and reevaluate.
-2. Operation registry and explicit output signatures.
-3. Complete constraint and Edit Permission enforcement at Proposal acceptance.
-4. Simple SVG backend.
+1. Extend Style beyond flat fill/stroke only when a concrete rendering use case
+   requires it.
+2. Add geometry-aware constraints such as bounds preservation through explicit
+   evaluated semantics.
+3. Introduce the first deterministic external Adapter without allowing its data
+   model into Core.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

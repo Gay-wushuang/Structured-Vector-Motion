@@ -1,7 +1,13 @@
 """Structured Vector Motion v0.1 reference core."""
 
-from .evaluator import Evaluator, EvaluationState, Quality
-from .revisions import RevisionStore, SplitEntityChange, SplitPart, Transaction
+from .evaluator import EvaluationState, Evaluator, Quality
+from .operations import (
+    OperationDefinition,
+    OperationRegistry,
+    OperationValidationError,
+    ValueType,
+    get_operation_registry,
+)
 from .proposals import (
     AdapterRequest,
     EvaluationReport,
@@ -10,17 +16,36 @@ from .proposals import (
     Proposal,
     ProposalAcceptor,
     ProposalConflictError,
+    ProposalPolicyError,
     ProposalProvider,
 )
+from .revisions import (
+    RevisionStore,
+    SetOperationParameterChange,
+    SplitEntityChange,
+    SplitPart,
+    Transaction,
+)
+from .scene import EvaluatedEntity, EvaluatedScene, EvaluatedStyle, build_evaluated_scene
 
 __all__ = [
     "Evaluator",
     "EvaluationState",
     "Quality",
+    "OperationDefinition",
+    "OperationRegistry",
+    "OperationValidationError",
+    "ValueType",
+    "get_operation_registry",
     "RevisionStore",
+    "SetOperationParameterChange",
     "SplitEntityChange",
     "SplitPart",
     "Transaction",
+    "EvaluatedEntity",
+    "EvaluatedScene",
+    "EvaluatedStyle",
+    "build_evaluated_scene",
     "AdapterRequest",
     "EvaluationReport",
     "GeneratorProvenance",
@@ -28,5 +53,6 @@ __all__ = [
     "Proposal",
     "ProposalAcceptor",
     "ProposalConflictError",
+    "ProposalPolicyError",
     "ProposalProvider",
 ]

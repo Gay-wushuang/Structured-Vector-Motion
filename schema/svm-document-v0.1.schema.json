@@ -31,9 +31,9 @@
     },
     "construction": {"$ref": "#/$defs/construction"},
     "presentation": {"$ref": "#/$defs/presentation"},
-    "constraints": {"type": "array", "items": {"type": "object"}},
+    "constraints": {"type": "array", "items": {"$ref": "#/$defs/constraint"}},
     "evaluation_policies": {"type": "array", "items": {"type": "object"}},
-    "edit_permissions": {"type": "array", "items": {"type": "object"}},
+    "edit_permissions": {"type": "array", "items": {"$ref": "#/$defs/editPermission"}},
     "animation": {"$ref": "#/$defs/animation"}
   },
   "$defs": {
@@ -102,9 +102,58 @@
     "presentation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["render_stack"],
+      "required": ["render_stack", "styles"],
       "properties": {
-        "render_stack": {"type": "array", "items": {"$ref": "#/$defs/entityId"}}
+        "render_stack": {"type": "array", "items": {"$ref": "#/$defs/entityId"}},
+        "styles": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/style"}
+        }
+      }
+    },
+    "style": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity", "fill", "stroke", "stroke_width", "opacity"],
+      "properties": {
+        "entity": {"$ref": "#/$defs/entityId"},
+        "fill": {"type": "string", "pattern": "^(none|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8})$"},
+        "stroke": {"type": "string", "pattern": "^(none|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8})$"},
+        "stroke_width": {"type": "number", "minimum": 0},
+        "opacity": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "operation", "parameter"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^constraint:.+"},
+        "type": {"const": "PreserveParameter"},
+        "operation": {"$ref": "#/$defs/operationId"},
+        "parameter": {"type": "string", "minLength": 1}
+      }
+    },
+    "editPermission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "actor", "effect", "actions", "targets"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^permission:.+"},
+        "actor": {"type": "string", "minLength": 1},
+        "effect": {"const": "deny"},
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["set_parameter", "split_entity"]}
+        },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
       }
     },
     "animation": {
@@ -118,4 +167,3 @@
     }
   }
 }
-

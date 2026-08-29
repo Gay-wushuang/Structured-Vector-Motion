@@ -6,7 +6,6 @@ from pathlib import Path
 from svm import Evaluator, RevisionStore, SplitEntityChange, SplitPart, Transaction
 from svm.evaluator import DocumentError
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -19,8 +18,30 @@ def split_transaction(*, face_id: str = "entity:face") -> Transaction:
                 source_entity_id="entity:head",
                 operation_id="op:split_head",
                 parts=(
-                    SplitPart(face_id, "Face", "face_geometry", {"region": "lower"}),
-                    SplitPart("entity:hair", "Hair", "hair_geometry", {"region": "upper"}),
+                    SplitPart(
+                        face_id,
+                        "Face",
+                        "face_geometry",
+                        {
+                            "type": "bounds_fraction",
+                            "x": 0.0,
+                            "y": 0.25,
+                            "width": 1.0,
+                            "height": 0.75,
+                        },
+                    ),
+                    SplitPart(
+                        "entity:hair",
+                        "Hair",
+                        "hair_geometry",
+                        {
+                            "type": "bounds_fraction",
+                            "x": 0.0,
+                            "y": 0.0,
+                            "width": 1.0,
+                            "height": 0.45,
+                        },
+                    ),
                 ),
             ),
         ),
@@ -47,6 +68,9 @@ class GoldenTestB(unittest.TestCase):
             split_document["presentation"]["render_stack"],
             ["entity:face", "entity:hair", "entity:shield"],
         )
+        styles = {style["entity"]: style for style in split_document["presentation"]["styles"]}
+        self.assertEqual(styles["entity:face"]["fill"], styles["entity:head"]["fill"])
+        self.assertEqual(styles["entity:hair"]["fill"], styles["entity:head"]["fill"])
 
         bindings = {
             (binding["entity"], binding["property"]): binding["slot"]
@@ -55,17 +79,28 @@ class GoldenTestB(unittest.TestCase):
         self.assertEqual(bindings[("entity:head", "geometry")], "op:head_base.geometry")
         self.assertEqual(bindings[("entity:face", "geometry")], "op:split_head.face_geometry")
         self.assertEqual(bindings[("entity:hair", "geometry")], "op:split_head.hair_geometry")
-        self.assertNotEqual(bindings[("entity:head", "geometry")], bindings[("entity:face", "geometry")])
+        self.assertNotEqual(
+            bindings[("entity:head", "geometry")], bindings[("entity:face", "geometry")]
+        )
 
         evaluator = Evaluator(split_document)
         evaluator.evaluate("op:split_head")
         face_value = evaluator.runtime["op:split_head"].outputs["face_geometry"]
         hair_value = evaluator.runtime["op:split_head"].outputs["hair_geometry"]
         self.assertNotEqual(face_value.value_id, hair_value.value_id)
+        self.assertNotIn("entity_id", face_value.payload)
+        self.assertNotIn("entity_id", hair_value.payload)
+        self.assertEqual(face_value.payload["kind"], "clip")
+        self.assertEqual(face_value.payload["clip"]["y"], -0.25)
+        self.assertEqual(face_value.payload["clip"]["height"], 0.75)
+        self.assertEqual(hair_value.payload["clip"]["y"], -0.5)
+        self.assertEqual(hair_value.payload["clip"]["height"], 0.45)
 
         old_document = self.store.checkout(self.initial_revision_id)
         self.assertEqual(old_document, self.original)
-        self.assertEqual([entity["id"] for entity in old_document["entities"]], ["entity:head", "entity:shield"])
+        self.assertEqual(
+            [entity["id"] for entity in old_document["entities"]], ["entity:head", "entity:shield"]
+        )
 
         self.store.checkout(revision.revision_id)
         undone = self.store.undo()
@@ -90,4 +125,3 @@ class GoldenTestB(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -3,11 +3,17 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
+from .operations import (
+    OperationRegistry,
+    OperationValidationError,
+    get_operation_registry,
+)
 
-class EvaluationState(str, Enum):
+
+class EvaluationState(StrEnum):
     UNEVALUATED = "UNEVALUATED"
     CLEAN = "CLEAN"
     DIRTY = "DIRTY"
@@ -16,16 +22,16 @@ class EvaluationState(str, Enum):
     BLOCKED = "BLOCKED"
 
 
-class Quality(str, Enum):
+class Quality(StrEnum):
     INTERACTIVE = "INTERACTIVE"
     PREVIEW = "PREVIEW"
     FINAL = "FINAL"
 
 
 def canonical_bytes(value: Any) -> bytes:
-    return json.dumps(
-        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    ).encode("utf-8")
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
 
 
 @dataclass(frozen=True)
@@ -34,7 +40,7 @@ class ImmutableValue:
     payload: Any
 
     @classmethod
-    def create(cls, payload: Any) -> "ImmutableValue":
+    def create(cls, payload: Any) -> ImmutableValue:
         digest = hashlib.sha256(canonical_bytes(payload)).hexdigest()
         return cls(f"sha256:{digest}", payload)
 
@@ -44,6 +50,8 @@ class RuntimeNode:
     state: EvaluationState = EvaluationState.UNEVALUATED
     outputs: dict[str, ImmutableValue] | None = None
     stale_outputs: dict[str, ImmutableValue] | None = None
+    evaluation_key: str | None = None
+    evaluated_quality: Quality | None = None
     error: str | None = None
 
 
@@ -56,6 +64,12 @@ class Evaluator:
 
     def __init__(self, document: dict[str, Any]):
         self.document = document
+        try:
+            self.registry: OperationRegistry = get_operation_registry(
+                document.get("semantics_version", "")
+            )
+        except OperationValidationError as exc:
+            raise DocumentError(str(exc)) from exc
         self.operations = {
             operation["id"]: operation
             for operation in document.get("construction", {}).get("operations", [])
@@ -88,10 +102,29 @@ class Evaluator:
             raise DocumentError("Document requires semantics_version")
         if len(self.operations) != len(self.document["construction"]["operations"]):
             raise DocumentError("Operation IDs must be unique")
+        try:
+            for operation in self.operations.values():
+                self.registry.validate(operation)
+        except OperationValidationError as exc:
+            raise DocumentError(str(exc)) from exc
         for op_id, deps in self.dependencies.items():
             missing = deps.difference(self.operations)
             if missing:
                 raise DocumentError(f"{op_id} references missing operations: {sorted(missing)}")
+            operation = self.operations[op_id]
+            input_signature = self.registry.input_signature(operation)
+            for input_name, slot_id in operation.get("inputs", {}).items():
+                dependency_id, output_name = self._split_slot(slot_id)
+                output_signature = self.registry.output_signature(self.operations[dependency_id])
+                if output_name not in output_signature:
+                    raise DocumentError(
+                        f"{op_id}.{input_name} references missing output slot {slot_id}"
+                    )
+                if output_signature[output_name] != input_signature[input_name]:
+                    raise DocumentError(
+                        f"{op_id}.{input_name} expects {input_signature[input_name].value}, "
+                        f"but {slot_id} provides {output_signature[output_name].value}"
+                    )
         self._topological_order()
 
     def _topological_order(self) -> list[str]:
@@ -127,63 +160,77 @@ class Evaluator:
         return affected
 
     def set_parameter(self, operation_id: str, name: str, value: Any) -> set[str]:
-        self.operations[operation_id].setdefault("parameters", {})[name] = value
+        operation = self.operations[operation_id]
+        parameters = operation.setdefault("parameters", {})
+        missing = object()
+        previous = parameters.get(name, missing)
+        parameters[name] = value
+        try:
+            self.registry.validate(operation)
+        except OperationValidationError as exc:
+            if previous is missing:
+                del parameters[name]
+            else:
+                parameters[name] = previous
+            raise DocumentError(str(exc)) from exc
         return self.invalidate(operation_id)
 
     def evaluate_all(self, quality: Quality = Quality.PREVIEW) -> None:
         for operation_id in self._topological_order():
-            if self.runtime[operation_id].state != EvaluationState.CLEAN:
-                self.evaluate(operation_id, quality)
+            self.evaluate(operation_id, quality)
 
     def evaluate(self, operation_id: str, quality: Quality = Quality.PREVIEW) -> None:
         node = self.runtime[operation_id]
         operation = self.operations[operation_id]
         inputs: dict[str, Any] = {}
+        input_value_ids: dict[str, str] = {}
         for input_name, slot_id in operation.get("inputs", {}).items():
             dependency_id, output_name = self._split_slot(slot_id)
             dependency = self.runtime[dependency_id]
-            if dependency.state != EvaluationState.CLEAN:
-                self.evaluate(dependency_id, quality)
+            self.evaluate(dependency_id, quality)
             if dependency.state != EvaluationState.CLEAN or not dependency.outputs:
                 node.state = EvaluationState.BLOCKED
                 return
             inputs[input_name] = dependency.outputs[output_name].payload
+            input_value_ids[input_name] = dependency.outputs[output_name].value_id
 
+        evaluation_key = self._evaluation_key(operation, input_value_ids, quality)
+        if node.state == EvaluationState.CLEAN and node.evaluation_key == evaluation_key:
+            return
+
+        if node.outputs is not None:
+            node.stale_outputs = node.outputs
         node.state = EvaluationState.EVALUATING
         try:
             payloads = self._execute(operation, inputs, quality)
             node.outputs = {name: ImmutableValue.create(value) for name, value in payloads.items()}
             node.stale_outputs = None
+            node.evaluation_key = evaluation_key
+            node.evaluated_quality = quality
             node.error = None
             node.state = EvaluationState.CLEAN
         except Exception as exc:  # reference runtime records failures for inspection
             node.error = str(exc)
             node.state = EvaluationState.FAILED
 
-    def _execute(self, operation: dict[str, Any], inputs: dict[str, Any], quality: Quality) -> dict[str, Any]:
-        params = operation.get("parameters", {})
-        op_type = operation["type"]
-        if op_type == "CreateEllipse":
-            return {"geometry": {"kind": "ellipse", "cx": params["cx"], "cy": params["cy"], "rx": params["rx"], "ry": params["ry"]}}
-        if op_type == "CreateRectangle":
-            return {"geometry": {"kind": "rectangle", **params}}
-        if op_type == "Transform":
-            return {"geometry": {"kind": "transform", "source": inputs["geometry"], "matrix": params["matrix"]}}
-        if op_type == "ConvertToPath":
-            return {"geometry": {"kind": "path", "source": inputs["geometry"]}}
-        if op_type == "RefineBezier":
-            return {"geometry": {"kind": "refined_path", "source": inputs["geometry"], "tolerance": params["tolerance"], "quality": quality.value}}
-        if op_type == "Clip":
-            return {"geometry": {"kind": "clip", "content": inputs["content"], "clip": inputs["clip"]}}
-        if op_type == "SplitEntity":
-            source = inputs["geometry"]
-            return {
-                part["output_name"]: {
-                    "kind": "split_part",
-                    "source": source,
-                    "entity_id": part["entity_id"],
-                    "selector": part["selector"],
-                }
-                for part in params["parts"]
-            }
-        raise DocumentError(f"Unsupported operation type: {op_type}")
+    def _evaluation_key(
+        self,
+        operation: dict[str, Any],
+        input_value_ids: dict[str, str],
+        quality: Quality,
+    ) -> str:
+        context = {
+            "semantics_version": self.document["semantics_version"],
+            "operation_type": operation["type"],
+            "parameters": operation.get("parameters", {}),
+            "input_value_ids": input_value_ids,
+            "quality": quality.value
+            if self.registry.definition(operation["type"]).quality_sensitive
+            else None,
+        }
+        return f"sha256:{hashlib.sha256(canonical_bytes(context)).hexdigest()}"
+
+    def _execute(
+        self, operation: dict[str, Any], inputs: dict[str, Any], quality: Quality
+    ) -> dict[str, Any]:
+        return self.registry.evaluate(operation, inputs, quality.value)

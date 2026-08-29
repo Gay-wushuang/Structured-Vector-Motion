@@ -1,7 +1,8 @@
 # Structured Vector Motion Core Model v0.1
 
 Status: design baseline. The normative requirements live in
-`01-invariants.md`.
+`01-invariants.md`. System roles and prohibited cross-boundary behavior are
+defined in `05-system-boundaries.md`.
 
 ## 1. Purpose
 
@@ -85,6 +86,10 @@ Operation evaluation is pure:
 value = evaluate(operation_type, parameters, input_values, semantics_version)
 ```
 
+Supported types, parameter rules, quality sensitivity, and explicit input/output
+signatures come from the semantics version's Operation Registry. See
+`06-operation-registry.md`.
+
 The reference runtime tracks these evaluation states:
 
 - `UNEVALUATED`: no successful value exists.
@@ -99,6 +104,12 @@ an attribute of a materialized result, not a separate requirement to recompute.
 
 Invalidation propagates only to transitive dependants. Evaluation is lazy and
 may run at `INTERACTIVE`, `PREVIEW`, or `FINAL` quality.
+
+Runtime nodes record an evaluation key derived from semantics version,
+operation type, parameters, input Value IDs, and—when the operation declares
+quality sensitivity—requested quality. A `CLEAN` state is reusable only when
+this key matches the requested evaluation context. In particular, a PREVIEW
+result from a quality-sensitive operation is not a valid FINAL result.
 
 ## 6. Orthogonal control systems
 
@@ -137,4 +148,3 @@ it possible.
 - plugin ABI;
 - advanced paint, filters, or materials;
 - binary packaging and asset libraries.
-
