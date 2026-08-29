@@ -43,8 +43,9 @@ Read these files before changing core behavior:
 11. `spec/13-bitmap-trace-adapter.md` — deterministic bitmap tracing boundary.
 12. `spec/14-structured-trace-components.md` — deterministic component decomposition.
 13. `spec/15-entity-reconciliation.md` — previewable re-trace identity matching.
-14. `examples/001-head-basic.svm.json` — current example Document.
-15. `tests/test_golden_a.py` — executable expectations.
+14. `spec/16-opencv-artifact-analysis.md` — deterministic raster analysis evidence.
+15. `examples/001-head-basic.svm.json` — current example Document.
+16. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -171,7 +172,7 @@ python -m pyright
 Install declared development tooling with:
 
 ```powershell
-python -m pip install -e ".[dev,geometry,svg,trace]"
+python -m pip install -e ".[dev,geometry,svg,trace,analysis]"
 ```
 
 Do not weaken Ruff or Pyright configuration to hide a local error. Narrow types
@@ -262,6 +263,9 @@ Next milestones:
    unchanged, changed, added, and removed components while preserving matched
    Entity and Operation identity. The v0.2 matcher exposes IoU, centroid, area,
    contour, and composite scores; matching remains explicit and conservative.
+9. OpenCV Artifact Analysis and Golden H now produce content-addressed binary
+   masks, component statistics, and structural candidates without creating
+   Entities. Candidate promotion remains a later explicit Proposal.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

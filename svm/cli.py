@@ -493,6 +493,91 @@ def command_retrace_bitmap(args: argparse.Namespace) -> dict[str, Any]:
     return result
 
 
+def command_analyze_bitmap(args: argparse.Namespace) -> dict[str, Any]:
+    from .adapters import OpenCVAnalysisAdapter
+
+    document = load_and_validate(args.document)
+    try:
+        source_bytes = args.bitmap.read_bytes()
+    except OSError as exc:
+        raise CliError(f"Cannot read {args.bitmap}: {exc}") from exc
+    artifacts = ArtifactStore()
+    source = artifacts.import_bytes(
+        source_bytes,
+        media_type="image/png",
+        kind=ArtifactKind.REFERENCE,
+        provenance={"source_name": args.bitmap.name},
+    )
+    store = RevisionStore.create(document)
+    base_revision_id = store.head
+    if base_revision_id is None:
+        raise CliError("Revision Store did not create an initial head")
+    request = AdapterRequest.from_store(
+        store,
+        base_revision_id,
+        ("document",),
+        artifact_ids=(source.artifact_id,),
+        options={
+            "threshold": args.threshold,
+            "foreground": args.foreground,
+            "connectivity": 8,
+        },
+    )
+    proposal = OpenCVAnalysisAdapter().propose(request, artifacts)
+    if proposal.preview is None:
+        raise CliError("OpenCV Analysis Adapter did not produce a preview")
+    result: dict[str, Any] = {
+        "accepted": False,
+        "proposal_id": proposal.proposal_id,
+        "base_revision_id": proposal.base_revision_id,
+        "source_artifact_id": source.artifact_id,
+        "derived_artifacts": [
+            {
+                "artifact_id": artifact.artifact_id,
+                "content_hash": artifact.content_hash,
+                "media_type": artifact.media_type,
+            }
+            for artifact in proposal.preview_artifacts
+        ],
+        "metrics": proposal.report.metrics,
+        "structural_candidates": [
+            {
+                "candidate_id": candidate.candidate_id,
+                "bounds": candidate.bounds,
+                "pixel_area": candidate.pixel_area,
+                "centroid": candidate.centroid,
+            }
+            for candidate in proposal.preview.structural_candidates
+        ],
+    }
+    if args.derived_dir is not None:
+        args.derived_dir.mkdir(parents=True, exist_ok=True)
+        filenames = ("binary-mask.png", "component-analysis.json")
+        written = []
+        for preview, filename in zip(proposal.preview_artifacts, filenames, strict=True):
+            target = args.derived_dir / filename
+            target.write_bytes(artifacts.get(preview.artifact_id).content)
+            written.append(str(target))
+        result["written_derived_artifacts"] = written
+    if args.accept:
+        if args.output is None:
+            raise CliError("analyze-bitmap --accept requires --output")
+        revision = ProposalAcceptor().accept(store, proposal, artifacts)
+        accepted = store.get_document(revision.revision_id)
+        args.output.write_text(
+            json.dumps(accepted, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        result.update(
+            {
+                "accepted": True,
+                "revision_id": revision.revision_id,
+                "written": str(args.output),
+            }
+        )
+    return result
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="svm", description="SVM v0.1 reference CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -614,6 +699,18 @@ def build_parser() -> argparse.ArgumentParser:
     retrace_bitmap.add_argument("--path-tolerance", type=float, default=0.25)
     retrace_bitmap.add_argument("--fill-rule", choices=("nonzero", "evenodd"), default="nonzero")
     retrace_bitmap.set_defaults(handler=command_retrace_bitmap)
+
+    analyze_bitmap = subparsers.add_parser(
+        "analyze-bitmap", help="preview deterministic OpenCV connected-component analysis"
+    )
+    analyze_bitmap.add_argument("document", type=Path, help="base SVM Document")
+    analyze_bitmap.add_argument("bitmap", type=Path, help="source PNG Artifact")
+    analyze_bitmap.add_argument("--threshold", type=int, default=128)
+    analyze_bitmap.add_argument("--foreground", choices=("dark", "light"), default="dark")
+    analyze_bitmap.add_argument("--derived-dir", type=Path)
+    analyze_bitmap.add_argument("--accept", action="store_true")
+    analyze_bitmap.add_argument("--output", type=Path)
+    analyze_bitmap.set_defaults(handler=command_analyze_bitmap)
     return parser
 
 

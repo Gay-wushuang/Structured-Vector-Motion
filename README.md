@@ -140,12 +140,27 @@ Operation IDs. Every proposed match exposes IoU, centroid, filled-area,
 normalized contour, and composite scores. See
 `spec/15-entity-reconciliation.md`.
 
+## OpenCV artifact analysis
+
+OpenCV analysis is intentionally separate from vectorization:
+
+```powershell
+svm analyze-bitmap examples/005-empty-canvas.svm.json source.png `
+  --threshold 128 --derived-dir analysis-output
+```
+
+It emits a content-addressed binary mask, canonical connected-component JSON,
+and previewable structural candidates containing half-open pixel bounds, pixel
+area, and centroid. It creates no Entity or Operation. Add `--accept --output`
+only to attach the analysis evidence to a new Revision. See Golden H and
+`spec/16-opencv-artifact-analysis.md`.
+
 ## Development
 
 Install the project and development tools in editable mode:
 
 ```powershell
-python -m pip install -e ".[dev,geometry,svg,trace]"
+python -m pip install -e ".[dev,geometry,svg,trace,analysis]"
 ```
 
 Run the same checks used by CI:

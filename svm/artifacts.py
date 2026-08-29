@@ -90,6 +90,24 @@ class ArtifactResolver(Protocol):
     def resolve_reference(self, reference: dict[str, Any]) -> ArtifactSnapshot: ...
 
 
+class ArtifactWriter(Protocol):
+    """Capability that stores immutable content-addressed Artifact bytes."""
+
+    def import_bytes(
+        self,
+        content: bytes,
+        *,
+        media_type: str,
+        kind: ArtifactKind = ArtifactKind.REFERENCE,
+        provenance: dict[str, Any] | None = None,
+        locator: str | None = None,
+    ) -> ArtifactSnapshot: ...
+
+
+class ArtifactRepository(ArtifactResolver, ArtifactWriter, Protocol):
+    pass
+
+
 class ArtifactStore:
     """Small in-memory content-addressed store for Adapter inputs and evidence."""
 

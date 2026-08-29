@@ -147,7 +147,13 @@
           "minItems": 1,
           "uniqueItems": true,
           "items": {
-            "enum": ["set_parameter", "split_entity", "import_scene", "reconcile_scene"]
+            "enum": [
+              "set_parameter",
+              "split_entity",
+              "import_scene",
+              "reconcile_scene",
+              "attach_analysis"
+            ]
           }
         },
         "targets": {

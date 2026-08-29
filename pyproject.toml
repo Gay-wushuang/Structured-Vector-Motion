@@ -26,6 +26,9 @@ trace = [
   "potracer==0.0.4",
   "svgpathtools>=1.7.2,<2",
 ]
+analysis = [
+  "opencv-python-headless==4.14.0.94",
+]
 dev = [
   "pyright>=1.1.390,<2",
   "ruff>=0.8,<1",

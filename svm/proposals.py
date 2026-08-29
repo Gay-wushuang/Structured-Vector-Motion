@@ -66,9 +66,18 @@ class EntityDiffPreview:
 
 
 @dataclass(frozen=True)
+class StructuralCandidatePreview:
+    candidate_id: str
+    bounds: tuple[int, int, int, int]
+    pixel_area: int
+    centroid: tuple[float, float]
+
+
+@dataclass(frozen=True)
 class ProposalPreview:
     entity_diffs: tuple[EntityDiffPreview, ...] = ()
     proposed_render_stack: tuple[str, ...] = ()
+    structural_candidates: tuple[StructuralCandidatePreview, ...] = ()
 
 
 @dataclass(frozen=True)

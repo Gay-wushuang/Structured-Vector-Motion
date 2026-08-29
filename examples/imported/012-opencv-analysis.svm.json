@@ -1,0 +1,92 @@
+{
+  "animation": {
+    "construction_scheduling_hints": [],
+    "content": []
+  },
+  "constraints": [],
+  "construction": {
+    "operations": [],
+    "output_bindings": [],
+    "refinement_stages": [
+      "mass",
+      "contour",
+      "detail"
+    ]
+  },
+  "document_id": "document:svg-import-target",
+  "edit_permissions": [],
+  "entities": [],
+  "evaluation_policies": [],
+  "presentation": {
+    "render_stack": [],
+    "styles": []
+  },
+  "references": [
+    {
+      "content_hash": "sha256:5b104408f9f1d9a26d8e022cc2dcdfe95e905493d6ba0b543fdde124c2a6a2f8",
+      "id": "artifact:5b104408f9f1d9a26d8e022cc2dcdfe95e905493d6ba0b543fdde124c2a6a2f8",
+      "import_metadata": {
+        "artifact_kind": "ReferenceArtifact",
+        "provenance": {
+          "source_name": "006-opencv-analysis-source.png"
+        }
+      },
+      "media_type": "image/png",
+      "uri": "artifact:5b104408f9f1d9a26d8e022cc2dcdfe95e905493d6ba0b543fdde124c2a6a2f8"
+    },
+    {
+      "content_hash": "sha256:3ff429a03ef1500063ad75312cf8ad8b8edf4abb1e09a16d41e43300ad08bb82",
+      "id": "artifact:3ff429a03ef1500063ad75312cf8ad8b8edf4abb1e09a16d41e43300ad08bb82",
+      "import_metadata": {
+        "artifact_kind": "DerivedArtifact",
+        "provenance": {
+          "adapter_id": "adapter:opencv-analysis",
+          "adapter_version": "0.1",
+          "derived_type": "binary-mask",
+          "engine": "opencv-python-headless",
+          "engine_version": "4.14.0.94",
+          "parameters": {
+            "analysis_identity": "svm-opencv-components@0.1",
+            "connectivity": 8,
+            "foreground": "dark",
+            "mask_identity": "svm-binary-mask-png@0.1",
+            "opencv_runtime_version": "4.14.0",
+            "threshold": 128
+          },
+          "source_artifact_id": "artifact:5b104408f9f1d9a26d8e022cc2dcdfe95e905493d6ba0b543fdde124c2a6a2f8",
+          "source_content_hash": "sha256:5b104408f9f1d9a26d8e022cc2dcdfe95e905493d6ba0b543fdde124c2a6a2f8"
+        }
+      },
+      "media_type": "image/png",
+      "uri": "artifact:3ff429a03ef1500063ad75312cf8ad8b8edf4abb1e09a16d41e43300ad08bb82"
+    },
+    {
+      "content_hash": "sha256:40a34b3e98db9ceb9e79c9267dc1ae3c749eb21f8d96d72a4be2692ae9c26bba",
+      "id": "artifact:40a34b3e98db9ceb9e79c9267dc1ae3c749eb21f8d96d72a4be2692ae9c26bba",
+      "import_metadata": {
+        "artifact_kind": "DerivedArtifact",
+        "provenance": {
+          "adapter_id": "adapter:opencv-analysis",
+          "adapter_version": "0.1",
+          "derived_type": "component-analysis",
+          "engine": "opencv-python-headless",
+          "engine_version": "4.14.0.94",
+          "parameters": {
+            "analysis_identity": "svm-opencv-components@0.1",
+            "connectivity": 8,
+            "foreground": "dark",
+            "mask_identity": "svm-binary-mask-png@0.1",
+            "opencv_runtime_version": "4.14.0",
+            "threshold": 128
+          },
+          "source_artifact_id": "artifact:5b104408f9f1d9a26d8e022cc2dcdfe95e905493d6ba0b543fdde124c2a6a2f8",
+          "source_content_hash": "sha256:5b104408f9f1d9a26d8e022cc2dcdfe95e905493d6ba0b543fdde124c2a6a2f8"
+        }
+      },
+      "media_type": "application/vnd.svm.component-analysis+json",
+      "uri": "artifact:40a34b3e98db9ceb9e79c9267dc1ae3c749eb21f8d96d72a4be2692ae9c26bba"
+    }
+  ],
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1"
+}

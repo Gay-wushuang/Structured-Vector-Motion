@@ -71,6 +71,7 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
                     "split_entity",
                     "import_scene",
                     "reconcile_scene",
+                    "attach_analysis",
                 }
                 for action in actions
             )

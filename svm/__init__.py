@@ -5,9 +5,11 @@ from .artifacts import (
     ArtifactDescriptor,
     ArtifactError,
     ArtifactKind,
+    ArtifactRepository,
     ArtifactResolver,
     ArtifactSnapshot,
     ArtifactStore,
+    ArtifactWriter,
 )
 from .backends import GeometryBackend, GeometryBackendError
 from .evaluator import EvaluationState, Evaluator, Quality
@@ -33,8 +35,10 @@ from .proposals import (
     ProposalPolicyError,
     ProposalPreview,
     ProposalProvider,
+    StructuralCandidatePreview,
 )
 from .revisions import (
+    AppendReferencesChange,
     AppendSceneFragmentChange,
     ReplaceSceneFragmentChange,
     RevisionStore,
@@ -52,8 +56,10 @@ __all__ = [
     "ArtifactDescriptor",
     "ArtifactKind",
     "ArtifactResolver",
+    "ArtifactRepository",
     "ArtifactSnapshot",
     "ArtifactStore",
+    "ArtifactWriter",
     "GeometryBackend",
     "GeometryBackendError",
     "EvaluationState",
@@ -66,6 +72,7 @@ __all__ = [
     "get_operation_registry",
     "RevisionStore",
     "AppendSceneFragmentChange",
+    "AppendReferencesChange",
     "ReplaceSceneFragmentChange",
     "SetOperationParameterChange",
     "SplitEntityChange",
@@ -88,4 +95,5 @@ __all__ = [
     "ProposalPolicyError",
     "ProposalProvider",
     "ProposalPreview",
+    "StructuralCandidatePreview",
 ]

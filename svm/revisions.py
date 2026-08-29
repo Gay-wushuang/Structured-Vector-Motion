@@ -67,6 +67,23 @@ class AppendSceneFragmentChange:
 
 
 @dataclass(frozen=True)
+class AppendReferencesChange:
+    references: tuple[dict[str, Any], ...]
+
+    def policy_intent(self) -> tuple[str, str, str | None]:
+        return "attach_analysis", "document", None
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if not self.references:
+            raise DocumentError("AppendReferences requires at least one Artifact reference")
+        known_references = {reference["id"] for reference in document["references"]}
+        for reference in self.references:
+            if reference["id"] not in known_references:
+                document["references"].append(copy.deepcopy(reference))
+                known_references.add(reference["id"])
+
+
+@dataclass(frozen=True)
 class ReplaceSceneFragmentChange:
     """Atomically replace an explicitly scoped, self-contained scene fragment."""
 
