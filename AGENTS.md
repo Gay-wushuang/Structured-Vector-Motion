@@ -245,10 +245,10 @@ Next milestones:
 4. Introduce the first deterministic capability Backend. Shapely-backed planar
    Boolean geometry now proves accepted Operation execution without Proposal or
    Revision coupling.
-5. Specify Path-to-planar conversion before implementing it. The v0.1 contract
-   and Golden D fixtures are checked in; `PathToPolygon` execution remains the
-   next milestone and must satisfy those pending tests without hidden Backend
-   tolerance defaults.
+5. Implement Path-to-planar conversion only through explicit `PathToPolygon`.
+   Golden D now covers Bézier flattening, canonical polygon output, Boolean
+   topology, tolerance invalidation, and final SVG. Future path work must retain
+   its explicit Document parameters and fail-closed subset.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

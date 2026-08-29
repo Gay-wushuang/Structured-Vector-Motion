@@ -56,3 +56,9 @@ jobs:
           svm render-svg examples/007-boolean-geometry.svm.json
           --geometry-backend shapely --output boolean-ci.svg
           --view-box 0 0 180 140
+
+      - name: Smoke-test Golden D
+        run: >
+          svm render-svg examples/008-golden-d.svm.json
+          --geometry-backend shapely --output golden-d-ci.svg
+          --view-box 0 0 140 115

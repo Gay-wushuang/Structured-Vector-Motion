@@ -18,6 +18,7 @@ svg = [
 ]
 geometry = [
   "shapely>=2.1.2,<2.2",
+  "svgpathtools>=1.7.2,<2",
 ]
 dev = [
   "pyright>=1.1.390,<2",

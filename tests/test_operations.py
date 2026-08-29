@@ -29,6 +29,7 @@ class OperationRegistryTest(unittest.TestCase):
                 "CreateEllipse",
                 "CreatePath",
                 "CreateRectangle",
+                "PathToPolygon",
                 "RefineBezier",
                 "SplitEntity",
                 "Transform",
@@ -48,6 +49,11 @@ class OperationRegistryTest(unittest.TestCase):
         )
         self.assertTrue(refine.quality_sensitive)
         self.assertFalse(self.registry.definition("CreateEllipse").quality_sensitive)
+        path_to_polygon = self.registry.definition("PathToPolygon")
+        self.assertEqual(path_to_polygon.inputs, {"path": ValueType.GEOMETRY})
+        self.assertEqual(path_to_polygon.capability, "geometry")
+        self.assertEqual(path_to_polygon.algorithm_identity, "svm-path-planar:0.1")
+        self.assertFalse(path_to_polygon.quality_sensitive)
 
     def test_split_entity_declares_dynamic_output_signature(self) -> None:
         source = json.loads(

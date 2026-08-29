@@ -117,6 +117,7 @@ from third-party package identity.
 | `CreateEllipse` | none | `geometry` | no |
 | `CreatePath` | none | `geometry` | no |
 | `CreateRectangle` | none | `geometry` | no |
+| `PathToPolygon` | `path` | `geometry` | no |
 | `Transform` | `geometry` | `geometry` | no |
 | `ConvertToPath` | `geometry` | `geometry` | no |
 | `RefineBezier` | `geometry` | `geometry` | yes |
@@ -132,6 +133,7 @@ rejected at semantic validation rather than materialized as invisible geometry.
 `xor`. It declares the `geometry` capability; its accepted meaning belongs to
 the Registry while execution is delegated through `GeometryBackend`.
 
-`PathToPolygon` is reserved by `12-path-to-planar-geometry.md` but is not yet a
-registered v0.1 implementation. Until its contract is implemented, Documents
-containing it must fail semantic validation as an unsupported Operation.
+`PathToPolygon` is registered under `12-path-to-planar-geometry.md`. Its finite,
+positive `tolerance` and `nonzero | evenodd` fill rule are exact Document
+parameters. Its algorithm identity is `svm-path-planar:0.1` and participates in
+the evaluation context.

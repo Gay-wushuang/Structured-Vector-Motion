@@ -1,7 +1,6 @@
 # Path to Planar Geometry Semantics v0.1
 
-Status: normative design and executable pending contract; algorithm implementation
-is intentionally deferred.
+Status: implemented normative semantics with Golden D coverage.
 
 ## 1. Purpose
 
@@ -158,8 +157,8 @@ Canonicalization is content semantics, not renderer behavior:
 No engine name, tolerance, fill rule, or provenance is embedded in geometry
 content. Those belong to the Operation and Runtime evaluation context.
 
-The current Shapely Boolean output must eventually use this same canonicalizer;
-the Path conversion implementation must not create a second polygon dialect.
+Shapely Boolean output and Path conversion both use the same canonicalizer; no
+second Backend-specific polygon dialect is accepted.
 
 ## 10. Semantics and execution identity
 
@@ -180,7 +179,7 @@ svm-path-planar:0.1
 
 ## 11. Golden D contract
 
-Golden D is reserved for the complete deterministic chain:
+Golden D covers the complete deterministic chain:
 
 ```text
 two closed cubic SVG paths
@@ -194,12 +193,10 @@ two closed cubic SVG paths
 -> SVGRenderer
 ```
 
-The checked-in contract fixtures define the future accepted Document and source
-Artifact. Until the Operation is implemented, executable Golden D assertions are
-explicitly skipped and the existing Registry must continue to reject the
-unknown Operation rather than approximate it.
+The checked-in contract fixtures define the accepted Document, source Artifact,
+intermediate deterministic assertions, and final byte-for-byte SVG result.
 
-Required implementation assertions are:
+Implemented assertions are:
 
 - equivalent Documents and execution context produce identical canonical
   intermediate and final polygon sets;

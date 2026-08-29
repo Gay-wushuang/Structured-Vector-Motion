@@ -75,9 +75,13 @@ The Shapely implementation accepts:
 - positive-dimension `rectangle` Values;
 - canonical `polygon_set` Values produced by this capability.
 
-Ellipse, Bézier/path-data, transform wrappers, clips, lines, points, and mixed
-geometry collections are rejected. Curve flattening and tolerance policy must be
-specified before those inputs can be supported honestly.
+Its explicit `path_to_polygon` capability additionally accepts closed
+`path_data` for the registered `PathToPolygon` Operation under the semantics in
+`12-path-to-planar-geometry.md`. `BooleanGeometry` itself still rejects
+`path_data` and never performs implicit flattening.
+
+Ellipse, transform wrappers, clips, lines, points, and mixed geometry
+collections are rejected. Elliptical arc path segments remain unsupported.
 
 An empty result is rejected in v0.1 because the current geometry Value contract
 has no explicit empty-geometry representation.
@@ -101,7 +105,8 @@ multiple polygons retain filled-area semantics.
 
 ## 6. Dependency and CLI
 
-Shapely is declared in the optional `geometry` extra:
+Shapely and the SVG path parser used by the normative conversion are declared in
+the optional `geometry` extra:
 
 ```powershell
 python -m pip install -e ".[geometry]"

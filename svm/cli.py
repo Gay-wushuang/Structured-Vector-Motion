@@ -165,6 +165,7 @@ def command_inspect(args: argparse.Namespace) -> dict[str, Any]:
                 },
                 "quality_sensitive": definition.quality_sensitive,
                 "capability": definition.capability,
+                "algorithm_identity": definition.algorithm_identity,
             }
         )
     return {

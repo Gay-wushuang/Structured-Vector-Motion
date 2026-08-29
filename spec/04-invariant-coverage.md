@@ -45,7 +45,7 @@ registered type dispatch, exact input signatures, parameter rules, static and
 dynamic output signatures, Value-type compatibility, binding resolution, and
 atomic parameter mutation.
 
-`tests/test_path_to_polygon_contract.py` records the pending Golden D execution
-contract. Its active tests verify SVG-to-CreatePath evidence and fail-closed
-Registry behavior; algorithm-dependent assertions remain explicitly skipped
-until `PathToPolygon` is registered.
+`tests/test_path_to_polygon_contract.py` implements Golden D without skips. It
+covers SVG-to-CreatePath evidence, deterministic intermediate/final polygon
+Values, tolerance-key invalidation, fill rules, self-intersection, explicit
+rejections, shared canonicalization, and byte-stable SVG rendering.

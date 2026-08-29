@@ -213,12 +213,7 @@ class Evaluator:
             node.stale_outputs = None
             node.evaluation_key = evaluation_key
             node.evaluated_quality = quality
-            node.backend_identity = (
-                self.geometry_backend.identity
-                if self.registry.definition(operation["type"]).capability == "geometry"
-                and self.geometry_backend is not None
-                else None
-            )
+            node.backend_identity = self._execution_identity(operation)
             node.error = None
             node.state = EvaluationState.CLEAN
         except Exception as exc:  # reference runtime records failures for inspection
@@ -239,12 +234,18 @@ class Evaluator:
             "quality": quality.value
             if self.registry.definition(operation["type"]).quality_sensitive
             else None,
-            "backend": self.geometry_backend.identity
-            if self.registry.definition(operation["type"]).capability == "geometry"
-            and self.geometry_backend is not None
-            else None,
+            "backend": self._execution_identity(operation),
         }
         return f"sha256:{hashlib.sha256(canonical_bytes(context)).hexdigest()}"
+
+    def _execution_identity(self, operation: dict[str, Any]) -> str | None:
+        definition = self.registry.definition(operation["type"])
+        if definition.capability is None or self.geometry_backend is None:
+            return None
+        identities = [self.geometry_backend.identity]
+        if definition.algorithm_identity is not None:
+            identities.append(definition.algorithm_identity)
+        return "+".join(identities)
 
     def _execute(
         self, operation: dict[str, Any], inputs: dict[str, Any], quality: Quality

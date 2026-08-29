@@ -84,6 +84,15 @@ def _boolean_parameters(parameters: Mapping[str, Any]) -> None:
         )
 
 
+def _path_to_polygon_parameters(parameters: Mapping[str, Any]) -> None:
+    _require_exact_keys(parameters, {"tolerance", "fill_rule"}, "Parameter")
+    _require_number(parameters["tolerance"], "tolerance")
+    if parameters["tolerance"] <= 0:
+        raise OperationValidationError("PathToPolygon tolerance must be greater than zero")
+    if parameters["fill_rule"] not in {"nonzero", "evenodd"}:
+        raise OperationValidationError("PathToPolygon fill_rule must be nonzero or evenodd")
+
+
 def _transform_parameters(parameters: Mapping[str, Any]) -> None:
     _require_exact_keys(parameters, {"matrix"}, "Parameter")
     matrix = parameters["matrix"]
@@ -164,6 +173,7 @@ class OperationDefinition:
     executor: OperationExecutor
     quality_sensitive: bool = False
     capability: str | None = None
+    algorithm_identity: str | None = None
 
     def output_signature(self, operation: Mapping[str, Any]) -> Mapping[str, ValueType]:
         if callable(self.outputs):
@@ -350,6 +360,25 @@ def _boolean_geometry(
     }
 
 
+def _path_to_polygon(
+    parameters: Mapping[str, Any],
+    inputs: Mapping[str, Any],
+    context: OperationExecutionContext,
+) -> dict[str, Any]:
+    if context.geometry_backend is None:
+        raise GeometryBackendError("PathToPolygon requires a GeometryBackend")
+    path = inputs["path"]
+    if not isinstance(path, Mapping) or path.get("kind") != "path_data":
+        raise GeometryBackendError("PathToPolygon requires path_data geometry")
+    return {
+        "geometry": context.geometry_backend.path_to_polygon(
+            path,
+            float(parameters["tolerance"]),
+            parameters["fill_rule"],
+        )
+    }
+
+
 def _geometry_bounds(geometry: Mapping[str, Any]) -> tuple[float, float, float, float]:
     kind = geometry.get("kind")
     if kind == "ellipse":
@@ -430,6 +459,15 @@ def _build_core_registry() -> OperationRegistry:
             {"geometry": geometry},
             _path_parameters,
             _create_path,
+        ),
+        OperationDefinition(
+            "PathToPolygon",
+            {"path": geometry},
+            {"geometry": geometry},
+            _path_to_polygon_parameters,
+            _path_to_polygon,
+            capability="geometry",
+            algorithm_identity="svm-path-planar:0.1",
         ),
         OperationDefinition(
             "Transform",

@@ -84,6 +84,8 @@ The checked-in `examples/rendered/004-styled-character.svg` is a byte-for-byte
 visual golden generated from `examples/004-styled-character.svm.json`.
 `examples/rendered/007-boolean-geometry.svg` is the equivalent golden for
 canonical Geometry Backend output.
+`examples/rendered/008-golden-d.svg` covers the full SVG Bézier path through
+`PathToPolygon`, Boolean geometry, and canonical polygon rendering.
 
 ## 7. CLI
 

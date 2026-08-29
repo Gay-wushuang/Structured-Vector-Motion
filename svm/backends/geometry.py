@@ -20,3 +20,10 @@ class GeometryBackend(Protocol):
         left: Mapping[str, Any],
         right: Mapping[str, Any],
     ) -> dict[str, Any]: ...
+
+    def path_to_polygon(
+        self,
+        path: Mapping[str, Any],
+        tolerance: float,
+        fill_rule: str,
+    ) -> dict[str, Any]: ...
