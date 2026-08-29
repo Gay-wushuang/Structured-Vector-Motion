@@ -33,13 +33,20 @@ GeometryBackend
 ```
 
 Shapely is one implementation. Its package name is not part of the Operation
-type. Backend identity and version participate in the Runtime evaluation key for
-capability-backed Operations, while the Immutable Value ID remains the hash of
-canonical output content.
+type. Backend identity records both the Shapely package version and the runtime
+GEOS engine version using `geometry/shapely@<version>+geos@<version>`. This full
+identity participates in the Runtime evaluation key for capability-backed
+Operations, while the Immutable Value ID remains the hash of canonical output
+content. A GEOS version change therefore invalidates evaluation-context reuse
+even when canonical output content remains identical.
 
 If a Backend is unavailable, the Document remains structurally valid but the
 operation enters `FAILED`. A missing optional package must not prevent Core from
 being imported or non-geometry Documents from being evaluated.
+
+Shapely and GEOS exceptions are translated to `GeometryBackendError` at the
+capability boundary. Runtime does not depend on implementation-specific
+exception classes.
 
 ## 3. BooleanGeometry
 

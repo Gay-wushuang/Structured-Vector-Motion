@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from test_cli import run_cli
 
@@ -76,6 +77,52 @@ class GeometryBackendTest(unittest.TestCase):
             first.runtime["op:boolean"].outputs["geometry"].value_id,
             alternate.runtime["op:boolean"].outputs["geometry"].value_id,
         )
+
+    def test_geos_version_participates_in_capability_evaluation_key(self) -> None:
+        class RecordedIdentityBackend:
+            def __init__(self, identity: str) -> None:
+                self.identity = identity
+
+            def boolean(self, operator, left, right):
+                return self_backend.boolean(operator, left, right)
+
+        self_backend = self.backend
+        with patch("svm.backends.shapely_geometry.geos_version_string", "3.13.0"):
+            first_identity = self.backend.identity
+        with patch("svm.backends.shapely_geometry.geos_version_string", "3.13.1"):
+            second_identity = self.backend.identity
+
+        first = Evaluator(self.document, geometry_backend=RecordedIdentityBackend(first_identity))
+        second = Evaluator(self.document, geometry_backend=RecordedIdentityBackend(second_identity))
+        first.evaluate_all(Quality.FINAL)
+        second.evaluate_all(Quality.FINAL)
+
+        self.assertNotEqual(first_identity, second_identity)
+        self.assertNotEqual(
+            first.runtime["op:boolean"].evaluation_key,
+            second.runtime["op:boolean"].evaluation_key,
+        )
+        self.assertEqual(
+            first.runtime["op:boolean"].outputs["geometry"].value_id,
+            second.runtime["op:boolean"].outputs["geometry"].value_id,
+        )
+
+    def test_shapely_exceptions_are_normalized_at_backend_boundary(self) -> None:
+        from shapely.errors import GEOSException
+
+        with patch(
+            "svm.backends.shapely_geometry.union",
+            side_effect=GEOSException("fixture topology failure"),
+        ):
+            with self.assertRaisesRegex(
+                GeometryBackendError, "Shapely/GEOS boolean operation failed"
+            ) as raised:
+                self.backend.boolean(
+                    "union",
+                    {"kind": "rectangle", "x": 0, "y": 0, "width": 1, "height": 1},
+                    {"kind": "rectangle", "x": 1, "y": 0, "width": 1, "height": 1},
+                )
+        self.assertIsInstance(raised.exception.__cause__, GEOSException)
 
     def test_backend_rejects_unsupported_input_geometry(self) -> None:
         with self.assertRaisesRegex(GeometryBackendError, "input kind 'ellipse'"):

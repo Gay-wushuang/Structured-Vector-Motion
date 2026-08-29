@@ -4,7 +4,15 @@ import importlib.metadata
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from shapely import difference, intersection, normalize, symmetric_difference, union
+from shapely import (
+    difference,
+    geos_version_string,
+    intersection,
+    normalize,
+    symmetric_difference,
+    union,
+)
+from shapely.errors import ShapelyError
 from shapely.geometry import MultiPolygon, Polygon, box
 
 from .geometry import GeometryBackendError
@@ -15,7 +23,9 @@ class ShapelyGeometryBackend:
 
     @property
     def identity(self) -> str:
-        return f"shapely:{importlib.metadata.version('shapely')}"
+        return (
+            f"geometry/shapely@{importlib.metadata.version('shapely')}+geos@{geos_version_string}"
+        )
 
     def boolean(
         self,
@@ -23,8 +33,6 @@ class ShapelyGeometryBackend:
         left: Mapping[str, Any],
         right: Mapping[str, Any],
     ) -> dict[str, Any]:
-        left_geometry = _to_shapely(left)
-        right_geometry = _to_shapely(right)
         functions = {
             "union": union,
             "intersection": intersection,
@@ -32,14 +40,22 @@ class ShapelyGeometryBackend:
             "xor": symmetric_difference,
         }
         try:
-            result = functions[operator](left_geometry, right_geometry)
+            function = functions[operator]
         except KeyError as exc:
             raise GeometryBackendError(f"Unsupported boolean operator {operator!r}") from exc
-        if result.is_empty:
-            raise GeometryBackendError("Boolean operation produced empty geometry")
-        if not result.is_valid:
-            raise GeometryBackendError("Boolean operation produced invalid geometry")
-        return _from_shapely(normalize(result))
+        try:
+            left_geometry = _to_shapely(left)
+            right_geometry = _to_shapely(right)
+            result = function(left_geometry, right_geometry)
+            if result.is_empty:
+                raise GeometryBackendError("Boolean operation produced empty geometry")
+            if not result.is_valid:
+                raise GeometryBackendError("Boolean operation produced invalid geometry")
+            return _from_shapely(normalize(result))
+        except GeometryBackendError:
+            raise
+        except ShapelyError as exc:
+            raise GeometryBackendError(f"Shapely/GEOS boolean operation failed: {exc}") from exc
 
 
 def _to_shapely(geometry: Mapping[str, Any]) -> Polygon | MultiPolygon:
