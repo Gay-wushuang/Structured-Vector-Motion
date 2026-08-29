@@ -17,6 +17,7 @@ from svm import (
 )
 from svm.adapters import BitmapReconcileAdapter, BitmapTraceError
 from svm.adapters.bitmap_trace import TracedPath, TraceResult
+from svm.path_bounds import canonical_path_bounds
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "examples" / "imported" / "010-structured-trace.svm.json"
@@ -89,7 +90,7 @@ class EntityReconciliationGoldenGTest(unittest.TestCase):
             )
         )
         self.assertEqual(displayed_composite, recomputed_composite)
-        self.assertEqual(proposal.generator.parameters["matcher"], "svm-multifeature-greedy@0.2")
+        self.assertEqual(proposal.generator.parameters["matcher"], "svm-multifeature-greedy@0.3")
         self.assertEqual(
             proposal.generator.parameters["match_weights"],
             {"iou": 0.35, "centroid": 0.2, "area": 0.15, "contour": 0.3},
@@ -98,7 +99,6 @@ class EntityReconciliationGoldenGTest(unittest.TestCase):
         self.assertEqual(proposal.generator.parameters["area_samples_per_subpath"], 128)
         self.assertEqual(proposal.generator.parameters["max_descriptor_segments"], 10_000)
         self.assertEqual(proposal.generator.parameters["max_topology_segments"], 512)
-        self.assertEqual(proposal.generator.parameters["self_intersection_sample_count"], 32)
         self.assertEqual(proposal.generator.parameters["area_epsilon"], 1e-12)
         self.assertEqual(proposal.generator.parameters["topology_parameter_epsilon"], 1e-12)
         self.assertEqual(preview.entity_diffs[0].entity_id, SCOPE[0])
@@ -374,6 +374,43 @@ class EntityReconciliationGoldenGTest(unittest.TestCase):
                 "nonzero",
             )
 
+        touching = "M 0 0 L 10 0 L 10 10 L 0 10 Z M 10 10 L 20 10 L 20 20 L 10 20 Z"
+        with self.assertRaisesRegex(BitmapTraceError, "non-intersecting contour-tree"):
+            self._proposal_for_shape(
+                touching,
+                (0.0, 0.0, 20.0, 20.0),
+                "nonzero",
+                touching,
+                (0.0, 0.0, 20.0, 20.0),
+                "nonzero",
+            )
+
+        open_path = "M 0 0 L 10 0 L 10 10"
+        with self.assertRaisesRegex(BitmapTraceError, "closed contour rings"):
+            self._proposal_for_shape(
+                open_path,
+                (0.0, 0.0, 10.0, 10.0),
+                "nonzero",
+                open_path,
+                (0.0, 0.0, 10.0, 10.0),
+                "nonzero",
+            )
+
+        cubic_loop = (
+            "M 0 0 C -0.2666666666666667 -0.3333333333333333 "
+            "-0.5333333333333333 -0.3333333333333333 0.2 0 L 0 0 Z"
+        )
+        loop_bounds = canonical_path_bounds(cubic_loop)
+        with self.assertRaisesRegex(BitmapTraceError, "non-intersecting contour-tree"):
+            self._proposal_for_shape(
+                cubic_loop,
+                loop_bounds,
+                "nonzero",
+                cubic_loop,
+                loop_bounds,
+                "nonzero",
+            )
+
         self_intersection = "M 0 0 L 10 10 L 0 10 L 10 0 Z"
         with self.assertRaisesRegex(BitmapTraceError, "non-intersecting contour-tree"):
             self._proposal_for_shape(
@@ -384,6 +421,29 @@ class EntityReconciliationGoldenGTest(unittest.TestCase):
                 (0.0, 0.0, 10.0, 10.0),
                 "nonzero",
             )
+
+    def test_descriptor_accepts_nested_and_disjoint_simple_rings(self) -> None:
+        nested = "M 0 0 L 10 0 L 10 10 L 0 10 Z M 3 3 L 3 7 L 7 7 L 7 3 Z"
+        nested_proposal = self._proposal_for_shape(
+            nested,
+            (0.0, 0.0, 10.0, 10.0),
+            "nonzero",
+            nested,
+            (0.0, 0.0, 10.0, 10.0),
+            "nonzero",
+        )
+        self.assertEqual(nested_proposal.preview.entity_diffs[0].match_score.composite, 1.0)
+
+        disjoint = "M 0 0 L 4 0 L 4 4 L 0 4 Z M 6 6 L 10 6 L 10 10 L 6 10 Z"
+        disjoint_proposal = self._proposal_for_shape(
+            disjoint,
+            (0.0, 0.0, 10.0, 10.0),
+            "nonzero",
+            disjoint,
+            (0.0, 0.0, 10.0, 10.0),
+            "nonzero",
+        )
+        self.assertEqual(disjoint_proposal.preview.entity_diffs[0].match_score.composite, 1.0)
 
     def _proposal_for_shape(
         self,

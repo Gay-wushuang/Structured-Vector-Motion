@@ -30,9 +30,9 @@ collapsing separated slots into one replacement fragment would reorder external
 Entities. Cross-layer reconciliation requires a future preserve-slot or render-
 anchor contract.
 
-## Matching v0.2
+## Matching v0.3
 
-The matcher identity is `svm-multifeature-greedy@0.2`. Every old/new pair
+The matcher identity is `svm-multifeature-greedy@0.3`. Every old/new pair
 receives four independently reviewable scores in `[0, 1]`:
 
 - `iou`: axis-aligned canonical path-bounds intersection-over-union;
@@ -58,15 +58,16 @@ spaced arc-length positions, independent of SVG segment boundaries. Descriptor
 construction rejects paths above 10,000 segments. These limits and sampling
 counts are part of matcher semantics.
 
-Exact pairwise topology verification is bounded to 512 segments and individual
-segment self-intersection screening uses 32 parameter samples. A larger path is
-rejected rather than entering an unbounded quadratic check. Both limits are
-recorded in generator provenance.
+Exact pairwise topology verification is bounded to 512 segments. Individual
+`Line`, `QuadraticBezier`, and `CubicBezier` segments use analytic injectivity
+and self-intersection tests; other curve types fail closed because their
+simplicity is not proven. A larger path is rejected rather than entering an
+unbounded quadratic check. The limit is recorded in generator provenance.
 
 The fixed area-degeneracy epsilon is `1e-12` square document units. The fixed
 endpoint-parameter comparison epsilon used by topology validation is `1e-12`.
 Both constants are recorded in generator provenance and belong to
-`svm-multifeature-greedy@0.2` semantics.
+`svm-multifeature-greedy@0.3` semantics.
 
 Contour normalization translates the bounds center to the origin and divides
 both axes by the same `max(width, height)` scale. It removes translation and

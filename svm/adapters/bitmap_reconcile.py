@@ -29,12 +29,11 @@ from .bitmap_trace import (
     TraceResult,
 )
 
-MATCHER_IDENTITY = "svm-multifeature-greedy@0.2"
+MATCHER_IDENTITY = "svm-multifeature-greedy@0.3"
 CONTOUR_SAMPLE_COUNT = 128
 AREA_SAMPLES_PER_SUBPATH = 128
 MAX_DESCRIPTOR_SEGMENTS = 10_000
 MAX_TOPOLOGY_SEGMENTS = 512
-SELF_INTERSECTION_SAMPLE_COUNT = 32
 AREA_EPSILON = 1e-12
 TOPOLOGY_PARAMETER_EPSILON = 1e-12
 MATCH_WEIGHTS = {
@@ -232,7 +231,6 @@ class BitmapReconcileAdapter:
                 "area_samples_per_subpath": AREA_SAMPLES_PER_SUBPATH,
                 "max_descriptor_segments": MAX_DESCRIPTOR_SEGMENTS,
                 "max_topology_segments": MAX_TOPOLOGY_SEGMENTS,
-                "self_intersection_sample_count": SELF_INTERSECTION_SAMPLE_COUNT,
                 "area_epsilon": AREA_EPSILON,
                 "topology_parameter_epsilon": TOPOLOGY_PARAMETER_EPSILON,
                 **trace_options.provenance(),
@@ -584,7 +582,7 @@ def _validate_contour_tree(subpaths: list[Any]) -> None:
         if not subpath.isclosed():
             raise BitmapTraceError("Reconciliation paths must contain only closed contour rings")
         for segment in segments:
-            _reject_sampled_segment_self_intersection(segment)
+            _validate_segment_injective(segment)
         for left_index, left in enumerate(segments):
             for right_index in range(left_index + 1, len(segments)):
                 right = segments[right_index]
@@ -621,57 +619,93 @@ def _same_parameters(actual: tuple[float, float], expected: tuple[float, float] 
     )
 
 
-def _reject_sampled_segment_self_intersection(segment: Any) -> None:
-    points = tuple(
-        _complex_point(segment.point(index / SELF_INTERSECTION_SAMPLE_COUNT))
-        for index in range(SELF_INTERSECTION_SAMPLE_COUNT + 1)
-    )
-    edges = tuple(zip(points, points[1:], strict=False))
-    for left_index, left in enumerate(edges):
-        for right_index in range(left_index + 2, len(edges)):
-            if right_index == left_index + 1:
-                continue
-            if _line_segments_intersect(left, edges[right_index]):
-                raise BitmapTraceError(
-                    "Reconciliation path is outside the non-intersecting contour-tree subset"
-                )
+def _validate_segment_injective(segment: Any) -> None:
+    try:
+        from svgpathtools import (  # pyright: ignore[reportMissingImports]
+            CubicBezier,
+            Line,
+            QuadraticBezier,
+        )
+    except ImportError as exc:
+        raise BitmapTraceError("Cannot verify reconciliation curve topology") from exc
 
-
-def _line_segments_intersect(
-    left: tuple[tuple[float, float], tuple[float, float]],
-    right: tuple[tuple[float, float], tuple[float, float]],
-) -> bool:
-    def orientation(
-        first: tuple[float, float],
-        second: tuple[float, float],
-        third: tuple[float, float],
-    ) -> float:
-        return (second[0] - first[0]) * (third[1] - first[1]) - (second[1] - first[1]) * (
-            third[0] - first[0]
+    if isinstance(segment, Line):
+        simple = segment.start != segment.end
+    elif isinstance(segment, QuadraticBezier):
+        quadratic = segment.start - 2 * segment.control + segment.end
+        linear = 2 * (segment.control - segment.start)
+        simple = _quadratic_is_injective(quadratic, linear)
+    elif isinstance(segment, CubicBezier):
+        cubic = -segment.start + 3 * segment.control1 - 3 * segment.control2 + segment.end
+        quadratic = 3 * segment.start - 6 * segment.control1 + 3 * segment.control2
+        linear = -3 * segment.start + 3 * segment.control1
+        simple = _cubic_is_injective(cubic, quadratic, linear)
+    else:
+        raise BitmapTraceError(
+            f"Cannot verify reconciliation topology for {type(segment).__name__} segments"
+        )
+    if not simple:
+        raise BitmapTraceError(
+            "Reconciliation path is outside the non-intersecting contour-tree subset"
         )
 
-    first = orientation(left[0], left[1], right[0])
-    second = orientation(left[0], left[1], right[1])
-    third = orientation(right[0], right[1], left[0])
-    fourth = orientation(right[0], right[1], left[1])
-    if first * second < 0 and third * fourth < 0:
+
+def _cross(left: complex, right: complex) -> float:
+    return float(left.real * right.imag - left.imag * right.real)
+
+
+def _quadratic_is_injective(quadratic: complex, linear: complex) -> bool:
+    if _cross(quadratic, linear) != 0:
         return True
+    return _collinear_polynomial_is_injective(0j, quadratic, linear)
 
-    def on_segment(
-        point: tuple[float, float],
-        start: tuple[float, float],
-        end: tuple[float, float],
-    ) -> bool:
-        return min(start[0], end[0]) <= point[0] <= max(start[0], end[0]) and min(
-            start[1], end[1]
-        ) <= point[1] <= max(start[1], end[1])
 
-    return (
-        (first == 0 and on_segment(right[0], left[0], left[1]))
-        or (second == 0 and on_segment(right[1], left[0], left[1]))
-        or (third == 0 and on_segment(left[0], right[0], right[1]))
-        or (fourth == 0 and on_segment(left[1], right[0], right[1]))
+def _cubic_is_injective(cubic: complex, quadratic: complex, linear: complex) -> bool:
+    denominator = _cross(cubic, quadratic)
+    if denominator != 0:
+        parameter_sum = -_cross(cubic, linear) / denominator
+        symmetric_square = _cross(quadratic, linear) / denominator
+        discriminant = 4 * symmetric_square - 3 * parameter_sum * parameter_sum
+        if discriminant <= 0:
+            return True
+        root_distance = math.sqrt(discriminant)
+        first = (parameter_sum - root_distance) / 2
+        second = (parameter_sum + root_distance) / 2
+        return not (
+            -TOPOLOGY_PARAMETER_EPSILON <= first <= 1 + TOPOLOGY_PARAMETER_EPSILON
+            and -TOPOLOGY_PARAMETER_EPSILON <= second <= 1 + TOPOLOGY_PARAMETER_EPSILON
+        )
+    if _cross(cubic, linear) != 0 or _cross(quadratic, linear) != 0:
+        return True
+    return _collinear_polynomial_is_injective(cubic, quadratic, linear)
+
+
+def _collinear_polynomial_is_injective(cubic: complex, quadratic: complex, linear: complex) -> bool:
+    use_real = sum(abs(value.real) for value in (cubic, quadratic, linear)) >= sum(
+        abs(value.imag) for value in (cubic, quadratic, linear)
     )
+    a, b, c = (
+        tuple(float(value.real) for value in (cubic, quadratic, linear))
+        if use_real
+        else tuple(float(value.imag) for value in (cubic, quadratic, linear))
+    )
+    critical = _quadratic_roots(3 * a, 2 * b, c)
+    parameters = [0.0, *(root for root in critical if 0 < root < 1), 1.0]
+    parameters.sort()
+    values = [((a * parameter + b) * parameter + c) * parameter for parameter in parameters]
+    increasing = all(left < right for left, right in zip(values, values[1:], strict=False))
+    decreasing = all(left > right for left, right in zip(values, values[1:], strict=False))
+    return increasing or decreasing
+
+
+def _quadratic_roots(a: float, b: float, c: float) -> tuple[float, ...]:
+    if a == 0:
+        return () if b == 0 else (-c / b,)
+    discriminant = b * b - 4 * a * c
+    if discriminant < 0:
+        return ()
+    root = math.sqrt(discriminant)
+    return ((-b - root) / (2 * a), (-b + root) / (2 * a))
 
 
 def _point_in_ring(point: tuple[float, float], ring: tuple[tuple[float, float], ...]) -> bool:
