@@ -419,7 +419,6 @@ def command_retrace_bitmap(args: argparse.Namespace) -> dict[str, Any]:
         raise CliError("Revision Store did not create an initial head")
     options = {
         "namespace": args.namespace,
-        "match_score_threshold": args.match_score_threshold,
         "threshold": args.threshold,
         "invert": args.invert,
         "turd_size": args.turd_size,
@@ -430,6 +429,10 @@ def command_retrace_bitmap(args: argparse.Namespace) -> dict[str, Any]:
         "path_tolerance": args.path_tolerance,
         "fill_rule": args.fill_rule,
     }
+    if args.match_score_threshold is not None:
+        options["match_score_threshold"] = args.match_score_threshold
+    if args.match_iou_threshold is not None:
+        options["match_iou_threshold"] = args.match_iou_threshold
     request = AdapterRequest.from_store(
         store,
         base_revision_id,
@@ -587,11 +590,13 @@ def build_parser() -> argparse.ArgumentParser:
     retrace_bitmap.add_argument("--namespace", default="reconciled")
     retrace_bitmap.add_argument(
         "--match-score-threshold",
-        "--match-iou-threshold",
-        dest="match_score_threshold",
         type=float,
-        default=0.65,
-        help="minimum composite match score; old option name remains an alias",
+        help="minimum composite match score (default: 0.65)",
+    )
+    retrace_bitmap.add_argument(
+        "--match-iou-threshold",
+        type=float,
+        help="unsupported legacy option; use --match-score-threshold",
     )
     retrace_bitmap.add_argument("--accept", action="store_true")
     retrace_bitmap.add_argument("--output", type=Path)

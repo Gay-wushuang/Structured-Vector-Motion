@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import math
+from bisect import bisect_right
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -29,8 +30,8 @@ from .bitmap_trace import (
 )
 
 MATCHER_IDENTITY = "svm-multifeature-greedy@0.2"
-CONTOUR_SAMPLES_PER_SEGMENT = 8
-MAX_CONTOUR_SEGMENTS = 64
+CONTOUR_SAMPLE_COUNT = 128
+AREA_SAMPLES_PER_SUBPATH = 128
 MAX_DESCRIPTOR_SEGMENTS = 10_000
 MATCH_WEIGHTS = {
     "iou": 0.35,
@@ -92,7 +93,7 @@ class BitmapReconcileAdapter:
         traced = self.tracer.trace(artifact.content, trace_options)
         if isinstance(traced, TracedPath):
             traced = TraceResult((traced,))
-        matches = _match(existing, traced.paths, match_threshold)
+        matches = _match(existing, traced.paths, trace_options.fill_rule, match_threshold)
         match_by_proposed = {match.proposed_index: match for match in matches}
         matched_existing = {match.existing_index for match in matches}
 
@@ -223,8 +224,8 @@ class BitmapReconcileAdapter:
                 "matcher": MATCHER_IDENTITY,
                 "match_score_threshold": match_threshold,
                 "match_weights": copy.deepcopy(MATCH_WEIGHTS),
-                "contour_samples_per_segment": CONTOUR_SAMPLES_PER_SEGMENT,
-                "max_contour_segments": MAX_CONTOUR_SEGMENTS,
+                "contour_sample_count": CONTOUR_SAMPLE_COUNT,
+                "area_samples_per_subpath": AREA_SAMPLES_PER_SUBPATH,
                 "max_descriptor_segments": MAX_DESCRIPTOR_SEGMENTS,
                 **trace_options.provenance(),
             },
@@ -318,12 +319,12 @@ def _options(values: dict[str, Any]) -> tuple[TraceOptions, float, str]:
     raw = copy.deepcopy(values)
     legacy_threshold = raw.pop("match_iou_threshold", None)
     match_threshold = raw.pop("match_score_threshold", None)
-    if legacy_threshold is not None and match_threshold is not None:
+    if legacy_threshold is not None:
         raise BitmapTraceError(
-            "Specify only match_score_threshold; match_iou_threshold is a compatibility alias"
+            "match_iou_threshold is no longer supported; use match_score_threshold instead"
         )
     if match_threshold is None:
-        match_threshold = legacy_threshold if legacy_threshold is not None else 0.65
+        match_threshold = 0.65
     namespace = raw.get("namespace", "reconciled")
     if not isinstance(namespace, str) or not namespace.replace("-", "").isalnum():
         raise BitmapTraceError("Reconciliation namespace must contain letters, digits, or hyphens")
@@ -351,13 +352,20 @@ def _select_artifact(artifacts: tuple[ArtifactSnapshot, ...]) -> ArtifactSnapsho
 def _match(
     existing: list[_ExistingComponent],
     proposed: tuple[TracedPath, ...],
+    proposed_fill_rule: str,
     threshold: float,
 ) -> tuple[_Match, ...]:
     old_descriptors = [
-        _shape_descriptor(component.path_operation["parameters"]["d"], component.bounds)
+        _shape_descriptor(
+            component.path_operation["parameters"]["d"],
+            component.bounds,
+            component.planar_operation["parameters"]["fill_rule"],
+        )
         for component in existing
     ]
-    new_descriptors = [_shape_descriptor(path.d, path.bounds) for path in proposed]
+    new_descriptors = [
+        _shape_descriptor(path.d, path.bounds, proposed_fill_rule) for path in proposed
+    ]
     candidates: list[tuple[float, str, int, int, MatchScorePreview]] = []
     for old_index, old in enumerate(existing):
         for new_index in range(len(proposed)):
@@ -390,7 +398,9 @@ def _bounds_iou(
 
 
 def _shape_descriptor(
-    path_data: str, bounds: tuple[float, float, float, float]
+    path_data: str,
+    bounds: tuple[float, float, float, float],
+    fill_rule: str,
 ) -> _ShapeDescriptor:
     try:
         from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
@@ -405,38 +415,36 @@ def _shape_descriptor(
             f"Reconciliation path must contain 1 to {MAX_DESCRIPTOR_SEGMENTS} segments"
         )
 
-    signed_area_twice = 0.0
-    centroid_x_numerator = 0.0
-    centroid_y_numerator = 0.0
+    rings: list[tuple[tuple[float, float], ...]] = []
     for subpath in subpaths:
-        ring = [
-            _complex_point(segment.point(sample / CONTOUR_SAMPLES_PER_SEGMENT))
-            for segment in subpath
-            for sample in range(CONTOUR_SAMPLES_PER_SEGMENT)
-        ]
-        for first, second in zip(ring, ring[1:] + ring[:1], strict=True):
-            cross = first[0] * second[1] - second[0] * first[1]
-            signed_area_twice += cross
-            centroid_x_numerator += (first[0] + second[0]) * cross
-            centroid_y_numerator += (first[1] + second[1]) * cross
+        rings.append(_sample_segments_by_arc_length(list(subpath), AREA_SAMPLES_PER_SUBPATH))
 
-    if abs(signed_area_twice) > 1e-12:
+    ring_metrics = [_ring_metrics(ring) for ring in rings]
+    coefficients = _fill_coefficients(rings, ring_metrics, fill_rule)
+    area = sum(
+        coefficient * abs(metrics[0]) / 2
+        for coefficient, metrics in zip(coefficients, ring_metrics, strict=True)
+    )
+    if area > 1e-12:
         centroid = (
-            centroid_x_numerator / (3 * signed_area_twice),
-            centroid_y_numerator / (3 * signed_area_twice),
+            sum(
+                coefficient * abs(metrics[0]) / 2 * metrics[1][0]
+                for coefficient, metrics in zip(coefficients, ring_metrics, strict=True)
+            )
+            / area,
+            sum(
+                coefficient * abs(metrics[0]) / 2 * metrics[1][1]
+                for coefficient, metrics in zip(coefficients, ring_metrics, strict=True)
+            )
+            / area,
         )
-        area = abs(signed_area_twice) / 2
     else:
         centroid = ((bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2)
         area = 0.0
 
-    selected_segments = _uniform_segments(segments, MAX_CONTOUR_SEGMENTS)
     contour = tuple(
-        _normalize_point(
-            _complex_point(segment.point(sample / CONTOUR_SAMPLES_PER_SEGMENT)), bounds
-        )
-        for segment in selected_segments
-        for sample in range(CONTOUR_SAMPLES_PER_SEGMENT)
+        _normalize_point(point, bounds)
+        for point in _sample_segments_by_arc_length(segments, CONTOUR_SAMPLE_COUNT)
     )
     return _ShapeDescriptor(bounds, centroid, area, contour)
 
@@ -446,13 +454,18 @@ def _feature_score(left: _ShapeDescriptor, right: _ShapeDescriptor) -> MatchScor
     centroid = _centroid_score(left, right)
     area = _area_score(left.area, right.area)
     contour = _contour_score(left.normalized_contour, right.normalized_contour)
-    values = {"iou": iou, "centroid": centroid, "area": area, "contour": contour}
+    values = {
+        "iou": _canonical_score(iou),
+        "centroid": _canonical_score(centroid),
+        "area": _canonical_score(area),
+        "contour": _canonical_score(contour),
+    }
     composite = sum(MATCH_WEIGHTS[name] * values[name] for name in MATCH_WEIGHTS)
     return MatchScorePreview(
-        iou=_canonical_score(iou),
-        centroid=_canonical_score(centroid),
-        area=_canonical_score(area),
-        contour=_canonical_score(contour),
+        iou=values["iou"],
+        centroid=values["centroid"],
+        area=values["area"],
+        contour=values["contour"],
         composite=_canonical_score(composite),
     )
 
@@ -487,10 +500,79 @@ def _contour_score(
     return max(0.0, 1 - chamfer / math.sqrt(2))
 
 
-def _uniform_segments(segments: list[Any], limit: int) -> list[Any]:
-    if len(segments) <= limit:
-        return segments
-    return [segments[index * len(segments) // limit] for index in range(limit)]
+def _sample_segments_by_arc_length(
+    segments: list[Any], sample_count: int
+) -> tuple[tuple[float, float], ...]:
+    lengths = [float(segment.length()) for segment in segments]
+    cumulative = []
+    total = 0.0
+    for length in lengths:
+        if not math.isfinite(length) or length < 0:
+            raise BitmapTraceError("Reconciliation path produced an invalid segment length")
+        total += length
+        cumulative.append(total)
+    if total <= 0:
+        return tuple(_complex_point(segments[0].point(0)) for _ in range(sample_count))
+
+    points = []
+    for sample in range(sample_count):
+        distance = total * sample / sample_count
+        index = min(bisect_right(cumulative, distance), len(segments) - 1)
+        prior = cumulative[index - 1] if index else 0.0
+        local_distance = distance - prior
+        parameter = segments[index].ilength(local_distance) if lengths[index] else 0.0
+        points.append(_complex_point(segments[index].point(parameter)))
+    return tuple(points)
+
+
+def _ring_metrics(
+    ring: tuple[tuple[float, float], ...],
+) -> tuple[float, tuple[float, float]]:
+    area_twice = 0.0
+    centroid_x = 0.0
+    centroid_y = 0.0
+    for first, second in zip(ring, ring[1:] + ring[:1], strict=True):
+        cross = first[0] * second[1] - second[0] * first[1]
+        area_twice += cross
+        centroid_x += (first[0] + second[0]) * cross
+        centroid_y += (first[1] + second[1]) * cross
+    if abs(area_twice) <= 1e-12:
+        return area_twice, ring[0]
+    return area_twice, (centroid_x / (3 * area_twice), centroid_y / (3 * area_twice))
+
+
+def _fill_coefficients(
+    rings: list[tuple[tuple[float, float], ...]],
+    metrics: list[tuple[float, tuple[float, float]]],
+    fill_rule: str,
+) -> tuple[int, ...]:
+    coefficients = []
+    orientations = [1 if metric[0] > 0 else -1 for metric in metrics]
+    for index, ring in enumerate(rings):
+        containing = [
+            other_index
+            for other_index, other in enumerate(rings)
+            if other_index != index and _point_in_ring(ring[0], other)
+        ]
+        if fill_rule == "evenodd":
+            coefficients.append(1 if len(containing) % 2 == 0 else -1)
+            continue
+        outside_winding = sum(orientations[other_index] for other_index in containing)
+        inside_winding = outside_winding + orientations[index]
+        coefficients.append(int(inside_winding != 0) - int(outside_winding != 0))
+    return tuple(coefficients)
+
+
+def _point_in_ring(point: tuple[float, float], ring: tuple[tuple[float, float], ...]) -> bool:
+    x, y = point
+    inside = False
+    for first, second in zip(ring, ring[1:] + ring[:1], strict=True):
+        if (first[1] > y) != (second[1] > y):
+            crossing_x = (second[0] - first[0]) * (y - first[1]) / (second[1] - first[1])
+            crossing_x += first[0]
+            if x < crossing_x:
+                inside = not inside
+    return inside
 
 
 def _complex_point(point: complex) -> tuple[float, float]:
@@ -503,11 +585,12 @@ def _complex_point(point: complex) -> tuple[float, float]:
 def _normalize_point(
     point: tuple[float, float], bounds: tuple[float, float, float, float]
 ) -> tuple[float, float]:
-    width = bounds[2] - bounds[0]
-    height = bounds[3] - bounds[1]
+    center_x = (bounds[0] + bounds[2]) / 2
+    center_y = (bounds[1] + bounds[3]) / 2
+    scale = max(bounds[2] - bounds[0], bounds[3] - bounds[1])
     return (
-        (point[0] - bounds[0]) / width if width else 0.5,
-        (point[1] - bounds[1]) / height if height else 0.5,
+        (point[0] - center_x) / scale if scale else 0.0,
+        (point[1] - center_y) / scale if scale else 0.0,
     )
 
 

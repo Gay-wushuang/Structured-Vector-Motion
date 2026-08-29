@@ -73,21 +73,29 @@ class EntityReconciliationGoldenGTest(unittest.TestCase):
         )
         changed_score = preview.entity_diffs[1].match_score
         self.assertIsNotNone(changed_score)
-        self.assertAlmostEqual(
-            changed_score.composite,
-            0.35 * changed_score.iou
-            + 0.20 * changed_score.centroid
-            + 0.15 * changed_score.area
-            + 0.30 * changed_score.contour,
-            places=10,
+        displayed_composite = float(
+            format(
+                changed_score.composite,
+                ".12g",
+            )
         )
+        recomputed_composite = float(
+            format(
+                0.35 * changed_score.iou
+                + 0.20 * changed_score.centroid
+                + 0.15 * changed_score.area
+                + 0.30 * changed_score.contour,
+                ".12g",
+            )
+        )
+        self.assertEqual(displayed_composite, recomputed_composite)
         self.assertEqual(proposal.generator.parameters["matcher"], "svm-multifeature-greedy@0.2")
         self.assertEqual(
             proposal.generator.parameters["match_weights"],
             {"iou": 0.35, "centroid": 0.2, "area": 0.15, "contour": 0.3},
         )
-        self.assertEqual(proposal.generator.parameters["contour_samples_per_segment"], 8)
-        self.assertEqual(proposal.generator.parameters["max_contour_segments"], 64)
+        self.assertEqual(proposal.generator.parameters["contour_sample_count"], 128)
+        self.assertEqual(proposal.generator.parameters["area_samples_per_subpath"], 128)
         self.assertEqual(proposal.generator.parameters["max_descriptor_segments"], 10_000)
         self.assertEqual(preview.entity_diffs[0].entity_id, SCOPE[0])
         self.assertEqual(preview.entity_diffs[1].entity_id, SCOPE[1])
@@ -165,10 +173,10 @@ class EntityReconciliationGoldenGTest(unittest.TestCase):
                 artifact_ids=(self.artifact.artifact_id,),
             )
             BitmapReconcileAdapter().propose(duplicate, self.artifacts)
-        with self.assertRaisesRegex(BitmapTraceError, "greater than 0"):
+        with self.assertRaisesRegex(BitmapTraceError, "no longer supported"):
             BitmapReconcileAdapter().propose(self.request(match_iou_threshold=1.1), self.artifacts)
         with self.assertRaisesRegex(BitmapTraceError, "greater than 0"):
-            BitmapReconcileAdapter().propose(self.request(match_iou_threshold=0), self.artifacts)
+            BitmapReconcileAdapter().propose(self.request(match_score_threshold=0), self.artifacts)
 
         dependent = copy.deepcopy(self.document)
         dependent["entities"].append({"id": "entity:external", "name": "External consumer"})
@@ -306,8 +314,104 @@ class EntityReconciliationGoldenGTest(unittest.TestCase):
         self.assertNotEqual(first.proposal_id, second.proposal_id)
         self.assertNotEqual(first.transaction.transaction_id, second.transaction.transaction_id)
 
+    def test_uniform_contour_normalization_preserves_aspect_ratio(self) -> None:
+        proposal = self._proposal_for_shape(
+            "M 0 45 L 100 45 L 100 55 L 0 55 Z",
+            (0.0, 45.0, 100.0, 55.0),
+            "nonzero",
+            "M 45 0 L 55 0 L 55 100 L 45 100 Z",
+            (45.0, 0.0, 55.0, 100.0),
+            "nonzero",
+        )
+
+        self.assertEqual(proposal.report.metrics["changed"], 0.0)
+        self.assertEqual(proposal.report.metrics["added"], 1.0)
+        self.assertEqual(proposal.report.metrics["removed"], 1.0)
+
+    def test_contour_sampling_is_independent_of_line_segmentation(self) -> None:
+        proposal = self._proposal_for_shape(
+            "M 0 0 L 100 0 L 100 10 L 0 10 Z",
+            (0.0, 0.0, 100.0, 10.0),
+            "nonzero",
+            "M 0 0 L 10 0 L 20 0 L 30 0 L 40 0 L 50 0 L 60 0 "
+            "L 70 0 L 80 0 L 90 0 L 100 0 L 100 10 L 0 10 Z",
+            (0.0, 0.0, 100.0, 10.0),
+            "nonzero",
+        )
+
+        score = proposal.preview.entity_diffs[0].match_score
+        self.assertEqual(score.contour, 1.0)
+        self.assertEqual(score.composite, 1.0)
+
+    def test_descriptor_area_obeys_path_to_polygon_fill_rule(self) -> None:
+        compound = "M 0 0 L 10 0 L 10 10 L 0 10 Z M 3 3 L 7 3 L 7 7 L 3 7 Z"
+        proposal = self._proposal_for_shape(
+            compound,
+            (0.0, 0.0, 10.0, 10.0),
+            "nonzero",
+            compound,
+            (0.0, 0.0, 10.0, 10.0),
+            "evenodd",
+        )
+
+        score = proposal.preview.entity_diffs[0].match_score
+        self.assertAlmostEqual(score.area, 0.84, places=3)
+        self.assertLess(score.composite, 1.0)
+
+    def _proposal_for_shape(
+        self,
+        old_d: str,
+        old_bounds: tuple[float, float, float, float],
+        old_fill_rule: str,
+        new_d: str,
+        new_bounds: tuple[float, float, float, float],
+        new_fill_rule: str,
+    ):
+        document = copy.deepcopy(self.document)
+        path = next(
+            operation
+            for operation in document["construction"]["operations"]
+            if operation["id"] == "op:trace-structured-0000-path"
+        )
+        planar = next(
+            operation
+            for operation in document["construction"]["operations"]
+            if operation["id"] == "op:trace-structured-0000-planar"
+        )
+        path["parameters"] = {"d": old_d, "bounds": list(old_bounds)}
+        planar["parameters"]["fill_rule"] = old_fill_rule
+        store = RevisionStore.create(document)
+        traced = TraceResult((TracedPath(new_d, new_bounds, 1),))
+
+        class FixtureTracer:
+            engine_name = "fixture"
+            engine_version = "1"
+
+            def trace(self, content, options):
+                return traced
+
+        request = AdapterRequest.from_store(
+            store,
+            store.head,
+            (SCOPE[0],),
+            artifact_ids=(self.artifact.artifact_id,),
+            options={"namespace": "shape", "fill_rule": new_fill_rule},
+        )
+        return BitmapReconcileAdapter(FixtureTracer()).propose(request, self.artifacts)
+
     def test_cli_previews_without_writing_then_accepts_explicitly(self) -> None:
         entities = [argument for entity in SCOPE for argument in ("--entity", entity)]
+        legacy = run_cli(
+            "retrace-bitmap",
+            str(BASE),
+            str(SOURCE),
+            *entities,
+            "--match-iou-threshold",
+            "0.6",
+        )
+        self.assertNotEqual(legacy.returncode, 0)
+        self.assertIn("use match_score_threshold instead", legacy.stderr)
+
         preview = run_cli(
             "retrace-bitmap",
             str(BASE),

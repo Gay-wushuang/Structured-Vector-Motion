@@ -36,15 +36,26 @@ The matcher identity is `svm-multifeature-greedy@0.2`. Every old/new pair
 receives four independently reviewable scores in `[0, 1]`:
 
 - `iou`: axis-aligned canonical path-bounds intersection-over-union;
-- `centroid`: sampled filled-area centroid distance normalized by the union
+- `centroid`: sampled fill-rule-aware area centroid distance normalized by the union
   bounds diagonal;
-- `area`: smaller/larger sampled filled-area ratio, including signed holes;
+- `area`: smaller/larger sampled fill-rule-aware area ratio;
 - `contour`: translation/scale-normalized symmetric Chamfer similarity.
 
-Contour and filled-area descriptors sample every SVG segment at eight fixed
-parameter values. Chamfer comparison uses at most 64 uniformly selected
-segments per path; descriptor construction rejects paths above 10,000 segments.
-These limits and the sampling count are part of matcher semantics.
+The descriptor receives the accepted old and proposed new `PathToPolygon.fill_rule`.
+For the supported non-intersecting trace contour-tree subset, sampled rings are
+combined according to `nonzero` or `evenodd` fill semantics. Area and centroid
+therefore describe filled shape rather than raw path winding.
+
+Filled-area analysis samples each subpath at 128 equally spaced arc-length
+positions. Contour comparison samples the whole compound path at 128 equally
+spaced arc-length positions, independent of SVG segment boundaries. Descriptor
+construction rejects paths above 10,000 segments. These limits and sampling
+counts are part of matcher semantics.
+
+Contour normalization translates the bounds center to the origin and divides
+both axes by the same `max(width, height)` scale. It removes translation and
+uniform size while preserving aspect ratio; X and Y MUST NOT be normalized
+independently.
 
 The composite score is:
 
@@ -54,12 +65,15 @@ The composite score is:
 
 Weights, sampling limits, matcher identity, and `match_score_threshold` MUST be
 recorded in generator provenance. The default threshold is `0.65`; the old
-`match_iou_threshold` option is accepted only as a compatibility alias. The
+`match_iou_threshold` option fails with a migration error because its IoU-only
+meaning is not equivalent to a composite-score threshold. The
 matcher removes pairs below the composite threshold, then greedily selects
 disjoint pairs by `(descending composite, old Entity ID, proposed component
 index)`.
 
-All five scores MUST appear in `ProposalPreview`. This matcher remains a
+The four feature scores are canonicalized before the displayed composite is
+computed and canonicalized, so the preview is exactly reproducible from its
+displayed components. All five scores MUST appear in `ProposalPreview`. This matcher remains a
 conservative geometric heuristic, not semantic recognition or proof that two
 shapes denote the same object.
 
