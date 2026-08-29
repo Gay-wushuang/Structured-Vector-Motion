@@ -1,5 +1,6 @@
 """Structured Vector Motion v0.1 reference core."""
 
+from .artifacts import ArtifactError, ArtifactKind, ArtifactSnapshot, ArtifactStore
 from .evaluator import EvaluationState, Evaluator, Quality
 from .operations import (
     OperationDefinition,
@@ -20,6 +21,7 @@ from .proposals import (
     ProposalProvider,
 )
 from .revisions import (
+    AppendSceneFragmentChange,
     RevisionStore,
     SetOperationParameterChange,
     SplitEntityChange,
@@ -30,6 +32,10 @@ from .scene import EvaluatedEntity, EvaluatedScene, EvaluatedStyle, build_evalua
 
 __all__ = [
     "Evaluator",
+    "ArtifactError",
+    "ArtifactKind",
+    "ArtifactSnapshot",
+    "ArtifactStore",
     "EvaluationState",
     "Quality",
     "OperationDefinition",
@@ -38,6 +44,7 @@ __all__ = [
     "ValueType",
     "get_operation_registry",
     "RevisionStore",
+    "AppendSceneFragmentChange",
     "SetOperationParameterChange",
     "SplitEntityChange",
     "SplitPart",

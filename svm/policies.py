@@ -64,7 +64,10 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
         if (
             not isinstance(actions, list)
             or not actions
-            or any(action not in {"set_parameter", "split_entity"} for action in actions)
+            or any(
+                action not in {"set_parameter", "split_entity", "import_scene"}
+                for action in actions
+            )
         ):
             raise PolicyDefinitionError("Edit Permission contains unsupported actions")
         targets = permission["targets"]
@@ -74,9 +77,11 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
             or any(not isinstance(target, str) or not target for target in targets)
         ):
             raise PolicyDefinitionError("Edit Permission targets must be non-empty strings")
-        known_targets = {entity["id"] for entity in document["entities"]} | {
-            operation["id"] for operation in document["construction"]["operations"]
-        }
+        known_targets = (
+            {"document"}
+            | {entity["id"] for entity in document["entities"]}
+            | {operation["id"] for operation in document["construction"]["operations"]}
+        )
         missing_targets = sorted(
             target for target in targets if target != "*" and target not in known_targets
         )

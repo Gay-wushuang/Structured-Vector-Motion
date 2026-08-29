@@ -114,6 +114,7 @@ from third-party package identity.
 | Operation | Inputs | Outputs | Quality-sensitive |
 | --- | --- | --- | --- |
 | `CreateEllipse` | none | `geometry` | no |
+| `CreatePath` | none | `geometry` | no |
 | `CreateRectangle` | none | `geometry` | no |
 | `Transform` | `geometry` | `geometry` | no |
 | `ConvertToPath` | `geometry` | `geometry` | no |

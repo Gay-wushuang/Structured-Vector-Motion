@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:svg-import-target",
+  "references": [],
+  "entities": [],
+  "construction": {
+    "operations": [],
+    "output_bindings": [],
+    "refinement_stages": ["mass", "contour", "detail"]
+  },
+  "presentation": {
+    "render_stack": [],
+    "styles": []
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {"content": [], "construction_scheduling_hints": []}
+}
+

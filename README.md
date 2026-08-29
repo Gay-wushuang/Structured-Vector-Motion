@@ -54,6 +54,26 @@ paths, render ordering, provenance, and deterministic SVG generation:
 The test suite regenerates the SVG in memory and compares it byte-for-byte with
 the checked-in artifact.
 
+## Deterministic SVG import
+
+The first external Adapter integration imports a deliberately strict SVG subset
+through the Artifact and Proposal boundary:
+
+```powershell
+svm import-svg examples/005-empty-canvas.svm.json `
+  examples/assets/001-import-source.svg `
+  --namespace golden `
+  --output imported.svm.json
+```
+
+Review the complete golden chain:
+
+- `examples/assets/001-import-source.svg`
+- `examples/imported/006-imported-source.svm.json`
+- `examples/rendered/006-imported-source.svg`
+
+See `spec/10-svg-import-adapter.md` for the supported subset and rejection rules.
+
 ## Development
 
 Install the project and development tools in editable mode:

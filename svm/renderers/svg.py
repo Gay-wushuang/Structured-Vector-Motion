@@ -109,6 +109,8 @@ class SVGRenderer:
             return group
         if kind in {"path", "refined_path"}:
             return self._render_geometry(geometry["source"], defs, force_path=True)
+        if kind == "path_data":
+            return ET.Element("path", {"d": geometry["d"]})
         if kind == "clip":
             clip_id = f"svm-clip-{self._clip_index}"
             self._clip_index += 1

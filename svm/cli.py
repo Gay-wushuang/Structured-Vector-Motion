@@ -10,8 +10,11 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, TextIO
 
+from .adapters import SVGImportAdapter
+from .artifacts import ArtifactKind, ArtifactStore
 from .document import validate_document
 from .evaluator import DocumentError, Evaluator, Quality, canonical_bytes
+from .proposals import AdapterRequest, ProposalAcceptor
 from .renderers import SVGRenderer, SVGRenderOptions
 from .revisions import RevisionStore, SetOperationParameterChange, Transaction
 from .scene import build_evaluated_scene
@@ -153,6 +156,7 @@ def command_inspect(args: argparse.Namespace) -> dict[str, Any]:
         )
     return {
         "document_id": document["document_id"],
+        "references": copy.deepcopy(document["references"]),
         "entities": copy.deepcopy(document["entities"]),
         "operations": operations,
         "output_bindings": copy.deepcopy(document["construction"]["output_bindings"]),
@@ -278,6 +282,47 @@ def command_render_svg(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def command_import_svg(args: argparse.Namespace) -> dict[str, Any]:
+    document = load_and_validate(args.document)
+    try:
+        source_bytes = args.svg.read_bytes()
+    except OSError as exc:
+        raise CliError(f"Cannot read {args.svg}: {exc}") from exc
+    artifact_store = ArtifactStore()
+    artifact = artifact_store.import_bytes(
+        source_bytes,
+        media_type="image/svg+xml",
+        kind=ArtifactKind.REFERENCE,
+        provenance={"source_name": args.svg.name},
+    )
+    store = RevisionStore.create(document)
+    base_revision_id = store.head
+    if base_revision_id is None:
+        raise CliError("Revision Store did not create an initial head")
+    request = AdapterRequest.from_store(
+        store,
+        base_revision_id,
+        ("document",),
+        artifacts=(artifact,),
+        options={"namespace": args.namespace} if args.namespace else {},
+    )
+    proposal = SVGImportAdapter().propose(request)
+    revision = ProposalAcceptor().accept(store, proposal)
+    imported = store.get_document(revision.revision_id)
+    output_bytes = (
+        json.dumps(imported, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    args.output.write_bytes(output_bytes)
+    return {
+        "written": str(args.output),
+        "artifact_id": artifact.artifact_id,
+        "proposal_id": proposal.proposal_id,
+        "revision_id": revision.revision_id,
+        "imported_entities": len(imported["entities"]) - len(document["entities"]),
+        "bytes": len(output_bytes),
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="svm", description="SVM v0.1 reference CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -331,6 +376,15 @@ def build_parser() -> argparse.ArgumentParser:
     render_svg.add_argument("--stroke", default="#000000")
     render_svg.add_argument("--stroke-width", type=float, default=0.01)
     render_svg.set_defaults(handler=command_render_svg)
+
+    import_svg = subparsers.add_parser(
+        "import-svg", help="import a deterministic flat SVG through the Adapter boundary"
+    )
+    import_svg.add_argument("document", type=Path, help="base SVM Document")
+    import_svg.add_argument("svg", type=Path, help="source SVG Artifact")
+    import_svg.add_argument("--output", type=Path, required=True)
+    import_svg.add_argument("--namespace")
+    import_svg.set_defaults(handler=command_import_svg)
     return parser
 
 

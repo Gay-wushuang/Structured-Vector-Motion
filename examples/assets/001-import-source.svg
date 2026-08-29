@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160">
+  <rect id="card" x="10" y="10" width="180" height="140"
+        fill="#1B2845" stroke="#8EB8E5" stroke-width="4"/>
+  <ellipse id="orb" cx="70" cy="80" rx="35" ry="42"
+           fill="#F2C14E" stroke="#D95D39" stroke-width="3" opacity="0.95"/>
+  <path id="spark" d="M 125 40 L 135 68 L 165 68 L 141 86 L 150 116 L 125 98 L 100 116 L 109 86 L 85 68 L 115 68 Z"
+        fill="#7FDBFF" stroke="#173B57" stroke-width="3"/>
+</svg>
+

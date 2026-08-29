@@ -26,6 +26,7 @@ class OperationRegistryTest(unittest.TestCase):
                 "Clip",
                 "ConvertToPath",
                 "CreateEllipse",
+                "CreatePath",
                 "CreateRectangle",
                 "RefineBezier",
                 "SplitEntity",

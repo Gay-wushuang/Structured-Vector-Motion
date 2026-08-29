@@ -1,0 +1,132 @@
+{
+  "animation": {
+    "construction_scheduling_hints": [],
+    "content": []
+  },
+  "constraints": [],
+  "construction": {
+    "operations": [
+      {
+        "id": "op:svg-golden-0000",
+        "inputs": {},
+        "parameters": {
+          "height": 140.0,
+          "width": 180.0,
+          "x": 10.0,
+          "y": 10.0
+        },
+        "type": "CreateRectangle"
+      },
+      {
+        "id": "op:svg-golden-0001",
+        "inputs": {},
+        "parameters": {
+          "cx": 70.0,
+          "cy": 80.0,
+          "rx": 35.0,
+          "ry": 42.0
+        },
+        "type": "CreateEllipse"
+      },
+      {
+        "id": "op:svg-golden-0002",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            85.0,
+            40.0,
+            165.0,
+            116.0
+          ],
+          "d": "M 125 40 L 135 68 L 165 68 L 141 86 L 150 116 L 125 98 L 100 116 L 109 86 L 85 68 L 115 68 Z"
+        },
+        "type": "CreatePath"
+      }
+    ],
+    "output_bindings": [
+      {
+        "entity": "entity:svg-golden-0000",
+        "property": "geometry",
+        "slot": "op:svg-golden-0000.geometry"
+      },
+      {
+        "entity": "entity:svg-golden-0001",
+        "property": "geometry",
+        "slot": "op:svg-golden-0001.geometry"
+      },
+      {
+        "entity": "entity:svg-golden-0002",
+        "property": "geometry",
+        "slot": "op:svg-golden-0002.geometry"
+      }
+    ],
+    "refinement_stages": [
+      "mass",
+      "contour",
+      "detail"
+    ]
+  },
+  "document_id": "document:svg-import-target",
+  "edit_permissions": [],
+  "entities": [
+    {
+      "id": "entity:svg-golden-0000",
+      "name": "card"
+    },
+    {
+      "id": "entity:svg-golden-0001",
+      "name": "orb"
+    },
+    {
+      "id": "entity:svg-golden-0002",
+      "name": "spark"
+    }
+  ],
+  "evaluation_policies": [],
+  "presentation": {
+    "render_stack": [
+      "entity:svg-golden-0000",
+      "entity:svg-golden-0001",
+      "entity:svg-golden-0002"
+    ],
+    "styles": [
+      {
+        "entity": "entity:svg-golden-0000",
+        "fill": "#1B2845",
+        "opacity": 1.0,
+        "stroke": "#8EB8E5",
+        "stroke_width": 4.0
+      },
+      {
+        "entity": "entity:svg-golden-0001",
+        "fill": "#F2C14E",
+        "opacity": 0.95,
+        "stroke": "#D95D39",
+        "stroke_width": 3.0
+      },
+      {
+        "entity": "entity:svg-golden-0002",
+        "fill": "#7FDBFF",
+        "opacity": 1.0,
+        "stroke": "#173B57",
+        "stroke_width": 3.0
+      }
+    ]
+  },
+  "references": [
+    {
+      "content_hash": "sha256:e29f7170130a8ac48430ea1ca14d53ee2fa5489d373406d19197fd42caace892",
+      "id": "artifact:e29f7170130a8ac48430ea1ca14d53ee2fa5489d373406d19197fd42caace892",
+      "import_metadata": {
+        "artifact_kind": "ReferenceArtifact",
+        "provenance": {
+          "source_name": "001-import-source.svg"
+        }
+      },
+      "media_type": "image/svg+xml",
+      "uri": "artifact:e29f7170130a8ac48430ea1ca14d53ee2fa5489d373406d19197fd42caace892"
+    }
+  ],
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1"
+}

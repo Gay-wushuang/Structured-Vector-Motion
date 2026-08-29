@@ -37,8 +37,9 @@ Read these files before changing core behavior:
 5. `spec/07-minimal-cli.md` — reference CLI contract.
 6. `spec/08-svg-renderer.md` — Evaluated Scene and SVG rendering contract.
 7. `spec/09-policy-enforcement.md` — supported Proposal policy subset.
-8. `examples/001-head-basic.svm.json` — current example Document.
-9. `tests/test_golden_a.py` — executable expectations.
+8. `spec/10-svg-import-adapter.md` — deterministic external Adapter contract.
+9. `examples/001-head-basic.svm.json` — current example Document.
+10. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -237,7 +238,8 @@ Next milestones:
 2. Add geometry-aware constraints such as bounds preservation through explicit
    evaluated semantics.
 3. Introduce the first deterministic external Adapter without allowing its data
-   model into Core.
+   model into Core. SVG Import now proves this boundary; future Adapters must
+   follow the same Artifact/Proposal/Transaction pattern.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

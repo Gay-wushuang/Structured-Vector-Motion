@@ -99,3 +99,16 @@ python -m svm render-svg examples/001-head-basic.svm.json `
 This command performs FINAL evaluation, builds an Evaluated Scene from accepted
 geometry bindings and render-stack order, then invokes the SVG Renderer. It
 requires an explicit output path and returns a JSON export summary.
+
+## Import SVG
+
+```powershell
+python -m svm import-svg examples/005-empty-canvas.svm.json `
+  examples/assets/001-import-source.svg `
+  --output imported.svm.json
+```
+
+The source SVG is first snapshotted as a content-addressed ReferenceArtifact.
+The deterministic SVG Import Adapter then produces a Proposal, and the Proposal
+Acceptor commits one atomic Scene Fragment Transaction. No Adapter writes the
+Document directly.

@@ -316,3 +316,6 @@ separate capability boundary.
 
 This table records expected roles, not installation approval or Core
 dependencies.
+
+The first implemented external integration is the deterministic SVG Import
+Adapter specified in `10-svg-import-adapter.md`.

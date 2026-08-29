@@ -47,3 +47,6 @@ jobs:
 
       - name: Validate styled showcase
         run: svm validate examples/004-styled-character.svm.json
+
+      - name: Validate SVG import golden
+        run: svm validate examples/imported/006-imported-source.svm.json

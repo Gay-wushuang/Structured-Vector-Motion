@@ -42,6 +42,31 @@ class SetOperationParameterChange:
 
 
 @dataclass(frozen=True)
+class AppendSceneFragmentChange:
+    entities: tuple[dict[str, Any], ...]
+    operations: tuple[dict[str, Any], ...]
+    output_bindings: tuple[dict[str, Any], ...]
+    render_entries: tuple[str, ...]
+    styles: tuple[dict[str, Any], ...]
+    references: tuple[dict[str, Any], ...] = ()
+
+    def policy_intent(self) -> tuple[str, str, str | None]:
+        return "import_scene", "document", None
+
+    def apply(self, document: dict[str, Any]) -> None:
+        document["entities"].extend(copy.deepcopy(self.entities))
+        document["construction"]["operations"].extend(copy.deepcopy(self.operations))
+        document["construction"]["output_bindings"].extend(copy.deepcopy(self.output_bindings))
+        document["presentation"]["render_stack"].extend(self.render_entries)
+        document["presentation"]["styles"].extend(copy.deepcopy(self.styles))
+        known_references = {reference["id"] for reference in document["references"]}
+        for reference in self.references:
+            if reference["id"] not in known_references:
+                document["references"].append(copy.deepcopy(reference))
+                known_references.add(reference["id"])
+
+
+@dataclass(frozen=True)
 class SplitEntityChange:
     source_entity_id: str
     operation_id: str

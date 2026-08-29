@@ -58,6 +58,20 @@ def _transform_parameters(parameters: Mapping[str, Any]) -> None:
         _require_number(value, f"matrix[{index}]")
 
 
+def _path_parameters(parameters: Mapping[str, Any]) -> None:
+    _require_exact_keys(parameters, {"d", "bounds"}, "Parameter")
+    if not isinstance(parameters["d"], str) or not parameters["d"].strip():
+        raise OperationValidationError("CreatePath d must be a non-empty string")
+    bounds = parameters["bounds"]
+    if not isinstance(bounds, list) or len(bounds) != 4:
+        raise OperationValidationError("CreatePath bounds must contain four numbers")
+    for index, value in enumerate(bounds):
+        _require_number(value, f"bounds[{index}]")
+    min_x, min_y, max_x, max_y = (float(value) for value in bounds)
+    if min_x > max_x or min_y > max_y:
+        raise OperationValidationError("CreatePath bounds must be ordered")
+
+
 def _split_parameters(parameters: Mapping[str, Any]) -> None:
     _require_exact_keys(parameters, {"parts"}, "Parameter")
     parts = parameters["parts"]
@@ -214,6 +228,16 @@ def _convert_to_path(_: Mapping[str, Any], inputs: Mapping[str, Any], __: str) -
     return {"geometry": {"kind": "path", "source": inputs["geometry"]}}
 
 
+def _create_path(parameters: Mapping[str, Any], _: Mapping[str, Any], __: str) -> dict[str, Any]:
+    return {
+        "geometry": {
+            "kind": "path_data",
+            "d": parameters["d"],
+            "bounds": parameters["bounds"],
+        }
+    }
+
+
 def _refine_bezier(
     parameters: Mapping[str, Any], inputs: Mapping[str, Any], quality: str
 ) -> dict[str, Any]:
@@ -274,6 +298,9 @@ def _geometry_bounds(geometry: Mapping[str, Any]) -> tuple[float, float, float, 
         return x, y, x + float(geometry["width"]), y + float(geometry["height"])
     if kind in {"path", "refined_path"}:
         return _geometry_bounds(geometry["source"])
+    if kind == "path_data":
+        min_x, min_y, max_x, max_y = (float(value) for value in geometry["bounds"])
+        return min_x, min_y, max_x, max_y
     if kind == "transform":
         min_x, min_y, max_x, max_y = _geometry_bounds(geometry["source"])
         a, b, c, d, e, f = (float(value) for value in geometry["matrix"])
@@ -319,6 +346,13 @@ def _build_core_registry() -> OperationRegistry:
             {"geometry": geometry},
             _numeric_parameters("x", "y", "width", "height"),
             _create_rectangle,
+        ),
+        OperationDefinition(
+            "CreatePath",
+            {},
+            {"geometry": geometry},
+            _path_parameters,
+            _create_path,
         ),
         OperationDefinition(
             "Transform",

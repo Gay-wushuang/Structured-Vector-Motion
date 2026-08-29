@@ -11,6 +11,29 @@ def validate_document(document: dict[str, Any]) -> None:
 
     evaluator = Evaluator(document)
 
+    reference_ids: set[str] = set()
+    for reference in document.get("references", []):
+        reference_id = reference.get("id")
+        if not isinstance(reference_id, str) or not reference_id.startswith("artifact:"):
+            raise DocumentError("Reference ID must start with artifact:")
+        if reference_id in reference_ids:
+            raise DocumentError(f"Duplicate reference ID {reference_id}")
+        reference_ids.add(reference_id)
+        content_hash = reference.get("content_hash")
+        if (
+            not isinstance(content_hash, str)
+            or not content_hash.startswith("sha256:")
+            or len(content_hash) != 71
+            or any(character not in "0123456789abcdef" for character in content_hash[7:])
+        ):
+            raise DocumentError(f"Reference {reference_id} has invalid content hash")
+        if not isinstance(reference.get("uri"), str) or not reference["uri"]:
+            raise DocumentError(f"Reference {reference_id} requires a URI locator")
+        if not isinstance(reference.get("media_type"), str) or not reference["media_type"]:
+            raise DocumentError(f"Reference {reference_id} requires a media type")
+        if not isinstance(reference.get("import_metadata"), dict):
+            raise DocumentError(f"Reference {reference_id} requires import metadata")
+
     entities = document.get("entities", [])
     entity_ids = [entity.get("id") for entity in entities]
     if len(entity_ids) != len(set(entity_ids)):

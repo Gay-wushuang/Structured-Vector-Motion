@@ -29,6 +29,7 @@ The v0.1 intents are:
 | --- | --- | --- | --- |
 | `SetOperationParameterChange` | `set_parameter` | Operation ID | parameter name |
 | `SplitEntityChange` | `split_entity` | source Entity ID | none |
+| `AppendSceneFragmentChange` | `import_scene` | `document` | none |
 
 An unknown Change under policy enforcement fails closed because Core cannot
 prove that accepting it is allowed.
@@ -84,4 +85,3 @@ The supported subset does not yet include geometry bounds, containment,
 alignment, soft scoring, property-level style permissions, allow-list rules, or
 policy inheritance through Entity hierarchy. These require explicit semantics
 and tests before use.
-
