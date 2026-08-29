@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:golden-a",
+  "references": [],
+  "entities": [
+    {"id": "entity:head", "name": "Head"},
+    {"id": "entity:hair", "name": "Hair"},
+    {"id": "entity:shield", "name": "Shield"}
+  ],
+  "construction": {
+    "operations": [
+      {"id": "op:head_base", "type": "CreateEllipse", "inputs": {}, "parameters": {"cx": 0.0, "cy": 0.0, "rx": 0.4, "ry": 0.5}},
+      {"id": "op:head_transform", "type": "Transform", "inputs": {"geometry": "op:head_base.geometry"}, "parameters": {"matrix": [1, 0, 0, 1, 0, 0]}},
+      {"id": "op:head_path", "type": "ConvertToPath", "inputs": {"geometry": "op:head_transform.geometry"}, "parameters": {}},
+      {"id": "op:head_refine", "type": "RefineBezier", "inputs": {"geometry": "op:head_path.geometry"}, "parameters": {"tolerance": 0.01}},
+      {"id": "op:hair_base", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": -0.5, "y": -0.6, "width": 1.0, "height": 0.5}},
+      {"id": "op:hair_clip", "type": "Clip", "inputs": {"content": "op:hair_base.geometry", "clip": "op:head_refine.geometry"}, "parameters": {}},
+      {"id": "op:shield", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": 1.0, "y": 0.0, "width": 0.5, "height": 0.8}}
+    ],
+    "output_bindings": [
+      {"entity": "entity:head", "property": "geometry", "slot": "op:head_refine.geometry"},
+      {"entity": "entity:hair", "property": "geometry", "slot": "op:hair_clip.geometry"},
+      {"entity": "entity:shield", "property": "geometry", "slot": "op:shield.geometry"}
+    ],
+    "refinement_stages": ["mass", "contour", "detail"]
+  },
+  "presentation": {
+    "render_stack": ["entity:hair", "entity:head", "entity:shield"]
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {"content": [], "construction_scheduling_hints": []}
+}
+
