@@ -546,6 +546,7 @@ def command_analyze_bitmap(args: argparse.Namespace) -> dict[str, Any]:
                 "bounds": candidate.bounds,
                 "pixel_area": candidate.pixel_area,
                 "centroid": candidate.centroid,
+                "component_digest": candidate.component_digest,
             }
             for candidate in proposal.preview.structural_candidates
         ],

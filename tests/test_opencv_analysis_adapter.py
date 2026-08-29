@@ -55,13 +55,26 @@ class OpenCVAnalysisGoldenHTest(unittest.TestCase):
         self.assertEqual(proposal.generator.parameters["opencv_runtime_version"], "4.14.0")
         self.assertEqual(proposal.report.metrics["connected_components"], 2.0)
         self.assertEqual(proposal.report.metrics["foreground_pixels"], 25.0)
+        self.assertIsNone(proposal.confidence)
         self.assertEqual(len(proposal.preview_artifacts), 2)
         candidates = proposal.preview.structural_candidates
         self.assertEqual(
             candidates,
             (
-                type(candidates[0])("candidate:component-0001", (2, 2, 5, 5), 9, (3.0, 3.0)),
-                type(candidates[0])("candidate:component-0002", (21, 4, 26, 9), 16, (23.0, 6.0)),
+                type(candidates[0])(
+                    "candidate:component-0001",
+                    (2, 2, 5, 5),
+                    9,
+                    (3.0, 3.0),
+                    "sha256:a5f53746c04e276c7f63092959c1ea9f3ef736db4479f8f331c05083abd74f8a",
+                ),
+                type(candidates[0])(
+                    "candidate:component-0002",
+                    (21, 4, 26, 9),
+                    16,
+                    (23.0, 6.0),
+                    "sha256:d0ad22d3baeba14861506e331c2d91efe6a3fc50fcb32fb9b54e36c1afa868c0",
+                ),
             ),
         )
 
@@ -79,6 +92,8 @@ class OpenCVAnalysisGoldenHTest(unittest.TestCase):
         self.assertEqual(analysis.content, (DERIVED / "component-analysis.json").read_bytes())
         self.assertEqual(mask.provenance["derived_type"], "binary-mask")
         self.assertEqual(analysis.provenance["derived_type"], "component-analysis")
+        self.assertIn(b"SVMArtifact\x00binary-mask-v0.1", mask.content)
+        self.assertNotIn(self.source.content_hash.encode("ascii"), mask.content)
         import cv2
         import numpy as np
 
@@ -105,6 +120,35 @@ class OpenCVAnalysisGoldenHTest(unittest.TestCase):
         changed = OpenCVAnalysisAdapter().propose(self.request(threshold=0), self.artifacts)
         self.assertNotEqual(first.proposal_id, changed.proposal_id)
         self.assertNotEqual(first.preview_artifacts, changed.preview_artifacts)
+
+    def test_equal_mask_content_has_one_blob_identity_across_sources(self) -> None:
+        from PIL import Image, PngImagePlugin
+
+        alternate_bytes = io.BytesIO()
+        metadata = PngImagePlugin.PngInfo()
+        metadata.add_text("SourceVariant", "different provenance, equal samples")
+        with Image.open(SOURCE) as image:
+            image.save(alternate_bytes, format="PNG", pnginfo=metadata)
+        alternate = self.artifacts.import_bytes(
+            alternate_bytes.getvalue(),
+            media_type="image/png",
+            kind=ArtifactKind.REFERENCE,
+            provenance={"source_name": "alternate.png"},
+        )
+        self.assertNotEqual(self.source.artifact_id, alternate.artifact_id)
+        alternate_request = AdapterRequest.from_store(
+            self.store,
+            self.store.head,
+            ("document",),
+            artifact_ids=(alternate.artifact_id,),
+            options={"threshold": 128},
+        )
+
+        first = OpenCVAnalysisAdapter().propose(self.request(), self.artifacts)
+        second = OpenCVAnalysisAdapter().propose(alternate_request, self.artifacts)
+
+        self.assertEqual(first.preview_artifacts[0], second.preview_artifacts[0])
+        self.assertNotEqual(first.preview_artifacts[1], second.preview_artifacts[1])
 
     def test_invalid_options_artifacts_and_permission_fail_closed(self) -> None:
         for options, message in (
@@ -133,19 +177,21 @@ class OpenCVAnalysisGoldenHTest(unittest.TestCase):
 
         from PIL import Image
 
-        transparent_bytes = io.BytesIO()
-        Image.new("RGBA", (2, 2), (0, 0, 0, 0)).save(transparent_bytes, format="PNG")
-        transparent = self.artifacts.import_bytes(
-            transparent_bytes.getvalue(), media_type="image/png"
-        )
-        transparent_request = AdapterRequest.from_store(
-            self.store,
-            self.store.head,
-            ("document",),
-            artifact_ids=(transparent.artifact_id,),
-        )
-        with self.assertRaisesRegex(OpenCVAnalysisError, "alpha"):
-            OpenCVAnalysisAdapter().propose(transparent_request, self.artifacts)
+        for mode in ("RGBA", "RGB", "P", "1"):
+            with self.subTest(mode=mode):
+                unsupported_bytes = io.BytesIO()
+                Image.new(mode, (2, 2)).save(unsupported_bytes, format="PNG")
+                unsupported = self.artifacts.import_bytes(
+                    unsupported_bytes.getvalue(), media_type="image/png"
+                )
+                unsupported_request = AdapterRequest.from_store(
+                    self.store,
+                    self.store.head,
+                    ("document",),
+                    artifact_ids=(unsupported.artifact_id,),
+                )
+                with self.assertRaisesRegex(OpenCVAnalysisError, "8-bit opaque grayscale"):
+                    OpenCVAnalysisAdapter().propose(unsupported_request, self.artifacts)
 
         oversized_bytes = bytearray(SOURCE.read_bytes())
         oversized_bytes[16:20] = struct.pack(">I", 16_000_001)

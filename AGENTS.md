@@ -263,8 +263,9 @@ Next milestones:
    unchanged, changed, added, and removed components while preserving matched
    Entity and Operation identity. The v0.2 matcher exposes IoU, centroid, area,
    contour, and composite scores; matching remains explicit and conservative.
-9. OpenCV Artifact Analysis and Golden H now produce content-addressed binary
-   masks, component statistics, and structural candidates without creating
+9. OpenCV Artifact Analysis and Golden H now accept only 8-bit opaque grayscale
+   PNGs and produce provenance-free content-addressed binary masks, canonical
+   component statistics/digests, and structural candidates without creating
    Entities. Candidate promotion remains a later explicit Proposal.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support

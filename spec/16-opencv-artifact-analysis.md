@@ -23,9 +23,11 @@ Entity. Converting or matching a candidate requires a later explicit Proposal.
 
 ## Input semantics
 
-The v0.1 subset accepts one opaque PNG up to 32 MiB and 16 megapixels. The PNG
-signature and IHDR dimensions are checked before OpenCV decoding. Alpha and PNG
-transparency are rejected.
+The v0.1 subset accepts one 8-bit opaque grayscale PNG (bit depth 8, color type
+0) up to 32 MiB and 16 megapixels. The PNG signature and IHDR dimensions are
+checked before OpenCV decoding. RGB, indexed/palette, alpha, and PNG
+transparency are rejected. The decoded grayscale value MUST be the PNG sample
+value; v0.1 performs no color, gamma, profile, or palette conversion.
 
 Recorded parameters are:
 
@@ -34,6 +36,7 @@ Recorded parameters are:
 - connectivity, fixed to `8` in v0.1;
 - `svm-opencv-components@0.1` analysis identity;
 - `svm-binary-mask-png@0.1` mask encoding identity;
+- `svm-png-gray8-samples@0.1` grayscale preprocessing identity;
 - exact `opencv-python-headless` distribution version and OpenCV runtime version.
 
 Dark foreground means `gray <= threshold`; light foreground means
@@ -42,19 +45,22 @@ Dark foreground means `gray <= threshold`; light foreground means
 ## Component analysis
 
 OpenCV `connectedComponentsWithStats` supplies labels, pixel area, bounds, and
-centroid. Background label 0 is excluded. Candidates are sorted by
-`(min_y, min_x, max_y, max_x, pixel_area, centroid)` and assigned analysis-local
-IDs `candidate:component-0001`, etc.
+centroid. Background label 0 is excluded. Each component records a SHA-256
+digest of its canonical bbox-relative foreground pixel coordinates. Candidates
+are sorted by `(min_y, min_x, max_y, max_x, pixel_area, centroid,
+component_digest)` and assigned analysis-local IDs
+`candidate:component-0001`, etc. The digest removes candidate identity's
+dependency on OpenCV label enumeration when all statistical fields tie.
 
 Bounds are half-open pixel coordinates `[min_x, min_y, max_x, max_y]`.
 Centroids are canonical `.12g` numbers. The canonical JSON media type is
 `application/vnd.svm.component-analysis+json`.
 
 The binary mask uses an SVM-owned deterministic grayscale PNG encoder with
-filter 0 scanlines and stored DEFLATE blocks. Its text chunk records
-`SVMArtifact=binary-mask-v0.1` plus the source content hash. This avoids
-platform encoder drift and distinguishes derived evidence from byte-identical
-source PNG content while retaining a normal decodable PNG.
+filter 0 scanlines and stored DEFLATE blocks. Its text chunk records only
+`SVMArtifact=binary-mask-v0.1`. Source identity and provenance exist only in the
+Artifact descriptor, never in mask bytes. Equal mask pixels and dimensions
+therefore produce the same Artifact Blob identity regardless of source.
 
 ## Acceptance
 
@@ -75,3 +81,6 @@ Golden H contains two components and proves:
 5. acceptance adds only Artifact references and no Entity claim;
 6. invalid PNG, alpha, size, options, stale Proposal, missing Artifact, and
    `attach_analysis` permission fail closed.
+7. non-grayscale inputs fail closed, component ordering has a total canonical
+   key, mask content identity excludes provenance, and semantic confidence is
+   left unspecified.

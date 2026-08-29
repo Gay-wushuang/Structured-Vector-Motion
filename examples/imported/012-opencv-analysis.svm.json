@@ -35,8 +35,8 @@
       "uri": "artifact:5b104408f9f1d9a26d8e022cc2dcdfe95e905493d6ba0b543fdde124c2a6a2f8"
     },
     {
-      "content_hash": "sha256:3ff429a03ef1500063ad75312cf8ad8b8edf4abb1e09a16d41e43300ad08bb82",
-      "id": "artifact:3ff429a03ef1500063ad75312cf8ad8b8edf4abb1e09a16d41e43300ad08bb82",
+      "content_hash": "sha256:cfd45bdf78fbc758be40159c5d2c6caa7a94fadf10b024b47d8c5598e2eb571e",
+      "id": "artifact:cfd45bdf78fbc758be40159c5d2c6caa7a94fadf10b024b47d8c5598e2eb571e",
       "import_metadata": {
         "artifact_kind": "DerivedArtifact",
         "provenance": {
@@ -49,6 +49,7 @@
             "analysis_identity": "svm-opencv-components@0.1",
             "connectivity": 8,
             "foreground": "dark",
+            "grayscale_identity": "svm-png-gray8-samples@0.1",
             "mask_identity": "svm-binary-mask-png@0.1",
             "opencv_runtime_version": "4.14.0",
             "threshold": 128
@@ -58,11 +59,11 @@
         }
       },
       "media_type": "image/png",
-      "uri": "artifact:3ff429a03ef1500063ad75312cf8ad8b8edf4abb1e09a16d41e43300ad08bb82"
+      "uri": "artifact:cfd45bdf78fbc758be40159c5d2c6caa7a94fadf10b024b47d8c5598e2eb571e"
     },
     {
-      "content_hash": "sha256:40a34b3e98db9ceb9e79c9267dc1ae3c749eb21f8d96d72a4be2692ae9c26bba",
-      "id": "artifact:40a34b3e98db9ceb9e79c9267dc1ae3c749eb21f8d96d72a4be2692ae9c26bba",
+      "content_hash": "sha256:aaab5dacd1af713f6db08d2b37e4d43be24138a565193e34a92c448aaf97e965",
+      "id": "artifact:aaab5dacd1af713f6db08d2b37e4d43be24138a565193e34a92c448aaf97e965",
       "import_metadata": {
         "artifact_kind": "DerivedArtifact",
         "provenance": {
@@ -75,6 +76,7 @@
             "analysis_identity": "svm-opencv-components@0.1",
             "connectivity": 8,
             "foreground": "dark",
+            "grayscale_identity": "svm-png-gray8-samples@0.1",
             "mask_identity": "svm-binary-mask-png@0.1",
             "opencv_runtime_version": "4.14.0",
             "threshold": 128
@@ -84,7 +86,7 @@
         }
       },
       "media_type": "application/vnd.svm.component-analysis+json",
-      "uri": "artifact:40a34b3e98db9ceb9e79c9267dc1ae3c749eb21f8d96d72a4be2692ae9c26bba"
+      "uri": "artifact:aaab5dacd1af713f6db08d2b37e4d43be24138a565193e34a92c448aaf97e965"
     }
   ],
   "schema_version": "0.1",

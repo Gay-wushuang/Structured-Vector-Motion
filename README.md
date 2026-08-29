@@ -149,10 +149,13 @@ svm analyze-bitmap examples/005-empty-canvas.svm.json source.png `
   --threshold 128 --derived-dir analysis-output
 ```
 
-It emits a content-addressed binary mask, canonical connected-component JSON,
-and previewable structural candidates containing half-open pixel bounds, pixel
-area, and centroid. It creates no Entity or Operation. Add `--accept --output`
-only to attach the analysis evidence to a new Revision. See Golden H and
+The v0.1 input subset is intentionally limited to 8-bit opaque grayscale PNGs,
+so threshold samples do not depend on an implicit color conversion. It emits a
+provenance-free content-addressed binary mask, canonical connected-component
+JSON, and previewable structural candidates containing half-open pixel bounds,
+pixel area, centroid, and a canonical component pixel-set digest. It creates no
+Entity or Operation. Add `--accept --output` only to attach the analysis
+evidence to a new Revision. See Golden H and
 `spec/16-opencv-artifact-analysis.md`.
 
 ## Development

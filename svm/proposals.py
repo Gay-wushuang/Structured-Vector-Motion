@@ -71,6 +71,7 @@ class StructuralCandidatePreview:
     bounds: tuple[int, int, int, int]
     pixel_area: int
     centroid: tuple[float, float]
+    component_digest: str
 
 
 @dataclass(frozen=True)

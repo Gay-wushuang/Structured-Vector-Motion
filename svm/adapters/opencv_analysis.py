@@ -29,6 +29,7 @@ from .bitmap_trace import BITMAP_MEDIA_TYPES
 ANALYSIS_MEDIA_TYPE = "application/vnd.svm.component-analysis+json"
 ANALYSIS_IDENTITY = "svm-opencv-components@0.1"
 MASK_IDENTITY = "svm-binary-mask-png@0.1"
+GRAYSCALE_IDENTITY = "svm-png-gray8-samples@0.1"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
@@ -73,18 +74,18 @@ class OpenCVAnalysisAdapter:
         )
         options = OpenCVAnalysisOptions.from_mapping(request.options)
         cv2, np = _opencv()
-        width, height, color_type = _png_header(source.content)
+        width, height, bit_depth, color_type = _png_header(source.content)
         if width * height > 16_000_000:
             raise OpenCVAnalysisError("PNG exceeds the 16 megapixel analysis limit")
-        if color_type in {4, 6}:
-            raise OpenCVAnalysisError("PNG alpha/transparency is not supported in v0.1")
+        if bit_depth != 8 or color_type != 0:
+            raise OpenCVAnalysisError("OpenCV analysis v0.1 requires an 8-bit opaque grayscale PNG")
         encoded = np.frombuffer(source.content, dtype=np.uint8)
-        grayscale = cv2.imdecode(encoded, cv2.IMREAD_GRAYSCALE)
-        if grayscale is None or grayscale.shape != (height, width):
+        grayscale = cv2.imdecode(encoded, cv2.IMREAD_UNCHANGED)
+        if grayscale is None or grayscale.shape != (height, width) or grayscale.dtype != np.uint8:
             raise OpenCVAnalysisError("OpenCV could not decode the declared PNG image")
         comparison = cv2.CMP_LE if options.foreground == "dark" else cv2.CMP_GE
         mask = cv2.compare(grayscale, options.threshold, comparison)
-        count, _, stats, centroids = cv2.connectedComponentsWithStats(
+        count, labels, stats, centroids = cv2.connectedComponentsWithStats(
             mask, connectivity=options.connectivity, ltype=cv2.CV_32S
         )
         candidates = []
@@ -98,11 +99,15 @@ class OpenCVAnalysisAdapter:
                 _canonical_number(float(centroids[label, 0])),
                 _canonical_number(float(centroids[label, 1])),
             )
+            component_digest = _component_digest(
+                labels, label, x, y, component_width, component_height
+            )
             candidates.append(
                 {
                     "bounds": [x, y, x + component_width, y + component_height],
                     "pixel_area": area,
                     "centroid": list(centroid),
+                    "component_digest": component_digest,
                 }
             )
         candidates.sort(
@@ -113,6 +118,7 @@ class OpenCVAnalysisAdapter:
                 item["bounds"][2],
                 item["pixel_area"],
                 item["centroid"],
+                item["component_digest"],
             )
         )
         for index, candidate in enumerate(candidates, start=1):
@@ -125,6 +131,7 @@ class OpenCVAnalysisAdapter:
             "connectivity": options.connectivity,
             "analysis_identity": ANALYSIS_IDENTITY,
             "mask_identity": MASK_IDENTITY,
+            "grayscale_identity": GRAYSCALE_IDENTITY,
             "opencv_runtime_version": cv2.__version__,
         }
         provenance = {
@@ -137,7 +144,7 @@ class OpenCVAnalysisAdapter:
             "source_content_hash": source.content_hash,
         }
         mask_artifact = artifacts.import_bytes(
-            _encode_mask_png(mask, width, height, source.content_hash),
+            _encode_mask_png(mask, width, height),
             media_type="image/png",
             kind=ArtifactKind.DERIVED,
             provenance={**provenance, "derived_type": "binary-mask"},
@@ -197,6 +204,7 @@ class OpenCVAnalysisAdapter:
                 bounds=tuple(candidate["bounds"]),
                 pixel_area=candidate["pixel_area"],
                 centroid=tuple(candidate["centroid"]),
+                component_digest=candidate["component_digest"],
             )
             for candidate in candidates
         )
@@ -218,7 +226,7 @@ class OpenCVAnalysisAdapter:
             preview_artifacts=previews,
             preview=ProposalPreview(structural_candidates=structural_candidates),
             required_artifact_ids=tuple(reference["id"] for reference in references),
-            confidence=1.0,
+            confidence=None,
             notes="Deterministic pixel analysis; candidates are not Entities",
         )
 
@@ -243,7 +251,7 @@ def _opencv() -> tuple[Any, Any]:
     return cv2, np
 
 
-def _png_header(content: bytes) -> tuple[int, int, int]:
+def _png_header(content: bytes) -> tuple[int, int, int, int]:
     if len(content) < 29 or content[:8] != PNG_SIGNATURE or content[12:16] != b"IHDR":
         raise OpenCVAnalysisError("Artifact bytes must contain a valid PNG IHDR")
     width, height = struct.unpack(">II", content[16:24])
@@ -261,16 +269,16 @@ def _png_header(content: bytes) -> tuple[int, int, int]:
         offset = end
         if chunk_type == b"IEND":
             break
-    return width, height, content[25]
+    return width, height, content[24], content[25]
 
 
-def _encode_mask_png(mask: Any, width: int, height: int, source_hash: str) -> bytes:
+def _encode_mask_png(mask: Any, width: int, height: int) -> bytes:
     pixels = memoryview(mask).tobytes()
     if len(pixels) != width * height:
         raise OpenCVAnalysisError("Binary mask storage does not match PNG dimensions")
     scanlines = b"".join(b"\x00" + pixels[row * width : (row + 1) * width] for row in range(height))
     ihdr = struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0)
-    metadata = f"binary-mask-v0.1;source={source_hash}".encode("ascii")
+    metadata = b"binary-mask-v0.1"
     return b"".join(
         (
             PNG_SIGNATURE,
@@ -280,6 +288,24 @@ def _encode_mask_png(mask: Any, width: int, height: int, source_hash: str) -> by
             _png_chunk(b"IEND", b""),
         )
     )
+
+
+def _component_digest(
+    labels: Any,
+    label: int,
+    x: int,
+    y: int,
+    width: int,
+    height: int,
+) -> str:
+    digest = hashlib.sha256()
+    digest.update(b"svm-component-pixel-set-v0.1\x00")
+    digest.update(struct.pack(">II", width, height))
+    for relative_y in range(height):
+        row = labels[y + relative_y, x : x + width]
+        for relative_x in (row == label).nonzero()[0]:
+            digest.update(struct.pack(">II", int(relative_x), relative_y))
+    return f"sha256:{digest.hexdigest()}"
 
 
 def _stored_zlib(content: bytes) -> bytes:
