@@ -136,7 +136,9 @@ An accepted trace can be compared with a replacement bitmap without immediate
 mutation. `svm retrace-bitmap` returns a structured Entity diff by default; add
 `--accept --output <document>` to commit it. Golden G demonstrates unchanged,
 changed, added, and removed components while preserving matched Entity and
-Operation IDs. See `spec/15-entity-reconciliation.md`.
+Operation IDs. Every proposed match exposes IoU, centroid, filled-area,
+normalized contour, and composite scores. See
+`spec/15-entity-reconciliation.md`.
 
 ## Development
 

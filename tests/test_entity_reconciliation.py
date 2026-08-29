@@ -16,6 +16,7 @@ from svm import (
     RevisionStore,
 )
 from svm.adapters import BitmapReconcileAdapter, BitmapTraceError
+from svm.adapters.bitmap_trace import TracedPath, TraceResult
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "examples" / "imported" / "010-structured-trace.svm.json"
@@ -60,7 +61,34 @@ class EntityReconciliationGoldenGTest(unittest.TestCase):
         preview = proposal.preview
         statuses = [item.status for item in preview.entity_diffs]
         self.assertEqual(statuses, ["unchanged", "changed", "added", "removed"])
-        self.assertEqual(preview.entity_diffs[0].match_score, 1.0)
+        self.assertEqual(preview.entity_diffs[0].match_score.composite, 1.0)
+        self.assertEqual(
+            (
+                preview.entity_diffs[0].match_score.iou,
+                preview.entity_diffs[0].match_score.centroid,
+                preview.entity_diffs[0].match_score.area,
+                preview.entity_diffs[0].match_score.contour,
+            ),
+            (1.0, 1.0, 1.0, 1.0),
+        )
+        changed_score = preview.entity_diffs[1].match_score
+        self.assertIsNotNone(changed_score)
+        self.assertAlmostEqual(
+            changed_score.composite,
+            0.35 * changed_score.iou
+            + 0.20 * changed_score.centroid
+            + 0.15 * changed_score.area
+            + 0.30 * changed_score.contour,
+            places=10,
+        )
+        self.assertEqual(proposal.generator.parameters["matcher"], "svm-multifeature-greedy@0.2")
+        self.assertEqual(
+            proposal.generator.parameters["match_weights"],
+            {"iou": 0.35, "centroid": 0.2, "area": 0.15, "contour": 0.3},
+        )
+        self.assertEqual(proposal.generator.parameters["contour_samples_per_segment"], 8)
+        self.assertEqual(proposal.generator.parameters["max_contour_segments"], 64)
+        self.assertEqual(proposal.generator.parameters["max_descriptor_segments"], 10_000)
         self.assertEqual(preview.entity_diffs[0].entity_id, SCOPE[0])
         self.assertEqual(preview.entity_diffs[1].entity_id, SCOPE[1])
         self.assertEqual(preview.entity_diffs[3].entity_id, SCOPE[2])
@@ -137,8 +165,10 @@ class EntityReconciliationGoldenGTest(unittest.TestCase):
                 artifact_ids=(self.artifact.artifact_id,),
             )
             BitmapReconcileAdapter().propose(duplicate, self.artifacts)
-        with self.assertRaisesRegex(BitmapTraceError, "0 to 1"):
+        with self.assertRaisesRegex(BitmapTraceError, "greater than 0"):
             BitmapReconcileAdapter().propose(self.request(match_iou_threshold=1.1), self.artifacts)
+        with self.assertRaisesRegex(BitmapTraceError, "greater than 0"):
+            BitmapReconcileAdapter().propose(self.request(match_iou_threshold=0), self.artifacts)
 
         dependent = copy.deepcopy(self.document)
         dependent["entities"].append({"id": "entity:external", "name": "External consumer"})
@@ -181,6 +211,101 @@ class EntityReconciliationGoldenGTest(unittest.TestCase):
             ProposalAcceptor().accept(dependent_store, proposal, self.artifacts)
         self.assertEqual(len(dependent_store.revisions), revision_count)
 
+    def test_non_contiguous_render_scope_is_rejected_at_acceptance(self) -> None:
+        interleaved = copy.deepcopy(self.document)
+        interleaved["entities"].append({"id": "entity:external", "name": "External"})
+        interleaved["construction"]["operations"].append(
+            {
+                "id": "op:external",
+                "type": "CreateRectangle",
+                "inputs": {},
+                "parameters": {"x": 0, "y": 0, "width": 1, "height": 1},
+            }
+        )
+        interleaved["construction"]["output_bindings"].append(
+            {
+                "entity": "entity:external",
+                "property": "geometry",
+                "slot": "op:external.geometry",
+            }
+        )
+        interleaved["presentation"]["styles"].append(
+            {
+                "entity": "entity:external",
+                "fill": "#000000",
+                "stroke": "none",
+                "stroke_width": 1.0,
+                "opacity": 1.0,
+            }
+        )
+        interleaved["presentation"]["render_stack"].insert(1, "entity:external")
+        store = RevisionStore.create(interleaved)
+        request = AdapterRequest.from_store(
+            store,
+            store.head,
+            SCOPE,
+            artifact_ids=(self.artifact.artifact_id,),
+            options={"namespace": "structured"},
+        )
+        proposal = BitmapReconcileAdapter().propose(request, self.artifacts)
+        revision_count = len(store.revisions)
+
+        with self.assertRaisesRegex(ValueError, "contiguous Render Stack"):
+            ProposalAcceptor().accept(store, proposal, self.artifacts)
+        self.assertEqual(len(store.revisions), revision_count)
+
+    def test_non_geometry_scoped_binding_is_rejected(self) -> None:
+        document = copy.deepcopy(self.document)
+        document["construction"]["output_bindings"].append(
+            {
+                "entity": SCOPE[0],
+                "property": "mask",
+                "slot": "op:trace-structured-0000-planar.geometry",
+            }
+        )
+        store = RevisionStore.create(document)
+        request = AdapterRequest.from_store(
+            store,
+            store.head,
+            SCOPE,
+            artifact_ids=(self.artifact.artifact_id,),
+            options={"namespace": "structured"},
+        )
+
+        with self.assertRaisesRegex(BitmapTraceError, "non-geometry binding"):
+            BitmapReconcileAdapter().propose(request, self.artifacts)
+
+    def test_proposal_digest_includes_generator_and_matcher_identity(self) -> None:
+        path_operation = next(
+            operation
+            for operation in self.document["construction"]["operations"]
+            if operation["id"] == "op:trace-structured-0000-path"
+        )
+        traced = TraceResult(
+            (
+                TracedPath(
+                    path_operation["parameters"]["d"],
+                    tuple(path_operation["parameters"]["bounds"]),
+                    1,
+                ),
+            )
+        )
+
+        class FixtureTracer:
+            engine_name = "fixture"
+
+            def __init__(self, version: str) -> None:
+                self.engine_version = version
+
+            def trace(self, content, options):
+                return traced
+
+        first = BitmapReconcileAdapter(FixtureTracer("1")).propose(self.request(), self.artifacts)
+        second = BitmapReconcileAdapter(FixtureTracer("2")).propose(self.request(), self.artifacts)
+
+        self.assertNotEqual(first.proposal_id, second.proposal_id)
+        self.assertNotEqual(first.transaction.transaction_id, second.transaction.transaction_id)
+
     def test_cli_previews_without_writing_then_accepts_explicitly(self) -> None:
         entities = [argument for entity in SCOPE for argument in ("--entity", entity)]
         preview = run_cli(
@@ -195,6 +320,10 @@ class EntityReconciliationGoldenGTest(unittest.TestCase):
         preview_result = json.loads(preview.stdout)
         self.assertFalse(preview_result["accepted"])
         self.assertEqual(preview_result["metrics"]["changed"], 1.0)
+        self.assertEqual(
+            set(preview_result["preview"]["entity_diffs"][0]["match_score"]),
+            {"iou", "centroid", "area", "contour", "composite"},
+        )
 
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "accepted.svm.json"

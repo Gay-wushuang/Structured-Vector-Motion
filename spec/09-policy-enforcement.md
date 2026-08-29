@@ -53,6 +53,9 @@ remain eligible for acceptance.
 For `ReplaceSceneFragmentChange`, Core compares every owned old/new Operation.
 Removing an Operation or changing a preserved parameter is rejected. Merely
 re-emitting an equivalent parameter does not violate the constraint.
+Before applying the replacement, Core also requires a contiguous Render Stack
+scope and rejects scoped non-geometry bindings so reconciliation cannot reorder
+external content or silently discard properties outside its ownership.
 
 ## 4. Deny Edit Permission
 

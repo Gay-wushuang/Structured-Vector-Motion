@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import math
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from ..artifacts import ArtifactKind, ArtifactResolver, ArtifactSnapshot
@@ -13,6 +13,7 @@ from ..proposals import (
     EntityDiffPreview,
     EvaluationReport,
     GeneratorProvenance,
+    MatchScorePreview,
     Proposal,
     ProposalPreview,
 )
@@ -27,7 +28,16 @@ from .bitmap_trace import (
     TraceResult,
 )
 
-MATCHER_IDENTITY = "svm-bounds-iou-greedy@0.1"
+MATCHER_IDENTITY = "svm-multifeature-greedy@0.2"
+CONTOUR_SAMPLES_PER_SEGMENT = 8
+MAX_CONTOUR_SEGMENTS = 64
+MAX_DESCRIPTOR_SEGMENTS = 10_000
+MATCH_WEIGHTS = {
+    "iou": 0.35,
+    "centroid": 0.20,
+    "area": 0.15,
+    "contour": 0.30,
+}
 
 
 @dataclass(frozen=True)
@@ -51,12 +61,20 @@ class _ExistingComponent:
 class _Match:
     existing_index: int
     proposed_index: int
-    score: float
+    score: MatchScorePreview
+
+
+@dataclass(frozen=True)
+class _ShapeDescriptor:
+    bounds: tuple[float, float, float, float]
+    centroid: tuple[float, float]
+    area: float
+    normalized_contour: tuple[tuple[float, float], ...]
 
 
 class BitmapReconcileAdapter:
     adapter_id = "adapter:bitmap-reconcile"
-    adapter_version = "0.1"
+    adapter_version = "0.2"
 
     def __init__(self, tracer: BitmapTracer | None = None) -> None:
         self.tracer = tracer or PotracerEngine()
@@ -195,32 +213,37 @@ class BitmapReconcileAdapter:
             status: sum(item.status == status for item in preview_items)
             for status in ("unchanged", "changed", "added", "removed")
         }
+        generator = GeneratorProvenance(
+            adapter_id=self.adapter_id,
+            adapter_version=self.adapter_version,
+            engine=self.tracer.engine_name,
+            engine_version=self.tracer.engine_version,
+            parameters={
+                "namespace": namespace,
+                "matcher": MATCHER_IDENTITY,
+                "match_score_threshold": match_threshold,
+                "match_weights": copy.deepcopy(MATCH_WEIGHTS),
+                "contour_samples_per_segment": CONTOUR_SAMPLES_PER_SEGMENT,
+                "max_contour_segments": MAX_CONTOUR_SEGMENTS,
+                "max_descriptor_segments": MAX_DESCRIPTOR_SEGMENTS,
+                **trace_options.provenance(),
+            },
+        )
         digest = hashlib.sha256(
             canonical_bytes(
                 {
                     "base_revision_id": request.base_revision_id,
-                    "artifact": artifact.content_hash,
-                    "scope": existing_entity_ids,
-                    "options": trace_options.provenance(),
-                    "match_threshold": match_threshold,
+                    "generator": asdict(generator),
+                    "required_artifact_ids": (artifact.artifact_id,),
+                    "artifact_content_hash": artifact.content_hash,
+                    "change": asdict(change),
                 }
             )
         ).hexdigest()[:16]
         return Proposal(
             proposal_id=f"proposal:bitmap-reconcile:{digest}",
             base_revision_id=request.base_revision_id,
-            generator=GeneratorProvenance(
-                adapter_id=self.adapter_id,
-                adapter_version=self.adapter_version,
-                engine=self.tracer.engine_name,
-                engine_version=self.tracer.engine_version,
-                parameters={
-                    "namespace": namespace,
-                    "matcher": MATCHER_IDENTITY,
-                    "match_iou_threshold": match_threshold,
-                    **trace_options.provenance(),
-                },
-            ),
+            generator=generator,
             transaction=Transaction(
                 transaction_id=f"transaction:bitmap-reconcile:{digest}",
                 changes=(change,),
@@ -232,8 +255,8 @@ class BitmapReconcileAdapter:
                 proposed_render_stack=proposed_render_stack,
             ),
             required_artifact_ids=(artifact.artifact_id,),
-            confidence=min((match.score for match in matches), default=0.0),
-            notes="Previewable deterministic bounds-IoU Entity reconciliation",
+            confidence=min((match.score.composite for match in matches), default=0.0),
+            notes="Previewable deterministic multi-feature Entity reconciliation",
         )
 
 
@@ -255,6 +278,16 @@ def _extract_scope(document: dict[str, Any], scope: tuple[str, ...]) -> list[_Ex
             for binding in document["construction"]["output_bindings"]
             if binding["entity"] == entity_id and binding["property"] == "geometry"
         ]
+        unsupported_bindings = [
+            binding
+            for binding in document["construction"]["output_bindings"]
+            if binding["entity"] == entity_id and binding["property"] != "geometry"
+        ]
+        if unsupported_bindings:
+            properties = ", ".join(sorted(binding["property"] for binding in unsupported_bindings))
+            raise BitmapTraceError(
+                f"Entity {entity_id} has unsupported non-geometry binding(s): {properties}"
+            )
         if len(bindings) != 1:
             raise BitmapTraceError(f"Entity {entity_id} requires one geometry binding")
         planar_id = bindings[0]["slot"].rsplit(".", 1)[0]
@@ -283,7 +316,14 @@ def _extract_scope(document: dict[str, Any], scope: tuple[str, ...]) -> list[_Ex
 
 def _options(values: dict[str, Any]) -> tuple[TraceOptions, float, str]:
     raw = copy.deepcopy(values)
-    match_threshold = raw.pop("match_iou_threshold", 0.2)
+    legacy_threshold = raw.pop("match_iou_threshold", None)
+    match_threshold = raw.pop("match_score_threshold", None)
+    if legacy_threshold is not None and match_threshold is not None:
+        raise BitmapTraceError(
+            "Specify only match_score_threshold; match_iou_threshold is a compatibility alias"
+        )
+    if match_threshold is None:
+        match_threshold = legacy_threshold if legacy_threshold is not None else 0.65
     namespace = raw.get("namespace", "reconciled")
     if not isinstance(namespace, str) or not namespace.replace("-", "").isalnum():
         raise BitmapTraceError("Reconciliation namespace must contain letters, digits, or hyphens")
@@ -291,9 +331,11 @@ def _options(values: dict[str, Any]) -> tuple[TraceOptions, float, str]:
         isinstance(match_threshold, bool)
         or not isinstance(match_threshold, (int, float))
         or not math.isfinite(float(match_threshold))
-        or not 0 <= match_threshold <= 1
+        or not 0 < match_threshold <= 1
     ):
-        raise BitmapTraceError("match_iou_threshold must be a finite number from 0 to 1")
+        raise BitmapTraceError(
+            "match_score_threshold must be a finite number greater than 0 and at most 1"
+        )
     return TraceOptions.from_mapping(raw), float(match_threshold), namespace
 
 
@@ -311,22 +353,27 @@ def _match(
     proposed: tuple[TracedPath, ...],
     threshold: float,
 ) -> tuple[_Match, ...]:
-    candidates = []
+    old_descriptors = [
+        _shape_descriptor(component.path_operation["parameters"]["d"], component.bounds)
+        for component in existing
+    ]
+    new_descriptors = [_shape_descriptor(path.d, path.bounds) for path in proposed]
+    candidates: list[tuple[float, str, int, int, MatchScorePreview]] = []
     for old_index, old in enumerate(existing):
-        for new_index, path in enumerate(proposed):
-            score = _bounds_iou(old.bounds, path.bounds)
-            if score >= threshold:
-                candidates.append((-score, old.entity_id, new_index, old_index))
+        for new_index in range(len(proposed)):
+            score = _feature_score(old_descriptors[old_index], new_descriptors[new_index])
+            if score.composite >= threshold:
+                candidates.append((-score.composite, old.entity_id, new_index, old_index, score))
     candidates.sort()
     used_old: set[int] = set()
     used_new: set[int] = set()
     matches = []
-    for negative_score, _, new_index, old_index in candidates:
+    for _, _, new_index, old_index, score in candidates:
         if old_index in used_old or new_index in used_new:
             continue
         used_old.add(old_index)
         used_new.add(new_index)
-        matches.append(_Match(old_index, new_index, float(format(-negative_score, ".12g"))))
+        matches.append(_Match(old_index, new_index, score))
     return tuple(matches)
 
 
@@ -340,6 +387,132 @@ def _bounds_iou(
     right_area = max(0.0, right[2] - right[0]) * max(0.0, right[3] - right[1])
     union = left_area + right_area - intersection
     return intersection / union if union else 0.0
+
+
+def _shape_descriptor(
+    path_data: str, bounds: tuple[float, float, float, float]
+) -> _ShapeDescriptor:
+    try:
+        from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+
+        path = parse_path(path_data)
+        subpaths = path.continuous_subpaths()
+    except (AssertionError, TypeError, ValueError) as exc:
+        raise BitmapTraceError(f"Cannot describe reconciliation path: {exc}") from exc
+    segments = [segment for subpath in subpaths for segment in subpath]
+    if not segments or len(segments) > MAX_DESCRIPTOR_SEGMENTS:
+        raise BitmapTraceError(
+            f"Reconciliation path must contain 1 to {MAX_DESCRIPTOR_SEGMENTS} segments"
+        )
+
+    signed_area_twice = 0.0
+    centroid_x_numerator = 0.0
+    centroid_y_numerator = 0.0
+    for subpath in subpaths:
+        ring = [
+            _complex_point(segment.point(sample / CONTOUR_SAMPLES_PER_SEGMENT))
+            for segment in subpath
+            for sample in range(CONTOUR_SAMPLES_PER_SEGMENT)
+        ]
+        for first, second in zip(ring, ring[1:] + ring[:1], strict=True):
+            cross = first[0] * second[1] - second[0] * first[1]
+            signed_area_twice += cross
+            centroid_x_numerator += (first[0] + second[0]) * cross
+            centroid_y_numerator += (first[1] + second[1]) * cross
+
+    if abs(signed_area_twice) > 1e-12:
+        centroid = (
+            centroid_x_numerator / (3 * signed_area_twice),
+            centroid_y_numerator / (3 * signed_area_twice),
+        )
+        area = abs(signed_area_twice) / 2
+    else:
+        centroid = ((bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2)
+        area = 0.0
+
+    selected_segments = _uniform_segments(segments, MAX_CONTOUR_SEGMENTS)
+    contour = tuple(
+        _normalize_point(
+            _complex_point(segment.point(sample / CONTOUR_SAMPLES_PER_SEGMENT)), bounds
+        )
+        for segment in selected_segments
+        for sample in range(CONTOUR_SAMPLES_PER_SEGMENT)
+    )
+    return _ShapeDescriptor(bounds, centroid, area, contour)
+
+
+def _feature_score(left: _ShapeDescriptor, right: _ShapeDescriptor) -> MatchScorePreview:
+    iou = _bounds_iou(left.bounds, right.bounds)
+    centroid = _centroid_score(left, right)
+    area = _area_score(left.area, right.area)
+    contour = _contour_score(left.normalized_contour, right.normalized_contour)
+    values = {"iou": iou, "centroid": centroid, "area": area, "contour": contour}
+    composite = sum(MATCH_WEIGHTS[name] * values[name] for name in MATCH_WEIGHTS)
+    return MatchScorePreview(
+        iou=_canonical_score(iou),
+        centroid=_canonical_score(centroid),
+        area=_canonical_score(area),
+        contour=_canonical_score(contour),
+        composite=_canonical_score(composite),
+    )
+
+
+def _centroid_score(left: _ShapeDescriptor, right: _ShapeDescriptor) -> float:
+    distance = math.hypot(
+        left.centroid[0] - right.centroid[0], left.centroid[1] - right.centroid[1]
+    )
+    union_width = max(left.bounds[2], right.bounds[2]) - min(left.bounds[0], right.bounds[0])
+    union_height = max(left.bounds[3], right.bounds[3]) - min(left.bounds[1], right.bounds[1])
+    diagonal = math.hypot(union_width, union_height)
+    return max(0.0, 1 - distance / diagonal) if diagonal else float(distance == 0)
+
+
+def _area_score(left: float, right: float) -> float:
+    largest = max(left, right)
+    return min(left, right) / largest if largest > 0 else float(left == right)
+
+
+def _contour_score(
+    left: tuple[tuple[float, float], ...], right: tuple[tuple[float, float], ...]
+) -> float:
+    def directed(
+        source: tuple[tuple[float, float], ...], target: tuple[tuple[float, float], ...]
+    ) -> float:
+        return sum(
+            min(math.hypot(x - other_x, y - other_y) for other_x, other_y in target)
+            for x, y in source
+        ) / len(source)
+
+    chamfer = (directed(left, right) + directed(right, left)) / 2
+    return max(0.0, 1 - chamfer / math.sqrt(2))
+
+
+def _uniform_segments(segments: list[Any], limit: int) -> list[Any]:
+    if len(segments) <= limit:
+        return segments
+    return [segments[index * len(segments) // limit] for index in range(limit)]
+
+
+def _complex_point(point: complex) -> tuple[float, float]:
+    x, y = float(point.real), float(point.imag)
+    if not math.isfinite(x) or not math.isfinite(y):
+        raise BitmapTraceError("Reconciliation path produced non-finite samples")
+    return x, y
+
+
+def _normalize_point(
+    point: tuple[float, float], bounds: tuple[float, float, float, float]
+) -> tuple[float, float]:
+    width = bounds[2] - bounds[0]
+    height = bounds[3] - bounds[1]
+    return (
+        (point[0] - bounds[0]) / width if width else 0.5,
+        (point[1] - bounds[1]) / height if height else 0.5,
+    )
+
+
+def _canonical_score(value: float) -> float:
+    return float(format(min(1.0, max(0.0, value)), ".12g"))
 
 
 def _allocate_added_ids(

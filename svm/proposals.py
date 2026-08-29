@@ -47,11 +47,20 @@ class PreviewArtifact:
 
 
 @dataclass(frozen=True)
+class MatchScorePreview:
+    iou: float
+    centroid: float
+    area: float
+    contour: float
+    composite: float
+
+
+@dataclass(frozen=True)
 class EntityDiffPreview:
     status: str
     entity_id: str | None
     proposed_entity_id: str | None
-    match_score: float | None = None
+    match_score: MatchScorePreview | None = None
     before_bounds: tuple[float, float, float, float] | None = None
     after_bounds: tuple[float, float, float, float] | None = None
 

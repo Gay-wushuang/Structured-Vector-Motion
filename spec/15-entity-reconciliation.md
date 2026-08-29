@@ -20,19 +20,48 @@ accepted trace Entity scope + new content-addressed PNG
 
 The request MUST explicitly scope the existing Entities. The Adapter MUST reject
 missing Entities, shared trace Operations, non-`CreatePath -> PathToPolygon`
-chains, and duplicate scope IDs.
+chains, duplicate scope IDs, and scoped Entities with any non-geometry output
+binding. The v0.1 reconciler owns only geometry; it MUST NOT delete or guess how
+to migrate mask, material, anchor, or other properties.
 
-## Matching v0.1
+Scoped Entities MUST occupy one contiguous interval in the accepted Render
+Stack. Core acceptance rejects a non-contiguous scope before mutation because
+collapsing separated slots into one replacement fragment would reorder external
+Entities. Cross-layer reconciliation requires a future preserve-slot or render-
+anchor contract.
 
-The matcher identity is `svm-bounds-iou-greedy@0.1`. It computes axis-aligned
-canonical path-bounds intersection-over-union for every old/new pair, removes
-pairs below the recorded `match_iou_threshold`, then greedily selects disjoint
-pairs by `(descending score, old Entity ID, proposed component index)`.
+## Matching v0.2
 
-The threshold MUST be a finite number in `[0, 1]` and MUST be recorded in
-generator provenance. Bounds IoU is deliberately conservative and explainable;
-it is not semantic recognition or a claim that two shapes denote the same
-real-world object.
+The matcher identity is `svm-multifeature-greedy@0.2`. Every old/new pair
+receives four independently reviewable scores in `[0, 1]`:
+
+- `iou`: axis-aligned canonical path-bounds intersection-over-union;
+- `centroid`: sampled filled-area centroid distance normalized by the union
+  bounds diagonal;
+- `area`: smaller/larger sampled filled-area ratio, including signed holes;
+- `contour`: translation/scale-normalized symmetric Chamfer similarity.
+
+Contour and filled-area descriptors sample every SVG segment at eight fixed
+parameter values. Chamfer comparison uses at most 64 uniformly selected
+segments per path; descriptor construction rejects paths above 10,000 segments.
+These limits and the sampling count are part of matcher semantics.
+
+The composite score is:
+
+```text
+0.35 * iou + 0.20 * centroid + 0.15 * area + 0.30 * contour
+```
+
+Weights, sampling limits, matcher identity, and `match_score_threshold` MUST be
+recorded in generator provenance. The default threshold is `0.65`; the old
+`match_iou_threshold` option is accepted only as a compatibility alias. The
+matcher removes pairs below the composite threshold, then greedily selects
+disjoint pairs by `(descending composite, old Entity ID, proposed component
+index)`.
+
+All five scores MUST appear in `ProposalPreview`. This matcher remains a
+conservative geometric heuristic, not semantic recognition or proof that two
+shapes denote the same object.
 
 ## Identity and diff status
 
@@ -43,13 +72,20 @@ real-world object.
 - `removed`: unmatched scoped Entity; its owned chain is removed on acceptance.
 
 Every Proposal MUST contain `ProposalPreview.entity_diffs` with status, old and
-proposed Entity IDs, match score when applicable, and before/after bounds. The
-preview MUST also expose the proposed fragment Render Stack.
+proposed Entity IDs, the four feature scores plus composite score when
+applicable, and before/after bounds. The preview MUST also expose the proposed
+fragment Render Stack.
 
 Matching preserves Entity metadata and Style. Acceptance replaces the scoped
 fragment atomically and appends the new Artifact reference. Operations owned by
 the scope MUST NOT have consumers or bindings outside the scope; such a Proposal
 fails rather than deleting external dependencies.
+
+Proposal and Transaction IDs are derived from canonical proposal content. The
+digest includes the base Revision, Adapter ID/version, tracer engine/version,
+matcher identity, recorded options, required Artifact identity, and complete
+replacement Change. A generator or matcher identity change therefore cannot
+reuse the ID of a semantically different Proposal.
 
 ## CLI
 

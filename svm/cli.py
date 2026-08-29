@@ -419,7 +419,7 @@ def command_retrace_bitmap(args: argparse.Namespace) -> dict[str, Any]:
         raise CliError("Revision Store did not create an initial head")
     options = {
         "namespace": args.namespace,
-        "match_iou_threshold": args.match_iou_threshold,
+        "match_score_threshold": args.match_score_threshold,
         "threshold": args.threshold,
         "invert": args.invert,
         "turd_size": args.turd_size,
@@ -452,7 +452,17 @@ def command_retrace_bitmap(args: argparse.Namespace) -> dict[str, Any]:
                     "status": item.status,
                     "entity_id": item.entity_id,
                     "proposed_entity_id": item.proposed_entity_id,
-                    "match_score": item.match_score,
+                    "match_score": (
+                        {
+                            "iou": item.match_score.iou,
+                            "centroid": item.match_score.centroid,
+                            "area": item.match_score.area,
+                            "contour": item.match_score.contour,
+                            "composite": item.match_score.composite,
+                        }
+                        if item.match_score is not None
+                        else None
+                    ),
                     "before_bounds": item.before_bounds,
                     "after_bounds": item.after_bounds,
                 }
@@ -575,7 +585,14 @@ def build_parser() -> argparse.ArgumentParser:
     retrace_bitmap.add_argument("bitmap", type=Path, help="replacement PNG Artifact")
     retrace_bitmap.add_argument("--entity", action="append", required=True)
     retrace_bitmap.add_argument("--namespace", default="reconciled")
-    retrace_bitmap.add_argument("--match-iou-threshold", type=float, default=0.2)
+    retrace_bitmap.add_argument(
+        "--match-score-threshold",
+        "--match-iou-threshold",
+        dest="match_score_threshold",
+        type=float,
+        default=0.65,
+        help="minimum composite match score; old option name remains an alias",
+    )
     retrace_bitmap.add_argument("--accept", action="store_true")
     retrace_bitmap.add_argument("--output", type=Path)
     retrace_bitmap.add_argument("--threshold", type=int, default=128)

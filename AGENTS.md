@@ -260,7 +260,8 @@ Next milestones:
    their owning Entity. Do not confuse this topology with semantic recognition.
 8. Trace Entity Reconciliation and Golden G now preview and atomically apply
    unchanged, changed, added, and removed components while preserving matched
-   Entity and Operation identity. Matching remains explicit and conservative.
+   Entity and Operation identity. The v0.2 matcher exposes IoU, centroid, area,
+   contour, and composite scores; matching remains explicit and conservative.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

@@ -98,10 +98,7 @@ class ReplaceSceneFragmentChange:
         if not owned_operations <= known_operations:
             raise DocumentError("Reconciliation owns missing Operations")
         for entity in document["entities"]:
-            if (
-                entity["id"] not in scoped_entities
-                and entity.get("parent_id") in scoped_entities
-            ):
+            if entity["id"] not in scoped_entities and entity.get("parent_id") in scoped_entities:
                 raise DocumentError(
                     f"Cannot reconcile Entity {entity['parent_id']}; "
                     f"it owns external child {entity['id']}"
@@ -117,6 +114,11 @@ class ReplaceSceneFragmentChange:
                         f"it is used by external Operation {operation['id']}"
                     )
         for binding in document["construction"]["output_bindings"]:
+            if binding["entity"] in scoped_entities and binding["property"] != "geometry":
+                raise DocumentError(
+                    f"Cannot reconcile Entity {binding['entity']}; "
+                    f"unsupported scoped binding property {binding['property']!r}"
+                )
             operation_id = binding["slot"].rsplit(".", 1)[0]
             if operation_id in owned_operations and binding["entity"] not in scoped_entities:
                 raise DocumentError(f"Cannot reconcile shared Operation {operation_id}")
@@ -137,10 +139,16 @@ class ReplaceSceneFragmentChange:
             lambda item: item["entity"] in scoped_entities,
         )
         render_stack = document["presentation"]["render_stack"]
-        render_index = next(
-            (index for index, entity_id in enumerate(render_stack) if entity_id in scoped_entities),
-            len(render_stack),
-        )
+        render_indices = [
+            index for index, entity_id in enumerate(render_stack) if entity_id in scoped_entities
+        ]
+        if len(render_indices) != len(scoped_entities) or render_indices != list(
+            range(render_indices[0], render_indices[0] + len(render_indices))
+        ):
+            raise DocumentError(
+                "Reconciliation scope must form one contiguous Render Stack fragment"
+            )
+        render_index = render_indices[0]
 
         document["entities"][:] = [
             entity for entity in document["entities"] if entity["id"] not in scoped_entities
