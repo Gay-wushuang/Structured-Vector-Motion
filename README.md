@@ -132,6 +132,12 @@ Golden F is recorded in `examples/imported/010-structured-trace.svm.json` and
 `spec/14-structured-trace-components.md` for deterministic ordering and the
 explicit limit between topology and semantic recognition.
 
+An accepted trace can be compared with a replacement bitmap without immediate
+mutation. `svm retrace-bitmap` returns a structured Entity diff by default; add
+`--accept --output <document>` to commit it. Golden G demonstrates unchanged,
+changed, added, and removed components while preserving matched Entity and
+Operation IDs. See `spec/15-entity-reconciliation.md`.
+
 ## Development
 
 Install the project and development tools in editable mode:

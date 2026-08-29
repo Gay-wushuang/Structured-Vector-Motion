@@ -398,6 +398,88 @@ def command_trace_bitmap(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def command_retrace_bitmap(args: argparse.Namespace) -> dict[str, Any]:
+    from .adapters import BitmapReconcileAdapter
+
+    document = load_and_validate(args.document)
+    try:
+        source_bytes = args.bitmap.read_bytes()
+    except OSError as exc:
+        raise CliError(f"Cannot read {args.bitmap}: {exc}") from exc
+    artifact_store = ArtifactStore()
+    artifact = artifact_store.import_bytes(
+        source_bytes,
+        media_type="image/png",
+        kind=ArtifactKind.REFERENCE,
+        provenance={"source_name": args.bitmap.name},
+    )
+    store = RevisionStore.create(document)
+    base_revision_id = store.head
+    if base_revision_id is None:
+        raise CliError("Revision Store did not create an initial head")
+    options = {
+        "namespace": args.namespace,
+        "match_iou_threshold": args.match_iou_threshold,
+        "threshold": args.threshold,
+        "invert": args.invert,
+        "turd_size": args.turd_size,
+        "turn_policy": args.turn_policy,
+        "alpha_max": args.alpha_max,
+        "optimize_curve": not args.no_optimize_curve,
+        "optimization_tolerance": args.optimization_tolerance,
+        "path_tolerance": args.path_tolerance,
+        "fill_rule": args.fill_rule,
+    }
+    request = AdapterRequest.from_store(
+        store,
+        base_revision_id,
+        tuple(args.entity),
+        artifact_ids=(artifact.artifact_id,),
+        options=options,
+    )
+    proposal = BitmapReconcileAdapter().propose(request, artifact_store)
+    if proposal.preview is None:
+        raise CliError("Reconciliation Adapter did not produce a preview")
+    result: dict[str, Any] = {
+        "accepted": False,
+        "artifact_id": artifact.artifact_id,
+        "proposal_id": proposal.proposal_id,
+        "base_revision_id": proposal.base_revision_id,
+        "metrics": proposal.report.metrics,
+        "preview": {
+            "entity_diffs": [
+                {
+                    "status": item.status,
+                    "entity_id": item.entity_id,
+                    "proposed_entity_id": item.proposed_entity_id,
+                    "match_score": item.match_score,
+                    "before_bounds": item.before_bounds,
+                    "after_bounds": item.after_bounds,
+                }
+                for item in proposal.preview.entity_diffs
+            ],
+            "proposed_render_stack": proposal.preview.proposed_render_stack,
+        },
+    }
+    if args.accept:
+        if args.output is None:
+            raise CliError("retrace-bitmap --accept requires --output")
+        revision = ProposalAcceptor().accept(store, proposal, artifact_store)
+        reconciled = store.get_document(revision.revision_id)
+        args.output.write_text(
+            json.dumps(reconciled, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        result.update(
+            {
+                "accepted": True,
+                "revision_id": revision.revision_id,
+                "written": str(args.output),
+            }
+        )
+    return result
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="svm", description="SVM v0.1 reference CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -485,6 +567,31 @@ def build_parser() -> argparse.ArgumentParser:
     trace_bitmap.add_argument("--path-tolerance", type=float, default=0.25)
     trace_bitmap.add_argument("--fill-rule", choices=("nonzero", "evenodd"), default="nonzero")
     trace_bitmap.set_defaults(handler=command_trace_bitmap)
+
+    retrace_bitmap = subparsers.add_parser(
+        "retrace-bitmap", help="preview and optionally accept trace Entity reconciliation"
+    )
+    retrace_bitmap.add_argument("document", type=Path, help="accepted SVM Document")
+    retrace_bitmap.add_argument("bitmap", type=Path, help="replacement PNG Artifact")
+    retrace_bitmap.add_argument("--entity", action="append", required=True)
+    retrace_bitmap.add_argument("--namespace", default="reconciled")
+    retrace_bitmap.add_argument("--match-iou-threshold", type=float, default=0.2)
+    retrace_bitmap.add_argument("--accept", action="store_true")
+    retrace_bitmap.add_argument("--output", type=Path)
+    retrace_bitmap.add_argument("--threshold", type=int, default=128)
+    retrace_bitmap.add_argument("--invert", action="store_true")
+    retrace_bitmap.add_argument("--turd-size", type=int, default=2)
+    retrace_bitmap.add_argument(
+        "--turn-policy",
+        choices=("black", "white", "left", "right", "minority", "majority"),
+        default="minority",
+    )
+    retrace_bitmap.add_argument("--alpha-max", type=float, default=1.0)
+    retrace_bitmap.add_argument("--no-optimize-curve", action="store_true")
+    retrace_bitmap.add_argument("--optimization-tolerance", type=float, default=0.2)
+    retrace_bitmap.add_argument("--path-tolerance", type=float, default=0.25)
+    retrace_bitmap.add_argument("--fill-rule", choices=("nonzero", "evenodd"), default="nonzero")
+    retrace_bitmap.set_defaults(handler=command_retrace_bitmap)
     return parser
 
 

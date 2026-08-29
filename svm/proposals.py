@@ -47,6 +47,22 @@ class PreviewArtifact:
 
 
 @dataclass(frozen=True)
+class EntityDiffPreview:
+    status: str
+    entity_id: str | None
+    proposed_entity_id: str | None
+    match_score: float | None = None
+    before_bounds: tuple[float, float, float, float] | None = None
+    after_bounds: tuple[float, float, float, float] | None = None
+
+
+@dataclass(frozen=True)
+class ProposalPreview:
+    entity_diffs: tuple[EntityDiffPreview, ...] = ()
+    proposed_render_stack: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class Proposal:
     proposal_id: str
     base_revision_id: str
@@ -54,6 +70,7 @@ class Proposal:
     transaction: Transaction
     report: EvaluationReport = field(default_factory=EvaluationReport)
     preview_artifacts: tuple[PreviewArtifact, ...] = ()
+    preview: ProposalPreview | None = None
     required_artifact_ids: tuple[str, ...] = ()
     confidence: float | None = None
     notes: str = ""

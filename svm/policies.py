@@ -65,7 +65,13 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
             not isinstance(actions, list)
             or not actions
             or any(
-                action not in {"set_parameter", "split_entity", "import_scene"}
+                action
+                not in {
+                    "set_parameter",
+                    "split_entity",
+                    "import_scene",
+                    "reconcile_scene",
+                }
                 for action in actions
             )
         ):
@@ -94,9 +100,16 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
 def enforce_transaction_policies(document: dict[str, Any], actor: str, transaction: Any) -> None:
     if not document.get("constraints") and not document.get("edit_permissions"):
         return
-    intents = tuple(_intent_for_change(change) for change in transaction.changes)
+    intents = tuple(
+        intent for change in transaction.changes for intent in _intents_for_change(change)
+    )
 
     for constraint in document.get("constraints", []):
+        if _reconciliation_changes_constraint(document, transaction, constraint):
+            raise PolicyEnforcementError(
+                f"Constraint {constraint['id']} preserves "
+                f"{constraint['operation']}.{constraint['parameter']}"
+            )
         for intent in intents:
             if (
                 constraint["type"] == "PreserveParameter"
@@ -121,7 +134,11 @@ def enforce_transaction_policies(document: dict[str, Any], actor: str, transacti
                 )
 
 
-def _intent_for_change(change: Any) -> ChangeIntent:
+def _intents_for_change(change: Any) -> tuple[ChangeIntent, ...]:
+    policy_intents = getattr(change, "policy_intents", None)
+    if callable(policy_intents):
+        typed_intents = cast(Callable[[], tuple[tuple[str, str, str | None], ...]], policy_intents)
+        return tuple(ChangeIntent(*intent) for intent in typed_intents())
     policy_intent = getattr(change, "policy_intent", None)
     if not callable(policy_intent):
         raise PolicyEnforcementError(
@@ -129,7 +146,37 @@ def _intent_for_change(change: Any) -> ChangeIntent:
         )
     typed_intent = cast(Callable[[], tuple[str, str, str | None]], policy_intent)
     action, target, parameter = typed_intent()
-    return ChangeIntent(action, target, parameter)
+    return (ChangeIntent(action, target, parameter),)
+
+
+def _reconciliation_changes_constraint(
+    document: dict[str, Any], transaction: Any, constraint: dict[str, Any]
+) -> bool:
+    operation_id = constraint["operation"]
+    parameter = constraint["parameter"]
+    old_operation = next(
+        operation
+        for operation in document["construction"]["operations"]
+        if operation["id"] == operation_id
+    )
+    for change in transaction.changes:
+        owned = getattr(change, "owned_operation_ids", ())
+        if operation_id not in owned:
+            continue
+        new_operation = next(
+            (
+                operation
+                for operation in getattr(change, "operations", ())
+                if operation["id"] == operation_id
+            ),
+            None,
+        )
+        if new_operation is None:
+            return True
+        return old_operation.get("parameters", {}).get(parameter) != new_operation.get(
+            "parameters", {}
+        ).get(parameter)
+    return False
 
 
 def _require_keys(value: Any, expected: set[str], context: str) -> None:

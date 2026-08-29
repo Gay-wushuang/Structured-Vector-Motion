@@ -21,6 +21,7 @@ from .operations import (
 )
 from .proposals import (
     AdapterRequest,
+    EntityDiffPreview,
     EvaluationReport,
     GeneratorProvenance,
     PreviewArtifact,
@@ -29,10 +30,12 @@ from .proposals import (
     ProposalArtifactError,
     ProposalConflictError,
     ProposalPolicyError,
+    ProposalPreview,
     ProposalProvider,
 )
 from .revisions import (
     AppendSceneFragmentChange,
+    ReplaceSceneFragmentChange,
     RevisionStore,
     SetOperationParameterChange,
     SplitEntityChange,
@@ -62,6 +65,7 @@ __all__ = [
     "get_operation_registry",
     "RevisionStore",
     "AppendSceneFragmentChange",
+    "ReplaceSceneFragmentChange",
     "SetOperationParameterChange",
     "SplitEntityChange",
     "SplitPart",
@@ -71,6 +75,7 @@ __all__ = [
     "EvaluatedStyle",
     "build_evaluated_scene",
     "AdapterRequest",
+    "EntityDiffPreview",
     "EvaluationReport",
     "GeneratorProvenance",
     "PreviewArtifact",
@@ -80,4 +85,5 @@ __all__ = [
     "ProposalConflictError",
     "ProposalPolicyError",
     "ProposalProvider",
+    "ProposalPreview",
 ]

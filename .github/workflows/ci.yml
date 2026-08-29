@@ -74,3 +74,9 @@ jobs:
           svm render-svg examples/imported/010-structured-trace.svm.json
           --geometry-backend shapely --output golden-f-ci.svg
           --view-box 0 0 120 90
+
+      - name: Smoke-test Golden G
+        run: >
+          svm render-svg examples/imported/011-reconciled-trace.svm.json
+          --geometry-backend shapely --output golden-g-ci.svg
+          --view-box 0 0 120 90

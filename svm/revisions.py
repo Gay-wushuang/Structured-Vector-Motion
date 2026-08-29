@@ -67,6 +67,125 @@ class AppendSceneFragmentChange:
 
 
 @dataclass(frozen=True)
+class ReplaceSceneFragmentChange:
+    """Atomically replace an explicitly scoped, self-contained scene fragment."""
+
+    existing_entity_ids: tuple[str, ...]
+    owned_operation_ids: tuple[str, ...]
+    entities: tuple[dict[str, Any], ...]
+    operations: tuple[dict[str, Any], ...]
+    output_bindings: tuple[dict[str, Any], ...]
+    render_entries: tuple[str, ...]
+    styles: tuple[dict[str, Any], ...]
+    references: tuple[dict[str, Any], ...] = ()
+
+    def policy_intents(self) -> tuple[tuple[str, str, str | None], ...]:
+        return (("reconcile_scene", "document", None),) + tuple(
+            ("reconcile_scene", entity_id, None) for entity_id in self.existing_entity_ids
+        )
+
+    def apply(self, document: dict[str, Any]) -> None:
+        scoped_entities = set(self.existing_entity_ids)
+        owned_operations = set(self.owned_operation_ids)
+        if len(scoped_entities) != len(self.existing_entity_ids) or not scoped_entities:
+            raise DocumentError("Reconciliation Entity scope must be non-empty and unique")
+        if len(owned_operations) != len(self.owned_operation_ids) or not owned_operations:
+            raise DocumentError("Reconciliation Operation ownership must be non-empty and unique")
+        known_entities = {entity["id"] for entity in document["entities"]}
+        known_operations = {operation["id"] for operation in document["construction"]["operations"]}
+        if not scoped_entities <= known_entities:
+            raise DocumentError("Reconciliation scope contains missing Entities")
+        if not owned_operations <= known_operations:
+            raise DocumentError("Reconciliation owns missing Operations")
+        for entity in document["entities"]:
+            if (
+                entity["id"] not in scoped_entities
+                and entity.get("parent_id") in scoped_entities
+            ):
+                raise DocumentError(
+                    f"Cannot reconcile Entity {entity['parent_id']}; "
+                    f"it owns external child {entity['id']}"
+                )
+
+        for operation in document["construction"]["operations"]:
+            if operation["id"] in owned_operations:
+                continue
+            for slot in operation.get("inputs", {}).values():
+                if slot.rsplit(".", 1)[0] in owned_operations:
+                    raise DocumentError(
+                        f"Cannot reconcile Operation {slot.rsplit('.', 1)[0]}; "
+                        f"it is used by external Operation {operation['id']}"
+                    )
+        for binding in document["construction"]["output_bindings"]:
+            operation_id = binding["slot"].rsplit(".", 1)[0]
+            if operation_id in owned_operations and binding["entity"] not in scoped_entities:
+                raise DocumentError(f"Cannot reconcile shared Operation {operation_id}")
+
+        entity_index = _first_index(
+            document["entities"], lambda item: item["id"] in scoped_entities
+        )
+        operation_index = _first_index(
+            document["construction"]["operations"],
+            lambda item: item["id"] in owned_operations,
+        )
+        binding_index = _first_index(
+            document["construction"]["output_bindings"],
+            lambda item: item["entity"] in scoped_entities,
+        )
+        style_index = _first_index(
+            document["presentation"]["styles"],
+            lambda item: item["entity"] in scoped_entities,
+        )
+        render_stack = document["presentation"]["render_stack"]
+        render_index = next(
+            (index for index, entity_id in enumerate(render_stack) if entity_id in scoped_entities),
+            len(render_stack),
+        )
+
+        document["entities"][:] = [
+            entity for entity in document["entities"] if entity["id"] not in scoped_entities
+        ]
+        document["construction"]["operations"][:] = [
+            operation
+            for operation in document["construction"]["operations"]
+            if operation["id"] not in owned_operations
+        ]
+        document["construction"]["output_bindings"][:] = [
+            binding
+            for binding in document["construction"]["output_bindings"]
+            if binding["entity"] not in scoped_entities
+        ]
+        document["presentation"]["styles"][:] = [
+            style
+            for style in document["presentation"]["styles"]
+            if style["entity"] not in scoped_entities
+        ]
+        render_stack[:] = [
+            entity_id for entity_id in render_stack if entity_id not in scoped_entities
+        ]
+
+        document["entities"][entity_index:entity_index] = copy.deepcopy(self.entities)
+        document["construction"]["operations"][operation_index:operation_index] = copy.deepcopy(
+            self.operations
+        )
+        document["construction"]["output_bindings"][binding_index:binding_index] = copy.deepcopy(
+            self.output_bindings
+        )
+        document["presentation"]["styles"][style_index:style_index] = copy.deepcopy(self.styles)
+        render_stack[render_index:render_index] = self.render_entries
+
+        known_references = {reference["id"] for reference in document["references"]}
+        for reference in self.references:
+            if reference["id"] not in known_references:
+                document["references"].append(copy.deepcopy(reference))
+                known_references.add(reference["id"])
+
+
+def _first_index(values: list[dict[str, Any]], predicate: Any) -> int:
+    return next((index for index, value in enumerate(values) if predicate(value)), len(values))
+
+
+@dataclass(frozen=True)
 class SplitEntityChange:
     source_entity_id: str
     operation_id: str

@@ -30,6 +30,7 @@ The v0.1 intents are:
 | `SetOperationParameterChange` | `set_parameter` | Operation ID | parameter name |
 | `SplitEntityChange` | `split_entity` | source Entity ID | none |
 | `AppendSceneFragmentChange` | `import_scene` | `document` | none |
+| `ReplaceSceneFragmentChange` | `reconcile_scene` | `document` and each scoped Entity ID | none |
 
 An unknown Change under policy enforcement fails closed because Core cannot
 prove that accepting it is allowed.
@@ -48,6 +49,10 @@ prove that accepting it is allowed.
 This constraint rejects a Transaction containing a matching
 `SetOperationParameterChange`. Unrelated parameter changes and structural changes
 remain eligible for acceptance.
+
+For `ReplaceSceneFragmentChange`, Core compares every owned old/new Operation.
+Removing an Operation or changing a preserved parameter is rejected. Merely
+re-emitting an equivalent parameter does not violate the constraint.
 
 ## 4. Deny Edit Permission
 

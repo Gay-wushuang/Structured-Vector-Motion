@@ -52,6 +52,11 @@ A Proposal contains:
 
 A Proposal is descriptive and has no authority to commit itself.
 
+When a Proposal changes Entity structure, it may include a typed
+`ProposalPreview` containing Entity-level diffs and a proposed Render Stack.
+Preview data is descriptive: acceptance still applies and validates the
+Transaction rather than trusting the preview.
+
 ## 4. Acceptance
 
 The v0.1 acceptor performs optimistic base-revision checking. If the active head
