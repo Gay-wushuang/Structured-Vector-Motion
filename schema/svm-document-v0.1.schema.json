@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structured-vector-motion.dev/schema/svm-document-v0.1.schema.json",
+  "title": "Structured Vector Motion Document v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "semantics_version",
+    "document_id",
+    "references",
+    "entities",
+    "construction",
+    "presentation",
+    "constraints",
+    "evaluation_policies",
+    "edit_permissions",
+    "animation"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "semantics_version": {"const": "svm-core-0.1"},
+    "document_id": {"$ref": "#/$defs/documentId"},
+    "references": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/reference"}
+    },
+    "entities": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/entity"}
+    },
+    "construction": {"$ref": "#/$defs/construction"},
+    "presentation": {"$ref": "#/$defs/presentation"},
+    "constraints": {"type": "array", "items": {"type": "object"}},
+    "evaluation_policies": {"type": "array", "items": {"type": "object"}},
+    "edit_permissions": {"type": "array", "items": {"type": "object"}},
+    "animation": {"$ref": "#/$defs/animation"}
+  },
+  "$defs": {
+    "documentId": {"type": "string", "pattern": "^document:.+"},
+    "entityId": {"type": "string", "pattern": "^entity:.+"},
+    "operationId": {"type": "string", "pattern": "^op:.+"},
+    "slotId": {"type": "string", "pattern": "^op:.+\\.[^.]+$"},
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "uri", "content_hash", "media_type", "import_metadata"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^artifact:.+"},
+        "uri": {"type": "string", "minLength": 1},
+        "content_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "media_type": {"type": "string", "minLength": 1},
+        "import_metadata": {"type": "object"}
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": {"$ref": "#/$defs/entityId"},
+        "name": {"type": "string", "minLength": 1},
+        "parent_id": {"$ref": "#/$defs/entityId"},
+        "semantic_tags": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "inputs", "parameters"],
+      "properties": {
+        "id": {"$ref": "#/$defs/operationId"},
+        "type": {"type": "string", "minLength": 1},
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/slotId"}
+        },
+        "parameters": {"type": "object"},
+        "stage": {"type": "string"}
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity", "property", "slot"],
+      "properties": {
+        "entity": {"$ref": "#/$defs/entityId"},
+        "property": {"type": "string", "minLength": 1},
+        "slot": {"$ref": "#/$defs/slotId"}
+      }
+    },
+    "construction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operations", "output_bindings", "refinement_stages"],
+      "properties": {
+        "operations": {"type": "array", "items": {"$ref": "#/$defs/operation"}},
+        "output_bindings": {"type": "array", "items": {"$ref": "#/$defs/binding"}},
+        "refinement_stages": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["render_stack"],
+      "properties": {
+        "render_stack": {"type": "array", "items": {"$ref": "#/$defs/entityId"}}
+      }
+    },
+    "animation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content", "construction_scheduling_hints"],
+      "properties": {
+        "content": {"type": "array", "items": {"type": "object"}},
+        "construction_scheduling_hints": {"type": "array", "items": {"type": "object"}}
+      }
+    }
+  }
+}
+

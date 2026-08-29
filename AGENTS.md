@@ -179,26 +179,34 @@ At minimum, preserve Golden Test A:
 - the Head Entity ID remains unchanged;
 - repeated equivalent evaluation produces the same content hash.
 
-The next required vertical slice is Golden Test B:
+Golden Test B is implemented and must remain preserved:
 
 ```text
 SplitEntity(Head) -> Head parent + new Face + new Hair
 ```
 
-It must exercise structural identity, atomic transactions, revisions, render
-stack changes, bindings, undo, and loading the old revision. Do not implement
-`SplitEntity` as an in-place geometry mutation merely to simplify this test.
+It exercises structural identity, atomic transactions, revisions, render stack
+changes, bindings, undo, and loading the old revision. Do not regress
+`SplitEntity` into an in-place geometry mutation.
 
 ## Near-term roadmap
 
 Work in this order unless the user explicitly changes priorities:
 
+Completed baseline:
+
 1. `02-document-format-v0.1.md`.
 2. `schema/svm-document-v0.1.schema.json`.
 3. Transaction and Revision Store minimum model.
 4. `SplitEntity` semantics and Golden Test B.
-5. Minimal CLI for validate, evaluate, inspect, mutate, and reevaluate.
-6. Simple SVG backend.
+5. Adapter/Proposal boundary and optimistic acceptance.
+
+Next milestones:
+
+1. Minimal CLI for validate, evaluate, inspect, mutate, and reevaluate.
+2. Operation registry and explicit output signatures.
+3. Complete constraint and Edit Permission enforcement at Proposal acceptance.
+4. Simple SVG backend.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.
@@ -211,4 +219,3 @@ behind adapters or convenience fields.
 
 Avoid speculative abstractions. Add an operation, field, state, or subsystem only
 when a documented use case or executable test requires it.
-

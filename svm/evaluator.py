@@ -76,10 +76,10 @@ class Evaluator:
 
     @staticmethod
     def _split_slot(slot_id: str) -> tuple[str, str]:
-        try:
-            return slot_id.rsplit(".", 1)
-        except ValueError as exc:
-            raise DocumentError(f"Invalid output slot: {slot_id}") from exc
+        parts = slot_id.rsplit(".", 1)
+        if len(parts) != 2 or not all(parts):
+            raise DocumentError(f"Invalid output slot: {slot_id}")
+        return parts[0], parts[1]
 
     def validate(self) -> None:
         if self.document.get("schema_version") != "0.1":
@@ -175,5 +175,15 @@ class Evaluator:
             return {"geometry": {"kind": "refined_path", "source": inputs["geometry"], "tolerance": params["tolerance"], "quality": quality.value}}
         if op_type == "Clip":
             return {"geometry": {"kind": "clip", "content": inputs["content"], "clip": inputs["clip"]}}
+        if op_type == "SplitEntity":
+            source = inputs["geometry"]
+            return {
+                part["output_name"]: {
+                    "kind": "split_part",
+                    "source": source,
+                    "entity_id": part["entity_id"],
+                    "selector": part["selector"],
+                }
+                for part in params["parts"]
+            }
         raise DocumentError(f"Unsupported operation type: {op_type}")
-
