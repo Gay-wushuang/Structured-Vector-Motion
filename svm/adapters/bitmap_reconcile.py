@@ -33,6 +33,10 @@ MATCHER_IDENTITY = "svm-multifeature-greedy@0.2"
 CONTOUR_SAMPLE_COUNT = 128
 AREA_SAMPLES_PER_SUBPATH = 128
 MAX_DESCRIPTOR_SEGMENTS = 10_000
+MAX_TOPOLOGY_SEGMENTS = 512
+SELF_INTERSECTION_SAMPLE_COUNT = 32
+AREA_EPSILON = 1e-12
+TOPOLOGY_PARAMETER_EPSILON = 1e-12
 MATCH_WEIGHTS = {
     "iou": 0.35,
     "centroid": 0.20,
@@ -227,6 +231,10 @@ class BitmapReconcileAdapter:
                 "contour_sample_count": CONTOUR_SAMPLE_COUNT,
                 "area_samples_per_subpath": AREA_SAMPLES_PER_SUBPATH,
                 "max_descriptor_segments": MAX_DESCRIPTOR_SEGMENTS,
+                "max_topology_segments": MAX_TOPOLOGY_SEGMENTS,
+                "self_intersection_sample_count": SELF_INTERSECTION_SAMPLE_COUNT,
+                "area_epsilon": AREA_EPSILON,
+                "topology_parameter_epsilon": TOPOLOGY_PARAMETER_EPSILON,
                 **trace_options.provenance(),
             },
         )
@@ -414,6 +422,12 @@ def _shape_descriptor(
         raise BitmapTraceError(
             f"Reconciliation path must contain 1 to {MAX_DESCRIPTOR_SEGMENTS} segments"
         )
+    if len(segments) > MAX_TOPOLOGY_SEGMENTS:
+        raise BitmapTraceError(
+            f"Reconciliation topology verification supports at most {MAX_TOPOLOGY_SEGMENTS} "
+            "segments"
+        )
+    _validate_contour_tree(subpaths)
 
     rings: list[tuple[tuple[float, float], ...]] = []
     for subpath in subpaths:
@@ -425,7 +439,7 @@ def _shape_descriptor(
         coefficient * abs(metrics[0]) / 2
         for coefficient, metrics in zip(coefficients, ring_metrics, strict=True)
     )
-    if area > 1e-12:
+    if area > AREA_EPSILON:
         centroid = (
             sum(
                 coefficient * abs(metrics[0]) / 2 * metrics[1][0]
@@ -536,7 +550,7 @@ def _ring_metrics(
         area_twice += cross
         centroid_x += (first[0] + second[0]) * cross
         centroid_y += (first[1] + second[1]) * cross
-    if abs(area_twice) <= 1e-12:
+    if abs(area_twice) <= AREA_EPSILON:
         return area_twice, ring[0]
     return area_twice, (centroid_x / (3 * area_twice), centroid_y / (3 * area_twice))
 
@@ -561,6 +575,103 @@ def _fill_coefficients(
         inside_winding = outside_winding + orientations[index]
         coefficients.append(int(inside_winding != 0) - int(outside_winding != 0))
     return tuple(coefficients)
+
+
+def _validate_contour_tree(subpaths: list[Any]) -> None:
+    """Reject topology outside disjoint or strictly nested simple closed rings."""
+    for subpath_index, subpath in enumerate(subpaths):
+        segments = list(subpath)
+        if not subpath.isclosed():
+            raise BitmapTraceError("Reconciliation paths must contain only closed contour rings")
+        for segment in segments:
+            _reject_sampled_segment_self_intersection(segment)
+        for left_index, left in enumerate(segments):
+            for right_index in range(left_index + 1, len(segments)):
+                right = segments[right_index]
+                intersections = _segment_intersections(left, right)
+                adjacent = right_index == left_index + 1
+                wraps = left_index == 0 and right_index == len(segments) - 1
+                allowed = (1.0, 0.0) if adjacent else (0.0, 1.0) if wraps else None
+                if any(not _same_parameters(pair, allowed) for pair in intersections):
+                    raise BitmapTraceError(
+                        "Reconciliation path is outside the non-intersecting contour-tree subset"
+                    )
+
+        for other_subpath in subpaths[subpath_index + 1 :]:
+            for left in segments:
+                for right in other_subpath:
+                    if _segment_intersections(left, right):
+                        raise BitmapTraceError(
+                            "Reconciliation path is outside the non-intersecting "
+                            "contour-tree subset"
+                        )
+
+
+def _segment_intersections(left: Any, right: Any) -> list[tuple[float, float]]:
+    try:
+        return [(float(first), float(second)) for first, second in left.intersect(right)]
+    except (AssertionError, NotImplementedError, TypeError, ValueError, ZeroDivisionError) as exc:
+        raise BitmapTraceError("Cannot verify reconciliation contour-tree topology") from exc
+
+
+def _same_parameters(actual: tuple[float, float], expected: tuple[float, float] | None) -> bool:
+    return expected is not None and all(
+        math.isclose(value, target, rel_tol=0.0, abs_tol=TOPOLOGY_PARAMETER_EPSILON)
+        for value, target in zip(actual, expected, strict=True)
+    )
+
+
+def _reject_sampled_segment_self_intersection(segment: Any) -> None:
+    points = tuple(
+        _complex_point(segment.point(index / SELF_INTERSECTION_SAMPLE_COUNT))
+        for index in range(SELF_INTERSECTION_SAMPLE_COUNT + 1)
+    )
+    edges = tuple(zip(points, points[1:], strict=False))
+    for left_index, left in enumerate(edges):
+        for right_index in range(left_index + 2, len(edges)):
+            if right_index == left_index + 1:
+                continue
+            if _line_segments_intersect(left, edges[right_index]):
+                raise BitmapTraceError(
+                    "Reconciliation path is outside the non-intersecting contour-tree subset"
+                )
+
+
+def _line_segments_intersect(
+    left: tuple[tuple[float, float], tuple[float, float]],
+    right: tuple[tuple[float, float], tuple[float, float]],
+) -> bool:
+    def orientation(
+        first: tuple[float, float],
+        second: tuple[float, float],
+        third: tuple[float, float],
+    ) -> float:
+        return (second[0] - first[0]) * (third[1] - first[1]) - (second[1] - first[1]) * (
+            third[0] - first[0]
+        )
+
+    first = orientation(left[0], left[1], right[0])
+    second = orientation(left[0], left[1], right[1])
+    third = orientation(right[0], right[1], left[0])
+    fourth = orientation(right[0], right[1], left[1])
+    if first * second < 0 and third * fourth < 0:
+        return True
+
+    def on_segment(
+        point: tuple[float, float],
+        start: tuple[float, float],
+        end: tuple[float, float],
+    ) -> bool:
+        return min(start[0], end[0]) <= point[0] <= max(start[0], end[0]) and min(
+            start[1], end[1]
+        ) <= point[1] <= max(start[1], end[1])
+
+    return (
+        (first == 0 and on_segment(right[0], left[0], left[1]))
+        or (second == 0 and on_segment(right[1], left[0], left[1]))
+        or (third == 0 and on_segment(left[0], right[0], right[1]))
+        or (fourth == 0 and on_segment(left[1], right[0], right[1]))
+    )
 
 
 def _point_in_ring(point: tuple[float, float], ring: tuple[tuple[float, float], ...]) -> bool:

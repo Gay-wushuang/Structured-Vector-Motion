@@ -46,11 +46,27 @@ For the supported non-intersecting trace contour-tree subset, sampled rings are
 combined according to `nonzero` or `evenodd` fill semantics. Area and centroid
 therefore describe filled shape rather than raw path winding.
 
+Every scoped and proposed path MUST remain a forest of closed, simple rings
+whose pairs are either strictly nested or disjoint. Self-intersection, crossing
+or touching rings, open subpaths, and topology that cannot be verified fail
+closed before matching. General authored path topology requires future analysis
+of evaluated canonical `polygon_set` values and is outside this matcher version.
+
 Filled-area analysis samples each subpath at 128 equally spaced arc-length
 positions. Contour comparison samples the whole compound path at 128 equally
 spaced arc-length positions, independent of SVG segment boundaries. Descriptor
 construction rejects paths above 10,000 segments. These limits and sampling
 counts are part of matcher semantics.
+
+Exact pairwise topology verification is bounded to 512 segments and individual
+segment self-intersection screening uses 32 parameter samples. A larger path is
+rejected rather than entering an unbounded quadratic check. Both limits are
+recorded in generator provenance.
+
+The fixed area-degeneracy epsilon is `1e-12` square document units. The fixed
+endpoint-parameter comparison epsilon used by topology validation is `1e-12`.
+Both constants are recorded in generator provenance and belong to
+`svm-multifeature-greedy@0.2` semantics.
 
 Contour normalization translates the bounds center to the origin and divides
 both axes by the same `max(width, height)` scale. It removes translation and

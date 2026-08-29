@@ -97,6 +97,10 @@ class EntityReconciliationGoldenGTest(unittest.TestCase):
         self.assertEqual(proposal.generator.parameters["contour_sample_count"], 128)
         self.assertEqual(proposal.generator.parameters["area_samples_per_subpath"], 128)
         self.assertEqual(proposal.generator.parameters["max_descriptor_segments"], 10_000)
+        self.assertEqual(proposal.generator.parameters["max_topology_segments"], 512)
+        self.assertEqual(proposal.generator.parameters["self_intersection_sample_count"], 32)
+        self.assertEqual(proposal.generator.parameters["area_epsilon"], 1e-12)
+        self.assertEqual(proposal.generator.parameters["topology_parameter_epsilon"], 1e-12)
         self.assertEqual(preview.entity_diffs[0].entity_id, SCOPE[0])
         self.assertEqual(preview.entity_diffs[1].entity_id, SCOPE[1])
         self.assertEqual(preview.entity_diffs[3].entity_id, SCOPE[2])
@@ -357,6 +361,29 @@ class EntityReconciliationGoldenGTest(unittest.TestCase):
         score = proposal.preview.entity_diffs[0].match_score
         self.assertAlmostEqual(score.area, 0.84, places=3)
         self.assertLess(score.composite, 1.0)
+
+    def test_descriptor_rejects_topology_outside_contour_tree_subset(self) -> None:
+        crossing_subpaths = "M 0 0 L 10 0 L 10 10 L 0 10 Z M 5 5 L 15 5 L 15 15 L 5 15 Z"
+        with self.assertRaisesRegex(BitmapTraceError, "non-intersecting contour-tree"):
+            self._proposal_for_shape(
+                crossing_subpaths,
+                (0.0, 0.0, 15.0, 15.0),
+                "nonzero",
+                crossing_subpaths,
+                (0.0, 0.0, 15.0, 15.0),
+                "nonzero",
+            )
+
+        self_intersection = "M 0 0 L 10 10 L 0 10 L 10 0 Z"
+        with self.assertRaisesRegex(BitmapTraceError, "non-intersecting contour-tree"):
+            self._proposal_for_shape(
+                self_intersection,
+                (0.0, 0.0, 10.0, 10.0),
+                "nonzero",
+                self_intersection,
+                (0.0, 0.0, 10.0, 10.0),
+                "nonzero",
+            )
 
     def _proposal_for_shape(
         self,
