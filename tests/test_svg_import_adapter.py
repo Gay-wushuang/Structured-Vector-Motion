@@ -197,6 +197,25 @@ class SVGImportAdapterTest(unittest.TestCase):
         style = proposal.transaction.changes[0].styles[0]
         self.assertEqual(style["stroke_width"], 1.0)
 
+    def test_svg_path_uses_exact_canonical_geometry_bounds(self) -> None:
+        artifact_store = ArtifactStore()
+        artifact = artifact_store.import_bytes(
+            b'<svg xmlns="http://www.w3.org/2000/svg">'
+            b'<path d="M 0 0 C 0 100 100 100 100 0"/>'
+            b"</svg>",
+            media_type="image/svg+xml",
+        )
+        request = AdapterRequest.from_store(
+            self.store,
+            self.store.head,
+            ("document",),
+            artifact_ids=(artifact.artifact_id,),
+        )
+        proposal = SVGImportAdapter().propose(request, artifact_store)
+
+        operation = proposal.transaction.changes[0].operations[0]
+        self.assertEqual(operation["parameters"]["bounds"], [0.0, 0.0, 100.0, 75.0])
+
     def test_unsafe_or_unsupported_svg_is_rejected(self) -> None:
         unsafe = self.artifact_store.import_bytes(
             b'<!DOCTYPE svg><svg xmlns="http://www.w3.org/2000/svg"/>',

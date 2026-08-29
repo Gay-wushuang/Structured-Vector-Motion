@@ -20,7 +20,8 @@ from svm import (
     build_evaluated_scene,
 )
 from svm.adapters import BitmapTraceAdapter, BitmapTraceError, PotracerEngine
-from svm.adapters.bitmap_trace import _number, _point
+from svm.adapters.bitmap_trace import TracedPath, _number, _point
+from svm.adapters.path_bounds import canonical_path_bounds
 from svm.backends.shapely_geometry import ShapelyGeometryBackend
 from svm.evaluator import Quality
 from svm.renderers import SVGRenderer, SVGRenderOptions
@@ -61,7 +62,9 @@ class BitmapTraceGoldenETest(unittest.TestCase):
             proposal.generator.engine_version,
             f"{importlib.metadata.version('potracer')}"
             f"+pillow@{importlib.metadata.version('Pillow')}"
-            "+svm-bitmap-preprocess@0.1",
+            "+svm-bitmap-preprocess@0.1"
+            f"+svgpathtools@{importlib.metadata.version('svgpathtools')}"
+            "+svm-path-bounds@0.1",
         )
         self.assertEqual(proposal.report.metrics["traced_paths"], 2.0)
 
@@ -216,6 +219,34 @@ class BitmapTraceGoldenETest(unittest.TestCase):
 
         self.assertEqual(point, (1.23456789012, -4e-13))
         self.assertEqual((_number(point[0]), _number(point[1])), ("1.23456789012", "-4e-13"))
+        self.assertEqual(
+            canonical_path_bounds("M 0 0 C 0 100 100 100 100 0"),
+            (0.0, 0.0, 100.0, 75.0),
+        )
+
+    def test_automatic_namespace_includes_generator_identity(self) -> None:
+        class FixtureTracer:
+            engine_name = "fixture-tracer"
+
+            def __init__(self, engine_version: str) -> None:
+                self.engine_version = engine_version
+
+            def trace(self, content, options):
+                return TracedPath("M 0 0 L 1 0 L 1 1 Z", (0.0, 0.0, 1.0, 1.0), 1)
+
+        request = AdapterRequest.from_store(
+            self.store,
+            self.store.head,
+            ("document",),
+            artifact_ids=(self.artifact.artifact_id,),
+        )
+        first = BitmapTraceAdapter(FixtureTracer("1")).propose(request, self.artifacts)
+        second = BitmapTraceAdapter(FixtureTracer("2")).propose(request, self.artifacts)
+
+        first_change = first.transaction.changes[0]
+        second_change = second.transaction.changes[0]
+        self.assertNotEqual(first_change.entities[0]["id"], second_change.entities[0]["id"])
+        self.assertNotEqual(first_change.operations[0]["id"], second_change.operations[0]["id"])
 
     @staticmethod
     def _trace_options():

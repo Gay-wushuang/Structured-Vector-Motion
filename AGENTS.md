@@ -41,8 +41,9 @@ Read these files before changing core behavior:
 9. `spec/11-geometry-backend.md` — deterministic Geometry Backend contract.
 10. `spec/12-path-to-planar-geometry.md` — PathToPolygon normative contract.
 11. `spec/13-bitmap-trace-adapter.md` — deterministic bitmap tracing boundary.
-12. `examples/001-head-basic.svm.json` — current example Document.
-13. `tests/test_golden_a.py` — executable expectations.
+12. `spec/14-structured-trace-components.md` — deterministic component decomposition.
+13. `examples/001-head-basic.svm.json` — current example Document.
+14. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -253,6 +254,9 @@ Next milestones:
 6. Bitmap Trace Adapter and Golden E now prove PNG Artifact -> Proposal ->
    CreatePath -> PathToPolygon -> canonical polygon_set -> stable SVG. Keep
    third-party tracing engines optional and outside Core.
+7. Structured Trace Components and Golden F now split disconnected filled
+   components into independent Entities while retaining nested hole contours in
+   their owning Entity. Do not confuse this topology with semantic recognition.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

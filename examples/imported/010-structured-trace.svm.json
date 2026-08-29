@@ -1,0 +1,171 @@
+{
+  "animation": {
+    "construction_scheduling_hints": [],
+    "content": []
+  },
+  "constraints": [],
+  "construction": {
+    "operations": [
+      {
+        "id": "op:trace-structured-0000-path",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            76.0,
+            7.99999999496,
+            111.000000007,
+            31.0
+          ],
+          "d": "M 77.6549875621 29.1712593284 C 76.4047255472 27.7897353526 76 25.3821474422 76 19.3262468905 C 76 8.02460143675 76.0383886846 8 93.6737531095 8 C 111.008255345 8 111 7.99443786884 111 19.6737531095 C 111 30.9753985632 110.961611315 31 93.3262468905 31 C 81.0175024047 31 79.1083568581 30.7772143236 77.6549875621 29.1712593284 Z"
+        },
+        "type": "CreatePath"
+      },
+      {
+        "id": "op:trace-structured-0000-planar",
+        "inputs": {
+          "path": "op:trace-structured-0000-path.geometry"
+        },
+        "parameters": {
+          "fill_rule": "nonzero",
+          "tolerance": 0.25
+        },
+        "type": "PathToPolygon"
+      },
+      {
+        "id": "op:trace-structured-0001-path",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            8.49902922062,
+            12.4569404854,
+            58.4472227581,
+            62.7012962768
+          ],
+          "d": "M 26.9935258006 62.1251738324 C 19.9053458222 59.8007433402 13.8965716752 54.6893890234 10.3883417172 48 C 7.86925838843 43.1966864857 7.86925838843 31.8033135143 10.3883417172 27 C 12.9482054614 22.1189275968 17.7804349099 17.2083910829 22.5 14.6920703216 C 28.089558061 11.7118972067 38.910441939 11.7118972067 44.5 14.6920703216 C 53.6881993731 19.5909235846 58.4472227581 27.373366913 58.4472227581 37.5 C 58.4472227581 47.623266136 53.604544924 55.5456562179 44.5723920131 60.1985616735 C 40.284670606 62.4073775034 30.9678689744 63.4284822259 26.9935258006 62.1251738324 Z M 40.6 44.6 C 45.3304250718 39.8695749282 45.3304250718 35.1304250718 40.6 30.4 C 37.9585585586 27.7585585586 36.3745098039 27 33.5 27 C 28.2638520665 27 23 32.2638520665 23 37.5 C 23 40.3745098039 23.7585585586 41.9585585586 26.4 44.6 C 31.1304250718 49.3304250718 35.8695749282 49.3304250718 40.6 44.6 Z"
+        },
+        "type": "CreatePath"
+      },
+      {
+        "id": "op:trace-structured-0001-planar",
+        "inputs": {
+          "path": "op:trace-structured-0001-path.geometry"
+        },
+        "parameters": {
+          "fill_rule": "nonzero",
+          "tolerance": 0.25
+        },
+        "type": "PathToPolygon"
+      },
+      {
+        "id": "op:trace-structured-0002-path",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            71.9598100854,
+            42.6881882298,
+            114.910216211,
+            76.8874246948
+          ],
+          "d": "M 93.2299050427 73.6344436242 L 71.9598100854 70.5 L 81.5959759046 57 C 86.8958671052 49.575 91.5584707663 43.1439390697 91.9573173737 42.7087534883 C 92.356163981 42.2735679068 97.1044482376 48.7985679068 102.509060166 57.2087534883 C 107.913672095 65.6189390697 112.986865634 73.5125 113.782823588 74.75 C 114.578781541 75.9875 115.065765397 76.9479996309 114.865009933 76.8844436242 C 114.66425447 76.8208876175 104.928457269 75.3583876175 93.2299050427 73.6344436242 Z"
+        },
+        "type": "CreatePath"
+      },
+      {
+        "id": "op:trace-structured-0002-planar",
+        "inputs": {
+          "path": "op:trace-structured-0002-path.geometry"
+        },
+        "parameters": {
+          "fill_rule": "nonzero",
+          "tolerance": 0.25
+        },
+        "type": "PathToPolygon"
+      }
+    ],
+    "output_bindings": [
+      {
+        "entity": "entity:trace-structured-0000",
+        "property": "geometry",
+        "slot": "op:trace-structured-0000-planar.geometry"
+      },
+      {
+        "entity": "entity:trace-structured-0001",
+        "property": "geometry",
+        "slot": "op:trace-structured-0001-planar.geometry"
+      },
+      {
+        "entity": "entity:trace-structured-0002",
+        "property": "geometry",
+        "slot": "op:trace-structured-0002-planar.geometry"
+      }
+    ],
+    "refinement_stages": [
+      "mass",
+      "contour",
+      "detail"
+    ]
+  },
+  "document_id": "document:svg-import-target",
+  "edit_permissions": [],
+  "entities": [
+    {
+      "id": "entity:trace-structured-0000",
+      "name": "Bitmap trace structured component 1"
+    },
+    {
+      "id": "entity:trace-structured-0001",
+      "name": "Bitmap trace structured component 2"
+    },
+    {
+      "id": "entity:trace-structured-0002",
+      "name": "Bitmap trace structured component 3"
+    }
+  ],
+  "evaluation_policies": [],
+  "presentation": {
+    "render_stack": [
+      "entity:trace-structured-0000",
+      "entity:trace-structured-0001",
+      "entity:trace-structured-0002"
+    ],
+    "styles": [
+      {
+        "entity": "entity:trace-structured-0000",
+        "fill": "#000000",
+        "opacity": 1.0,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:trace-structured-0001",
+        "fill": "#000000",
+        "opacity": 1.0,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:trace-structured-0002",
+        "fill": "#000000",
+        "opacity": 1.0,
+        "stroke": "none",
+        "stroke_width": 1.0
+      }
+    ]
+  },
+  "references": [
+    {
+      "content_hash": "sha256:d1f0cd47d851ab676dd93f98eb0da94809865bdd5bdc5f67ab81088724310e49",
+      "id": "artifact:d1f0cd47d851ab676dd93f98eb0da94809865bdd5bdc5f67ab81088724310e49",
+      "import_metadata": {
+        "artifact_kind": "ReferenceArtifact",
+        "provenance": {
+          "source_name": "004-structured-trace-source.png"
+        }
+      },
+      "media_type": "image/png",
+      "uri": "artifact:d1f0cd47d851ab676dd93f98eb0da94809865bdd5bdc5f67ab81088724310e49"
+    }
+  ],
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1"
+}

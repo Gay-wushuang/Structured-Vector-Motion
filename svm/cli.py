@@ -393,6 +393,7 @@ def command_trace_bitmap(args: argparse.Namespace) -> dict[str, Any]:
         "proposal_id": proposal.proposal_id,
         "revision_id": revision.revision_id,
         "traced_paths": proposal.report.metrics["traced_paths"],
+        "structured_entities": proposal.report.metrics["structured_entities"],
         "bytes": len(output_bytes),
     }
 

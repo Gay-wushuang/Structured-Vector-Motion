@@ -5,8 +5,6 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from typing import Any
 
-from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
-
 from ..artifacts import ArtifactKind, ArtifactResolver, ArtifactSnapshot
 from ..proposals import (
     AdapterRequest,
@@ -15,6 +13,7 @@ from ..proposals import (
     Proposal,
 )
 from ..revisions import AppendSceneFragmentChange, Transaction
+from .path_bounds import PathBoundsError, canonical_path_bounds
 
 SVG_MEDIA_TYPES = {"image/svg+xml", "application/svg+xml"}
 SVG_NAMESPACE = "http://www.w3.org/2000/svg"
@@ -203,14 +202,13 @@ class SVGImportAdapter:
             if not d:
                 raise SVGImportError("SVG path requires a non-empty d attribute")
             try:
-                path = parse_path(d)
-                min_x, max_x, min_y, max_y = path.bbox()
-            except (ValueError, TypeError, ZeroDivisionError) as exc:
+                bounds = canonical_path_bounds(d)
+            except PathBoundsError as exc:
                 raise SVGImportError(f"Invalid SVG path data: {exc}") from exc
             operation_type = "CreatePath"
             parameters = {
                 "d": d,
-                "bounds": [float(min_x), float(min_y), float(max_x), float(max_y)],
+                "bounds": list(bounds),
             }
         return _ImportedShape(
             entity={"id": entity_id, "name": name},

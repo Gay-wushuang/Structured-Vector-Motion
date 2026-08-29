@@ -46,8 +46,11 @@ explicit versioned parameter; Pillow defaults are not SVM semantics.
 greater than zero. NaN and positive or negative infinity are invalid.
 
 Potrace coordinates are first normalized to finite canonical `.12g` numbers.
-The accepted `CreatePath.d` and its recorded bounds MUST both be derived from
-those same canonical coordinates.
+The accepted `CreatePath.d` is produced from those coordinates. Its bounds MUST
+then be computed from the final canonical path data by the shared
+`canonical_path_bounds` implementation. Bounds are the true axis-aligned bounds
+of the Bézier geometry, including derivative extrema in the open interval, not
+the bounds of its control hull. Final bounds numbers are normalized to `.12g`.
 
 ## Capability and license boundary
 
@@ -63,9 +66,18 @@ version, Pillow package version, and `svm-bitmap-preprocess@0.1`. Accepted
 Documents contain ordinary SVM Operations and remain evaluable without the
 tracing engine.
 
+The reference identity also records the svgpathtools version used for exact
+path bounds and `svm-path-bounds@0.1`.
+
 Namespace allocation MUST check every generated Entity and Operation ID before
 constructing the Proposal. A collision is resolved deterministically inside the
 Adapter rather than deferred to Transaction acceptance.
+
+For an automatically generated namespace, the hash seed MUST include Artifact
+content hash, Adapter ID and version, tracer engine name and version, and the
+canonical trace options. Equivalent input identity, generator identity, and
+parameters therefore produce equivalent generated IDs; a generator identity
+change produces a different namespace.
 
 ## Golden Test E
 

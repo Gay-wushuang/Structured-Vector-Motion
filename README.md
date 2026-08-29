@@ -125,6 +125,13 @@ mutates the base Revision. The reference `potracer` engine is GPL-2.0-or-later
 and is isolated in the optional `trace` dependency; see
 `spec/13-bitmap-trace-adapter.md` for recorded parameters and license boundary.
 
+Disconnected filled components are emitted as independent Entities and
+Operation chains; nested holes remain owned by their enclosing component.
+Golden F is recorded in `examples/imported/010-structured-trace.svm.json` and
+`examples/rendered/010-structured-trace.svg`. See
+`spec/14-structured-trace-components.md` for deterministic ordering and the
+explicit limit between topology and semantic recognition.
+
 ## Development
 
 Install the project and development tools in editable mode:

@@ -23,6 +23,7 @@ geometry = [
 trace = [
   "Pillow>=11,<13",
   "potracer==0.0.4",
+  "svgpathtools>=1.7.2,<2",
 ]
 dev = [
   "pyright>=1.1.390,<2",

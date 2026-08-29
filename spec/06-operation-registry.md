@@ -129,6 +129,11 @@ greater than zero. `CreateRectangle` requires finite `x`, `y`, `width`, and
 `height`; both dimensions must be greater than zero. Degenerate primitives are
 rejected at semantic validation rather than materialized as invisible geometry.
 
+`CreatePath.bounds` records the true axis-aligned geometric bounds of its `d`
+path, including interior Bézier extrema; control-hull bounds are not equivalent.
+Adapters producing `CreatePath` use the shared versioned
+`canonical_path_bounds` implementation and normalize final bounds to `.12g`.
+
 `BooleanGeometry.operator` is one of `union`, `intersection`, `difference`, or
 `xor`. It declares the `geometry` capability; its accepted meaning belongs to
 the Registry while execution is delegated through `GeometryBackend`.

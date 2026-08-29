@@ -37,6 +37,10 @@ Accepted `CreatePath` Operations contain SVG path data plus recorded bounds, so
 an accepted Document remains evaluable and renderable without rerunning the
 Adapter or accessing the source file.
 
+Path bounds are computed by the shared `canonical_path_bounds` implementation
+from the accepted `d` string. They are true axis-aligned curve bounds rather
+than control-hull bounds and are normalized to `.12g` numbers.
+
 ## 3. Artifact Store
 
 The reference in-memory Artifact Store imports immutable bytes and assigns:
