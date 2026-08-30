@@ -41,7 +41,7 @@ class ComponentPromotionError(ValueError):
 
 class ComponentPromotionAdapter:
     adapter_id = "adapter:component-promotion"
-    adapter_version = "0.4"
+    adapter_version = "0.5"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -139,7 +139,21 @@ class ComponentPromotionAdapter:
                 }
             )
         ).hexdigest()[:16]
-        relation_previews = tuple(_relation_preview(relation) for relation in proposed_relations)
+        current_relations = {
+            relation["id"]: relation
+            for relation in request.document.get("structural_relations", [])
+        }
+        final_relations = {relation["id"]: relation for relation in proposed_relations}
+        relation_previews = tuple(
+            [
+                _relation_preview(final_relations[relation_id], "added")
+                for relation_id in sorted(final_relations.keys() - current_relations.keys())
+            ]
+            + [
+                _relation_preview(current_relations[relation_id], "removed")
+                for relation_id in sorted(current_relations.keys() - final_relations.keys())
+            ]
+        )
         return Proposal(
             proposal_id=f"proposal:component-promotion:{digest}",
             base_revision_id=request.base_revision_id,
@@ -383,11 +397,12 @@ def _positive_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value > 0
 
 
-def _relation_preview(relation: dict[str, Any]) -> StructuralRelationPreview:
+def _relation_preview(relation: dict[str, Any], status: str) -> StructuralRelationPreview:
     if relation["type"] == "derived-from":
         return StructuralRelationPreview(
             relation_id=relation["id"],
             relation_type=relation["type"],
+            status=status,
             source=relation["subject"],
             target=f"{relation['artifact_id']}#{relation['candidate_id']}",
             evidence_artifact_id=relation["artifact_id"],
@@ -395,6 +410,7 @@ def _relation_preview(relation: dict[str, Any]) -> StructuralRelationPreview:
     return StructuralRelationPreview(
         relation_id=relation["id"],
         relation_type=relation["type"],
+        status=status,
         source=relation["container"],
         target=relation["contained"],
         evidence_artifact_id=relation["evidence"]["artifact_id"],

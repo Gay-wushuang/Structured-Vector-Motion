@@ -18,7 +18,7 @@ v0.1 supports exactly two relation types:
 derived-from
   promoted Entity -> analysis Artifact candidate
 
-contains
+bounds-contains
   container Entity -> contained Entity
   evidence: same analysis Artifact + candidate pair + bounds basis
 ```
@@ -36,9 +36,10 @@ digest MUST exactly equal that Entity's validated provenance.
 This relation does not replace provenance. Provenance is the Entity's origin
 record; the relation is the queryable, orthogonal graph edge.
 
-## Contains
+## Bounds containment
 
-`contains` v0.1 is a deterministic evidence relation, not semantic hierarchy.
+`bounds-contains` v0.1 is a deterministic AABB evidence relation, not filled-region
+containment and not semantic hierarchy.
 It is created only when two promoted candidates:
 
 - come from the same component-analysis Artifact;
@@ -48,12 +49,23 @@ It is created only when two promoted candidates:
 
 The basis is recorded as `strict-half-open-bounds@0.1`. "Strict" means the two
 bounds are not equal; sharing one or more boundary coordinates is allowed.
+Only immediate containment edges are stored: if A bounds-contain B and B
+bounds-contain C, the materialized graph stores A -> B and B -> C, not A -> C.
+Transitive containment is a query result rather than persisted closure. Promotion
+fails closed when more than 512 promoted components would participate, bounding
+the quadratic candidate-pair analysis.
+
 No pixel mask is reopened and no semantic claim such as parent/child, group,
 occlusion, or render precedence is implied.
 
-Promotion computes relations against both newly promoted and previously
-promoted candidates from the same Artifact. Promoting candidates together or
-in separate accepted transactions therefore converges to the same relation set.
+Promotion recomputes this evidence-derived relation subset against both newly
+promoted and previously promoted candidates from the same Artifact. Promoting
+candidates together or in any incremental order therefore converges to the same
+canonical relation byte sequence. The array MUST be sorted by relation ID;
+validators reject non-canonical ordering.
+Proposal previews report relation additions and removals explicitly, so adding
+an intermediate candidate can preview replacement of a formerly immediate edge
+before acceptance.
 
 ## Orthogonality
 
@@ -71,8 +83,8 @@ Golden J analyzes an opaque grayscale PNG containing a dark outer ring and a
 separate dark inner island. Promotion proves:
 
 1. two deterministic `derived-from` relations;
-2. one outer-to-inner `contains` relation;
-3. identical results for batch and incremental promotion;
+2. one outer-to-inner `bounds-contains` relation;
+3. identical relation bytes for batch, A-then-B, and B-then-A promotion;
 4. stable canonical relation IDs;
 5. preview exposes all proposed relation edges;
 6. hierarchy, rendering, construction, and animation remain unchanged;

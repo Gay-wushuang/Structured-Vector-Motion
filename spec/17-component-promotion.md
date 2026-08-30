@@ -1,4 +1,4 @@
-# Component Promotion v0.4
+# Component Promotion v0.5
 
 ## Status
 
@@ -69,7 +69,7 @@ Each selected candidate creates one deterministic neutral Entity:
 
 Promotion means only that a user accepted an evidence region as an independent,
 addressable semantic object. It does not claim `Hair`, `Face`, or any other
-recognized class. v0.4 creates no geometry Operation, output binding, Style, or
+recognized class. v0.5 creates no geometry Operation, output binding, Style, or
 Render Stack entry because component-analysis does not contain accepted vector
 geometry.
 
@@ -80,8 +80,10 @@ safe namespace changes the ID namespace but not the evidence provenance.
 
 ## Transaction and policy
 
-Component Promotion v0.4 supersedes v0.3 because promoted evidence now records
-validated bounds and materializes independent Structural Relations. v0.3 made
+Component Promotion v0.5 supersedes v0.4 because promoted evidence now
+materializes canonically ordered, immediate `bounds-contains` relations rather
+than an order-sensitive transitive closure. v0.4 recorded validated bounds and
+materialized independent Structural Relations. v0.3 made
 Artifact-bound Change semantics enforceable by the Proposal Acceptor and made
 Entity IDs Core-derived rather than caller-supplied. v0.2 had already narrowed admissible evidence, added
 descriptor-chain consistency, closed arbitrary semantic Entity injection, and

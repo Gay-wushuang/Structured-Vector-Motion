@@ -216,7 +216,7 @@
           "required": ["id", "type", "container", "contained", "evidence"],
           "properties": {
             "id": {"type": "string", "pattern": "^relation:.+"},
-            "type": {"const": "contains"},
+            "type": {"const": "bounds-contains"},
             "container": {"$ref": "#/$defs/entityId"},
             "contained": {"$ref": "#/$defs/entityId"},
             "evidence": {

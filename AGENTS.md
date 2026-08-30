@@ -273,8 +273,9 @@ Next milestones:
     v0.2 evidence and explicitly create neutral, non-rendered Region Entities.
     They must never reopen the PNG, rerun OpenCV, or imply semantic recognition.
 11. Structural Relations and Golden J materialize canonical `derived-from` and
-    strict-bounds `contains` edges without changing Entity hierarchy, Render
-    Stack order, construction, or animation.
+    immediate `bounds-contains` edges without changing Entity hierarchy, Render
+    Stack order, construction, or animation. Document Format v0.1 remains an
+    explicitly unfrozen development draft until the first public format freeze.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

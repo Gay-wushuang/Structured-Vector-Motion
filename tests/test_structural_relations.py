@@ -6,10 +6,20 @@ from pathlib import Path
 
 from test_cli import run_cli
 
-from svm import AdapterRequest, ArtifactKind, ArtifactStore, ProposalAcceptor, RevisionStore
+from svm import (
+    AdapterRequest,
+    ArtifactKind,
+    ArtifactStore,
+    PromoteComponentsChange,
+    PromotedComponent,
+    ProposalAcceptor,
+    RevisionStore,
+    Transaction,
+)
 from svm.adapters import ComponentPromotionAdapter
 from svm.document import validate_document
-from svm.evaluator import DocumentError
+from svm.evaluator import DocumentError, canonical_bytes
+from svm.structural_relations import structural_relation_id
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "examples" / "imported" / "014-contained-analysis.svm.json"
@@ -54,7 +64,7 @@ class StructuralRelationsGoldenJTest(unittest.TestCase):
         preview = proposal.preview.structural_relations
         self.assertEqual(
             [relation.relation_type for relation in preview],
-            ["derived-from", "derived-from", "contains"],
+            ["bounds-contains", "derived-from", "derived-from"],
         )
         self.assertTrue(
             all(relation.evidence_artifact_id == self.analysis.artifact_id for relation in preview)
@@ -66,12 +76,12 @@ class StructuralRelationsGoldenJTest(unittest.TestCase):
         relations = accepted["structural_relations"]
         self.assertEqual(
             [relation["type"] for relation in relations],
-            ["derived-from", "derived-from", "contains"],
+            ["bounds-contains", "derived-from", "derived-from"],
         )
-        contains = relations[2]
-        self.assertEqual(contains["container"], accepted["entities"][0]["id"])
-        self.assertEqual(contains["contained"], accepted["entities"][1]["id"])
-        self.assertEqual(contains["evidence"]["basis"], "strict-half-open-bounds@0.1")
+        bounds_contains = relations[0]
+        self.assertEqual(bounds_contains["container"], accepted["entities"][0]["id"])
+        self.assertEqual(bounds_contains["contained"], accepted["entities"][1]["id"])
+        self.assertEqual(bounds_contains["evidence"]["basis"], "strict-half-open-bounds@0.1")
 
         self.assertTrue(all("parent_id" not in entity for entity in accepted["entities"]))
         self.assertEqual(accepted["presentation"]["render_stack"], [])
@@ -90,12 +100,36 @@ class StructuralRelationsGoldenJTest(unittest.TestCase):
         )
         self.assertEqual(
             [relation.relation_type for relation in second.preview.structural_relations],
-            ["derived-from", "contains"],
+            ["bounds-contains", "derived-from"],
+        )
+        self.assertTrue(
+            all(relation.status == "added" for relation in second.preview.structural_relations)
         )
         revision = ProposalAcceptor().accept(self.store, second, self.artifacts)
         self.assertEqual(
             self.store.get_document(revision.revision_id),
             json.loads(GOLDEN.read_text(encoding="utf-8")),
+        )
+
+        reverse_store = RevisionStore.create(self.document)
+        second_first = ComponentPromotionAdapter().propose(
+            self.request(reverse_store, (CANDIDATES[1],)), self.artifacts
+        )
+        ProposalAcceptor().accept(reverse_store, second_first, self.artifacts)
+        first_second = ComponentPromotionAdapter().propose(
+            self.request(reverse_store, (CANDIDATES[0],)), self.artifacts
+        )
+        reverse_revision = ProposalAcceptor().accept(reverse_store, first_second, self.artifacts)
+        reverse_relations = reverse_store.get_document(reverse_revision.revision_id)[
+            "structural_relations"
+        ]
+        self.assertEqual(
+            reverse_relations,
+            json.loads(GOLDEN.read_text(encoding="utf-8"))["structural_relations"],
+        )
+        self.assertEqual(
+            canonical_bytes(reverse_relations),
+            canonical_bytes(json.loads(GOLDEN.read_text(encoding="utf-8"))["structural_relations"]),
         )
 
     def test_forged_relation_identity_evidence_and_type_fail_closed(self) -> None:
@@ -107,12 +141,15 @@ class StructuralRelationsGoldenJTest(unittest.TestCase):
         mutations.append((wrong_id, "canonical ID"))
 
         wrong_direction = copy.deepcopy(golden)
-        contains = wrong_direction["structural_relations"][2]
-        contains["container"], contains["contained"] = contains["contained"], contains["container"]
+        bounds_contains = wrong_direction["structural_relations"][0]
+        bounds_contains["container"], bounds_contains["contained"] = (
+            bounds_contains["contained"],
+            bounds_contains["container"],
+        )
         mutations.append((wrong_direction, "not supported"))
 
         wrong_evidence = copy.deepcopy(golden)
-        wrong_evidence["structural_relations"][2]["evidence"]["contained_candidate_id"] = (
+        wrong_evidence["structural_relations"][0]["evidence"]["contained_candidate_id"] = (
             CANDIDATES[0]
         )
         mutations.append((wrong_evidence, "not supported"))
@@ -122,13 +159,68 @@ class StructuralRelationsGoldenJTest(unittest.TestCase):
         mutations.append((missing_bounds, "not supported"))
 
         unsupported = copy.deepcopy(golden)
-        unsupported["structural_relations"][2]["type"] = "overlaps"
+        unsupported["structural_relations"][0]["type"] = "overlaps"
         mutations.append((unsupported, "Unsupported"))
 
         for document, message in mutations:
             with self.subTest(message=message):
                 with self.assertRaisesRegex(DocumentError, message):
                     validate_document(document)
+
+    def test_relation_order_and_transitive_edges_fail_closed(self) -> None:
+        golden = json.loads(GOLDEN.read_text(encoding="utf-8"))
+        unordered = copy.deepcopy(golden)
+        unordered["structural_relations"].reverse()
+        with self.assertRaisesRegex(DocumentError, "sorted"):
+            validate_document(unordered)
+
+        transitive = copy.deepcopy(golden)
+        outer = transitive["entities"][0]
+        middle = transitive["entities"][1]
+        inner = copy.deepcopy(middle)
+        inner["id"] = "entity:region-inner-regression"
+        inner["provenance"]["candidate_id"] = "candidate:component-0003"
+        inner["provenance"]["component_digest"] = f"sha256:{'3' * 64}"
+        inner["provenance"]["bounds"] = [10, 10, 12, 12]
+        transitive["entities"].append(inner)
+        content = {
+            "type": "bounds-contains",
+            "container": outer["id"],
+            "contained": inner["id"],
+            "evidence": {
+                "artifact_id": outer["provenance"]["artifact_id"],
+                "container_candidate_id": outer["provenance"]["candidate_id"],
+                "contained_candidate_id": inner["provenance"]["candidate_id"],
+                "basis": "strict-half-open-bounds@0.1",
+            },
+        }
+        transitive["structural_relations"].append(
+            {"id": structural_relation_id(content), **content}
+        )
+        transitive["structural_relations"].sort(key=lambda relation: relation["id"])
+        with self.assertRaisesRegex(DocumentError, "immediate containment"):
+            validate_document(transitive)
+
+    def test_relation_materialization_limit_fails_closed(self) -> None:
+        reference = next(
+            item for item in self.document["references"] if item["id"] == self.analysis.artifact_id
+        )
+        components = tuple(
+            PromotedComponent(
+                artifact_id=self.analysis.artifact_id,
+                candidate_id=f"candidate:component-{index:04d}",
+                component_digest=f"sha256:{index:064x}",
+                bounds=(0, 0, 1, 1),
+            )
+            for index in range(1, 514)
+        )
+        transaction = Transaction(
+            transaction_id="transaction:relation-limit-regression",
+            changes=(PromoteComponentsChange(components=components, references=(reference,)),),
+        )
+        with self.assertRaisesRegex(DocumentError, "limit of 512"):
+            transaction.apply(self.document)
+        self.assertEqual(self.store.get_document(self.store.head), self.document)
 
     def test_cli_previews_relations_and_validates_golden_j(self) -> None:
         preview = run_cli(
@@ -143,7 +235,7 @@ class StructuralRelationsGoldenJTest(unittest.TestCase):
         self.assertEqual(preview.returncode, 0, preview.stderr)
         self.assertEqual(
             [relation["type"] for relation in json.loads(preview.stdout)["structural_relations"]],
-            ["derived-from", "derived-from", "contains"],
+            ["bounds-contains", "derived-from", "derived-from"],
         )
         validated = run_cli("validate", str(GOLDEN))
         self.assertEqual(validated.returncode, 0, validated.stderr)

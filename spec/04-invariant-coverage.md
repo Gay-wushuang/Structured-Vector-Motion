@@ -57,6 +57,6 @@ explicit acceptance atomically creates provenance-linked neutral Entities under
 artifact, schema, revision, and permission enforcement.
 
 `tests/test_structural_relations.py` implements Golden J. It covers canonical
-evidence-backed `derived-from` and strict-bounds `contains`, batch/incremental
+evidence-backed `derived-from` and immediate `bounds-contains`, batch/incremental
 convergence, relation validation, and orthogonality from hierarchy, Render
 Stack, construction, and animation.

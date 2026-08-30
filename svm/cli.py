@@ -644,6 +644,7 @@ def command_promote_components(args: argparse.Namespace) -> dict[str, Any]:
             {
                 "relation_id": relation.relation_id,
                 "type": relation.relation_type,
+                "status": relation.status,
                 "source": relation.source,
                 "target": relation.target,
                 "evidence_artifact_id": relation.evidence_artifact_id,

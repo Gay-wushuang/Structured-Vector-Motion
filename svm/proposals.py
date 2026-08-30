@@ -85,6 +85,7 @@ class StructuralCandidatePreview:
 class StructuralRelationPreview:
     relation_id: str
     relation_type: str
+    status: str
     source: str
     target: str
     evidence_artifact_id: str

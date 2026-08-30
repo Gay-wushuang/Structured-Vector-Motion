@@ -1,7 +1,12 @@
 # Structured Vector Motion
 
 SVM is an experimental, non-destructive 2D construction computation model.
-The current v0.1 baseline contains:
+The current Document Format v0.1 is a development draft, not a frozen
+compatibility contract. Until the first public format freeze, its schema may
+change while `schema_version` remains `0.1`; every such change must update the
+schema, specification, fixtures, and tests atomically.
+
+The current v0.1 draft baseline contains:
 
 - the core model, invariants, and Document Format specification;
 - a Draft 2020-12 JSON Schema;
@@ -175,8 +180,9 @@ vector geometry, or claim real-world semantic classes. See Golden I and
 
 Accepted Promotion also materializes an independent Structural Relations graph.
 Every Region gets an evidence-backed `derived-from` edge; candidates from the
-same analysis get `contains` only when their unequal half-open bounds are
-strictly nested. These edges do not modify `parent_id`, Render Stack order,
+same analysis get `bounds-contains` only for immediate nesting of their unequal
+half-open bounds. These edges do not claim filled-region containment and do not
+modify `parent_id`, Render Stack order,
 construction, or animation. See Golden J and
 `spec/18-structural-relations.md`.
 

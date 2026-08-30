@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-import hashlib
 from typing import Any
 
-from .evaluator import DocumentError, Evaluator, canonical_bytes
+from .evaluator import DocumentError, Evaluator
 from .policies import PolicyDefinitionError, validate_policy_definitions
+from .structural_relations import (
+    provenance_bounds,
+    strictly_bounds_contains,
+    structural_relation_id,
+)
 
 
 def validate_document(document: dict[str, Any]) -> None:
@@ -185,16 +189,18 @@ def _validate_structural_relations(
         relation_type = relation.get("type")
         if relation_type == "derived-from":
             _validate_derived_from(relation, entity_by_id, known_entities, reference_ids)
-        elif relation_type == "contains":
-            _validate_contains(relation, entity_by_id, known_entities, reference_ids)
+        elif relation_type == "bounds-contains":
+            _validate_bounds_contains(relation, entity_by_id, known_entities, reference_ids)
         else:
             raise DocumentError(f"Unsupported structural relation type {relation_type!r}")
         content = {key: value for key, value in relation.items() if key != "id"}
-        expected_id = _structural_relation_id(content)
+        expected_id = structural_relation_id(content)
         if relation_id != expected_id:
             raise DocumentError(
                 f"Structural relation ID {relation_id} must equal canonical ID {expected_id}"
             )
+    if [relation["id"] for relation in relations] != sorted(relation_ids):
+        raise DocumentError("Structural relations must be sorted by canonical relation ID")
 
 
 def _validate_derived_from(
@@ -216,21 +222,21 @@ def _validate_derived_from(
         raise DocumentError("derived-from relation does not match Entity provenance")
 
 
-def _validate_contains(
+def _validate_bounds_contains(
     relation: dict[str, Any],
     entity_by_id: dict[str, dict[str, Any]],
     known_entities: set[str],
     reference_ids: set[str],
 ) -> None:
     if set(relation) != {"id", "type", "container", "contained", "evidence"}:
-        raise DocumentError("contains relation fields are invalid")
+        raise DocumentError("bounds-contains relation fields are invalid")
     container_id, contained_id = relation.get("container"), relation.get("contained")
     if (
         container_id not in known_entities
         or contained_id not in known_entities
         or container_id == contained_id
     ):
-        raise DocumentError("contains relation Entity endpoints are invalid")
+        raise DocumentError("bounds-contains relation Entity endpoints are invalid")
     evidence = relation.get("evidence")
     if not isinstance(evidence, dict) or set(evidence) != {
         "artifact_id",
@@ -238,25 +244,39 @@ def _validate_contains(
         "contained_candidate_id",
         "basis",
     }:
-        raise DocumentError("contains relation evidence fields are invalid")
+        raise DocumentError("bounds-contains relation evidence fields are invalid")
     if evidence["artifact_id"] not in reference_ids:
-        raise DocumentError("contains relation references a missing Artifact")
+        raise DocumentError("bounds-contains relation references a missing Artifact")
     if evidence["basis"] != "strict-half-open-bounds@0.1":
-        raise DocumentError("contains relation basis is unsupported")
+        raise DocumentError("bounds-contains relation basis is unsupported")
     container = entity_by_id[container_id].get("provenance")
     contained = entity_by_id[contained_id].get("provenance")
     if not isinstance(container, dict) or not isinstance(contained, dict):
-        raise DocumentError("contains relation requires promoted Entity provenance")
+        raise DocumentError("bounds-contains relation requires promoted Entity provenance")
     if (
         container.get("artifact_id") != evidence["artifact_id"]
         or contained.get("artifact_id") != evidence["artifact_id"]
         or container.get("candidate_id") != evidence["container_candidate_id"]
         or contained.get("candidate_id") != evidence["contained_candidate_id"]
-        or not _strictly_contains(
-            _bounds(container.get("bounds")), _bounds(contained.get("bounds"))
-        )
+        or not strictly_bounds_contains(provenance_bounds(container), provenance_bounds(contained))
     ):
-        raise DocumentError("contains relation is not supported by Entity evidence")
+        raise DocumentError("bounds-contains relation is not supported by Entity evidence")
+    for intermediate_id, intermediate_entity in entity_by_id.items():
+        if intermediate_id in {container_id, contained_id}:
+            continue
+        intermediate = intermediate_entity.get("provenance")
+        if (
+            isinstance(intermediate, dict)
+            and intermediate.get("type") == "PromotedComponent"
+            and intermediate.get("artifact_id") == evidence["artifact_id"]
+            and strictly_bounds_contains(
+                provenance_bounds(container), provenance_bounds(intermediate)
+            )
+            and strictly_bounds_contains(
+                provenance_bounds(intermediate), provenance_bounds(contained)
+            )
+        ):
+            raise DocumentError("bounds-contains relation must describe immediate containment")
 
 
 def _bounds(value: Any) -> tuple[int, int, int, int] | None:
@@ -269,25 +289,3 @@ def _bounds(value: Any) -> tuple[int, int, int, int] | None:
     ):
         return None
     return value[0], value[1], value[2], value[3]
-
-
-def _strictly_contains(
-    outer: tuple[int, int, int, int] | None,
-    inner: tuple[int, int, int, int] | None,
-) -> bool:
-    return (
-        outer is not None
-        and inner is not None
-        and outer != inner
-        and outer[0] <= inner[0]
-        and outer[1] <= inner[1]
-        and outer[2] >= inner[2]
-        and outer[3] >= inner[3]
-    )
-
-
-def _structural_relation_id(content: dict[str, Any]) -> str:
-    digest = hashlib.sha256(
-        canonical_bytes({"identity": "svm-structural-relations@0.1", **content})
-    ).hexdigest()[:16]
-    return f"relation:{content['type']}:{digest}"

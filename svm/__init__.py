@@ -40,7 +40,6 @@ from .proposals import (
 )
 from .revisions import (
     COMPONENT_PROMOTION_IDENTITY,
-    STRUCTURAL_RELATIONS_IDENTITY,
     AppendReferencesChange,
     AppendSceneFragmentChange,
     PromoteComponentsChange,
@@ -54,6 +53,7 @@ from .revisions import (
     promoted_component_entity_id,
 )
 from .scene import EvaluatedEntity, EvaluatedScene, EvaluatedStyle, build_evaluated_scene
+from .structural_relations import STRUCTURAL_RELATIONS_IDENTITY
 
 __all__ = [
     "Evaluator",
