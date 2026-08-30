@@ -9,10 +9,15 @@ from .artifacts import ArtifactError, ArtifactResolver, ArtifactSnapshot
 from .evaluator import Quality, canonical_bytes
 from .policies import PolicyEnforcementError, enforce_transaction_policies
 from .revisions import (
+    AppendReferencesChange,
+    AppendSceneFragmentChange,
     PromoteComponentsChange,
     PromotedComponent,
+    ReplaceSceneFragmentChange,
     Revision,
     RevisionStore,
+    SetOperationParameterChange,
+    SplitEntityChange,
     Transaction,
 )
 
@@ -167,6 +172,7 @@ class ProposalAcceptor:
             )
         if proposal.report.constraint_violations:
             raise ProposalPolicyError("Proposal has unresolved constraint violations")
+        self._verify_trusted_change_types(proposal)
         resolved_artifacts = self._verify_artifacts(proposal, artifacts)
         self._verify_artifact_bound_changes(proposal, resolved_artifacts)
         document = store.get_document(proposal.base_revision_id)
@@ -177,6 +183,23 @@ class ProposalAcceptor:
         except PolicyEnforcementError as exc:
             raise ProposalPolicyError(str(exc)) from exc
         return store.commit(proposal.base_revision_id, proposal.transaction)
+
+    @staticmethod
+    def _verify_trusted_change_types(proposal: Proposal) -> None:
+        from .adapters.layerpeeler_output import ImportLayeredSceneChange
+
+        trusted_types = {
+            SetOperationParameterChange,
+            AppendSceneFragmentChange,
+            AppendReferencesChange,
+            PromoteComponentsChange,
+            ReplaceSceneFragmentChange,
+            SplitEntityChange,
+            ImportLayeredSceneChange,
+        }
+        for change in proposal.transaction.changes:
+            if type(change) not in trusted_types:
+                raise ProposalPolicyError(f"Unregistered Change type {type(change).__name__}")
 
     @staticmethod
     def _verify_artifacts(

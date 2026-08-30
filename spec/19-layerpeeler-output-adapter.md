@@ -45,6 +45,10 @@ changes may not introduce it. Proposal acceptance dispatches only exact built-in
 Change types through a trusted verifier registry; structurally compatible
 third-party classes do not acquire acceptance authority by implementing the
 Protocol. The verifier reconstructs the canonical fragment from resolved bytes.
+More generally, Proposal acceptance is closed-world: every executable Change
+must be an exact type in the trusted Change registry. Adapters may be external,
+but executable Transaction primitives are SVM-owned semantics; arbitrary Python
+objects with an `apply()` method are rejected before policy or mutation.
 
 ## Golden K
 

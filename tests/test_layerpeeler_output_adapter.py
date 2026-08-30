@@ -11,6 +11,7 @@ from svm import (
     Evaluator,
     ProposalAcceptor,
     ProposalArtifactError,
+    ProposalPolicyError,
     RevisionStore,
     build_evaluated_scene,
 )
@@ -229,6 +230,30 @@ class LayerPeelerOutputGoldenKTest(unittest.TestCase):
         with self.assertRaisesRegex(ProposalArtifactError, "reserved"):
             ProposalAcceptor().accept(self.store, generic_bypass, self.artifacts)
 
+        class DelegatingSceneChange:
+            def __init__(self, fragment: object):
+                self.fragment = fragment
+
+            @property
+            def references(self) -> object:
+                return self.fragment.references  # type: ignore[attr-defined]
+
+            def policy_intent(self) -> tuple[str, str, None]:
+                return "import_scene", "document", None
+
+            def apply(self, document: dict[str, object]) -> None:
+                self.fragment.apply(document)  # type: ignore[attr-defined]
+
+        wrapped_bypass = replace(
+            proposal,
+            transaction=replace(
+                proposal.transaction,
+                changes=(DelegatingSceneChange(forged_change.fragment),),
+            ),
+        )
+        with self.assertRaisesRegex(ProposalPolicyError, "Unregistered Change type"):
+            ProposalAcceptor().accept(self.store, wrapped_bypass, self.artifacts)
+
     def test_untrusted_manifest_types_fail_with_domain_error(self) -> None:
         payload = json.loads(self.manifest.content)
         payload["producer"]["commit"] = 123
@@ -246,6 +271,24 @@ class LayerPeelerOutputGoldenKTest(unittest.TestCase):
             )
         )
         with self.assertRaisesRegex(LayerPeelerOutputError, "full Git SHA"):
+            LayerPeelerOutputAdapter().propose(request, self.artifacts)
+
+        payload = json.loads(self.manifest.content)
+        payload["source_artifact_id"] = []
+        malformed_source = self.artifacts.import_bytes(
+            canonical_bytes(payload),
+            media_type=MEDIA_TYPE,
+            kind=ArtifactKind.DERIVED,
+            provenance=copy.deepcopy(self.manifest.provenance),
+        )
+        request = self.request(
+            (
+                self.source.artifact_id,
+                malformed_source.artifact_id,
+                *(artifact.artifact_id for artifact in self.layer_artifacts),
+            )
+        )
+        with self.assertRaisesRegex(LayerPeelerOutputError, "source Artifact ID"):
             LayerPeelerOutputAdapter().propose(request, self.artifacts)
 
 

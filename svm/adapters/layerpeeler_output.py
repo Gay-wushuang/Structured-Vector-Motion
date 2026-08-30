@@ -288,7 +288,10 @@ class LayerPeelerOutputAdapter:
             raise LayerPeelerOutputError("Manifest model ID is invalid")
         if type(producer["seed"]) is not int or producer["seed"] < 0:
             raise LayerPeelerOutputError("Manifest seed is invalid")
-        source = by_id.get(payload["source_artifact_id"])
+        source_artifact_id = payload["source_artifact_id"]
+        if not isinstance(source_artifact_id, str):
+            raise LayerPeelerOutputError("Manifest source Artifact ID is invalid")
+        source = by_id.get(source_artifact_id)
         if source is None or source.kind != ArtifactKind.REFERENCE:
             raise LayerPeelerOutputError("Manifest source must be a supplied ReferenceArtifact")
         expected_run_identity = layerpeeler_run_identity(payload)
@@ -327,7 +330,10 @@ class LayerPeelerOutputAdapter:
             if layer_id in seen_ids:
                 raise LayerPeelerOutputError("Layer IDs must be unique")
             seen_ids.add(layer_id)
-            artifact = by_id.get(layer["svg_artifact_id"])
+            svg_artifact_id = layer["svg_artifact_id"]
+            if not isinstance(svg_artifact_id, str):
+                raise LayerPeelerOutputError(f"Layer {layer_id} SVG Artifact ID is invalid")
+            artifact = by_id.get(svg_artifact_id)
             if (
                 artifact is None
                 or artifact.kind != ArtifactKind.DERIVED
