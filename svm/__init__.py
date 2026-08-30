@@ -13,6 +13,7 @@ from .artifacts import (
 )
 from .backends import GeometryBackend, GeometryBackendError
 from .evaluator import EvaluationState, Evaluator, Quality
+from .motion import MOTION_SEMANTICS_IDENTITY, MotionEvaluator, MotionFrame, TemporalInterval
 from .operations import (
     OperationDefinition,
     OperationExecutionContext,
@@ -80,6 +81,10 @@ __all__ = [
     "OperationValidationError",
     "ValueType",
     "get_operation_registry",
+    "MOTION_SEMANTICS_IDENTITY",
+    "MotionEvaluator",
+    "MotionFrame",
+    "TemporalInterval",
     "RevisionStore",
     "COMPONENT_PROMOTION_IDENTITY",
     "COMPONENT_PROMOTION_ADAPTER_VERSION",

@@ -48,8 +48,9 @@ Read these files before changing core behavior:
 16. `spec/18-structural-relations.md` — orthogonal evidence-backed relations.
 17. `spec/19-layerpeeler-output-adapter.md` — snapshotted research-output boundary.
 18. `spec/20-layerd-output-adapter.md` — raster layer evidence research boundary.
-19. `examples/001-head-basic.svm.json` — current example Document.
-20. `tests/test_golden_a.py` — executable expectations.
+19. `spec/21-motion-semantics.md` — deterministic content-animation semantics.
+20. `examples/001-head-basic.svm.json` — current example Document.
+21. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -289,6 +290,9 @@ Next milestones:
     shape through the same Change authority boundary without modifying
     ProposalAcceptor. Layer order and classification remain evidence; accepted
     Entities are neutral and non-rendered.
+14. Motion Semantics and Golden M define integer Timebase, numeric Operation
+    parameter Tracks, stable Keyframes, linear sampling, temporal invalidation,
+    cross-time static cache reuse, and deterministic SVG Frames.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

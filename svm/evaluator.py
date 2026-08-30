@@ -56,6 +56,7 @@ class RuntimeNode:
     evaluated_quality: Quality | None = None
     backend_identity: str | None = None
     error: str | None = None
+    cache_hit: bool = False
 
 
 class DocumentError(ValueError):
@@ -66,10 +67,15 @@ class Evaluator:
     """Small deterministic evaluator used to force-test the v0.1 model."""
 
     def __init__(
-        self, document: dict[str, Any], *, geometry_backend: GeometryBackend | None = None
+        self,
+        document: dict[str, Any],
+        *,
+        geometry_backend: GeometryBackend | None = None,
+        value_cache: dict[str, dict[str, ImmutableValue]] | None = None,
     ):
         self.document = document
         self.geometry_backend = geometry_backend
+        self.value_cache = value_cache
         try:
             self.registry: OperationRegistry = get_operation_registry(
                 document.get("semantics_version", "")
@@ -204,6 +210,17 @@ class Evaluator:
         if node.state == EvaluationState.CLEAN and node.evaluation_key == evaluation_key:
             return
 
+        if self.value_cache is not None and evaluation_key in self.value_cache:
+            node.outputs = self.value_cache[evaluation_key]
+            node.stale_outputs = None
+            node.evaluation_key = evaluation_key
+            node.evaluated_quality = quality
+            node.backend_identity = self._execution_identity(operation)
+            node.error = None
+            node.cache_hit = True
+            node.state = EvaluationState.CLEAN
+            return
+
         if node.outputs is not None:
             node.stale_outputs = node.outputs
         node.state = EvaluationState.EVALUATING
@@ -215,7 +232,10 @@ class Evaluator:
             node.evaluated_quality = quality
             node.backend_identity = self._execution_identity(operation)
             node.error = None
+            node.cache_hit = False
             node.state = EvaluationState.CLEAN
+            if self.value_cache is not None:
+                self.value_cache[evaluation_key] = node.outputs
         except Exception as exc:  # reference runtime records failures for inspection
             node.error = str(exc)
             node.state = EvaluationState.FAILED

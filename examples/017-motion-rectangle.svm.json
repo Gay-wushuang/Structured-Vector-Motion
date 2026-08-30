@@ -1,0 +1,59 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:golden-m-motion",
+  "references": [],
+  "entities": [
+    {"id": "entity:moving-rectangle", "name": "Moving Rectangle"},
+    {"id": "entity:static-rectangle", "name": "Static Rectangle"}
+  ],
+  "construction": {
+    "operations": [
+      {
+        "id": "op:moving-rectangle",
+        "type": "CreateRectangle",
+        "inputs": {},
+        "parameters": {"x": 100, "y": 20, "width": 40, "height": 30}
+      },
+      {
+        "id": "op:static-rectangle",
+        "type": "CreateRectangle",
+        "inputs": {},
+        "parameters": {"x": 20, "y": 65, "width": 60, "height": 20}
+      }
+    ],
+    "output_bindings": [
+      {"entity": "entity:moving-rectangle", "property": "geometry", "slot": "op:moving-rectangle.geometry"},
+      {"entity": "entity:static-rectangle", "property": "geometry", "slot": "op:static-rectangle.geometry"}
+    ],
+    "refinement_stages": ["mass", "contour", "detail"]
+  },
+  "presentation": {
+    "render_stack": ["entity:static-rectangle", "entity:moving-rectangle"],
+    "styles": [
+      {"entity": "entity:moving-rectangle", "fill": "#F45B69", "stroke": "#000000", "stroke_width": 2, "opacity": 1},
+      {"entity": "entity:static-rectangle", "fill": "#4D9DE0", "stroke": "#000000", "stroke_width": 2, "opacity": 1}
+    ]
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {
+    "timebase": {"ticks_per_second": 1000},
+    "content": [
+      {
+        "id": "track:moving-rectangle-x",
+        "target": {"operation": "op:moving-rectangle", "parameter": "x"},
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {"id": "keyframe:moving-x-0000", "tick": 0, "value": 100},
+          {"id": "keyframe:moving-x-0500", "tick": 500, "value": 300},
+          {"id": "keyframe:moving-x-1000", "tick": 1000, "value": 500}
+        ]
+      }
+    ],
+    "construction_scheduling_hints": []
+  },
+  "structural_relations": []
+}

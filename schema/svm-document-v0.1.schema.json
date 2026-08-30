@@ -207,15 +207,57 @@
         }
       }
     },
-    "animation": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["content", "construction_scheduling_hints"],
-      "properties": {
-        "content": {"type": "array", "items": {"type": "object"}},
-        "construction_scheduling_hints": {"type": "array", "items": {"type": "object"}}
-      }
-    },
+      "animation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["content", "construction_scheduling_hints"],
+        "properties": {
+          "timebase": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["ticks_per_second"],
+            "properties": {
+              "ticks_per_second": {"type": "integer", "minimum": 1, "maximum": 1000000000}
+            }
+          },
+          "content": {"type": "array", "items": {"$ref": "#/$defs/animationTrack"}},
+          "construction_scheduling_hints": {"type": "array", "items": {"type": "object"}}
+        }
+      },
+      "animationTrack": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "target", "value_type", "interpolation", "keyframes"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^track:.+"},
+          "target": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["operation", "parameter"],
+            "properties": {
+              "operation": {"$ref": "#/$defs/operationId"},
+              "parameter": {"type": "string", "minLength": 1}
+            }
+          },
+          "value_type": {"const": "number"},
+          "interpolation": {"const": "linear"},
+          "keyframes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"$ref": "#/$defs/keyframe"}
+          }
+        }
+      },
+      "keyframe": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "tick", "value"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^keyframe:.+"},
+          "tick": {"type": "integer", "minimum": 0},
+          "value": {"type": "number"}
+        }
+      },
     "structuralRelation": {
       "oneOf": [
         {

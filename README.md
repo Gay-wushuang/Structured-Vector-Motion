@@ -209,6 +209,16 @@ Authority Registry used by Golden K, without adding a LayerD branch to
 `ProposalAcceptor`. See `spec/20-layerd-output-adapter.md` and
 `tests/test_layerd_output_adapter.py`.
 
+## Motion Semantics
+
+Golden M is the first content-motion slice. A versioned Track animates
+`op:moving-rectangle.x` over an integer 1000-tick-per-second Timebase, producing
+checked-in deterministic SVG Frames at 0, 0.5, and 1 second. Entity, Operation,
+Track, and Keyframe identity stay stable; editing the middle Keyframe invalidates
+only affected sampling ticks, while an independent static rectangle reuses the
+same immutable Value across time. See `spec/21-motion-semantics.md`,
+`examples/017-motion-rectangle.svm.json`, and `tests/test_motion.py`.
+
 ## Development
 
 Install the project and development tools in editable mode:

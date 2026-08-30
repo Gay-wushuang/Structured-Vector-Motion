@@ -68,6 +68,20 @@ time.
 **INV-TIME-002** Construction scheduling and content animation SHALL remain
 distinct even when an editor displays them together.
 
+**INV-TIME-003** Content animation SHALL use an explicit integer Timebase;
+equivalent Track, Keyframe, and sampling tick semantics SHALL produce equivalent
+sampled values and Frames.
+
+**INV-TIME-004** Animation sampling SHALL NOT change Entity, Operation, Track,
+or Keyframe identity.
+
+**INV-TIME-005** Editing a Keyframe SHALL invalidate only cached sampling times
+whose interpolated value may change.
+
+**INV-TIME-006** Time SHALL NOT enter an Operation evaluation key unless that
+Operation's accepted semantics explicitly consume time. Static subtrees SHALL
+remain eligible for cross-time immutable Value cache reuse.
+
 ## Transactions, proposals, and control
 
 **INV-TXN-001** One user-visible intent that changes multiple records SHALL
@@ -84,4 +98,3 @@ remain semantically distinct.
 
 **INV-CTRL-002** Automatic actors SHALL respect property- and actor-scoped edit
 permissions.
-

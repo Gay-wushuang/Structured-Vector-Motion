@@ -130,6 +130,9 @@ def validate_document(document: dict[str, Any]) -> None:
         validate_policy_definitions(document)
     except PolicyDefinitionError as exc:
         raise DocumentError(str(exc)) from exc
+    from .motion import validate_motion
+
+    validate_motion(document, evaluator)
 
 
 def _is_supported_color(value: str) -> bool:

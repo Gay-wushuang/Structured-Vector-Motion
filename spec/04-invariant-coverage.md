@@ -28,8 +28,12 @@ Status values:
 | INV-REF-002 | covered | Artifact tests keep content identity separate from URI/provenance locators. |
 | INV-REF-003 | specified | Adapter boundary requires accepted fixed artifacts; model adapters are pending. |
 | INV-REL-001 | covered | Example Documents keep hierarchy, render stack, and stages separate. |
-| INV-TIME-001 | specified | Construction scheduling is separate from graph dependencies. |
-| INV-TIME-002 | specified | Content and construction scheduling arrays are separate. |
+| INV-TIME-001 | covered | Golden M samples content animation without interpreting DAG order as time. |
+| INV-TIME-002 | covered | Golden M uses only `animation.content`; construction scheduling remains a separate untouched collection. |
+| INV-TIME-003 | covered | Golden M verifies integer Timebase, rational seconds, linear samples, and byte-stable SVG Frames. |
+| INV-TIME-004 | covered | Golden M preserves Entity, Operation, Track, and Keyframe IDs across samples and edits. |
+| INV-TIME-005 | covered | Golden M edits the middle Keyframe and retains cached neighbor Frames outside the affected tick interval. |
+| INV-TIME-006 | covered | Golden M proves a static Operation Value ID and evaluation cache entry are reused at three times. |
 | INV-TXN-001 | covered | Golden B verifies atomic success and failure. |
 | INV-PROP-001 | covered | Adapter snapshot isolation and explicit acceptance are tested. |
 | INV-PROP-002 | covered | Base conflicts plus supported Constraints and Edit Permissions are enforced by acceptance tests. |
@@ -60,3 +64,7 @@ artifact, schema, revision, and permission enforcement.
 evidence-backed `derived-from` and immediate `bounds-contains`, batch/incremental
 convergence, relation validation, and orthogonality from hierarchy, Render
 Stack, construction, and animation.
+
+`tests/test_motion.py` implements Golden M. It covers integer Timebase, stable
+Track/Keyframe identity, exact linear samples, temporal cache invalidation,
+cross-time static Value reuse, and checked-in deterministic SVG Frames.
