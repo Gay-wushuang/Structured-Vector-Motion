@@ -1,4 +1,4 @@
-# LayerPeeler Research Output Adapter v0.1
+# LayerPeeler Research Output Adapter v0.2
 
 ## Status
 
@@ -33,9 +33,11 @@ Each accepted shape records a machine-readable `source_layer` association with
 the manifest, run, layer SVG, layer ID, and z-index. Multiple SVG shapes from one
 research layer therefore remain associated without creating semantic hierarchy.
 
-The Adapter identity is `svm-layerpeeler-output@0.1`; the manifest media type is
+The Adapter identity is `svm-layerpeeler-output@0.2`; the manifest media type is
 `application/vnd.svm.layerpeeler-output+json` and its schema identity is
-`svm-layerpeeler-output-0.1`.
+`svm-layerpeeler-output-0.2`. Model-run identity is independently versioned as
+`svm-layerpeeler-run@0.1`, so an Adapter-only upgrade does not rename the same
+recorded research run.
 
 ## Golden K
 

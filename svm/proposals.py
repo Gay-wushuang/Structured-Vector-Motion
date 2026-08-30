@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import json
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 from .artifacts import ArtifactError, ArtifactResolver, ArtifactSnapshot
 from .evaluator import Quality, canonical_bytes
@@ -27,6 +27,11 @@ class ProposalPolicyError(RuntimeError):
 
 class ProposalArtifactError(RuntimeError):
     pass
+
+
+@runtime_checkable
+class ArtifactBoundChange(Protocol):
+    def verify_artifacts(self, resolved: dict[str, ArtifactSnapshot]) -> None: ...
 
 
 @dataclass(frozen=True)
@@ -208,6 +213,11 @@ class ProposalAcceptor:
         proposal: Proposal, resolved: dict[str, ArtifactSnapshot]
     ) -> None:
         for change in proposal.transaction.changes:
+            if isinstance(change, ArtifactBoundChange):
+                try:
+                    change.verify_artifacts(resolved)
+                except ValueError as exc:
+                    raise ProposalArtifactError(str(exc)) from exc
             if not isinstance(change, PromoteComponentsChange):
                 continue
             if len(change.references) != 1:

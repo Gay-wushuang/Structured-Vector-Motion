@@ -1,6 +1,7 @@
 import copy
 import json
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from svm import (
@@ -9,6 +10,7 @@ from svm import (
     ArtifactStore,
     Evaluator,
     ProposalAcceptor,
+    ProposalArtifactError,
     RevisionStore,
     build_evaluated_scene,
 )
@@ -53,7 +55,7 @@ class LayerPeelerOutputGoldenKTest(unittest.TestCase):
                 provenance={
                     "derived_type": "layer-svg",
                     "source_artifact_id": self.source.artifact_id,
-                    "manifest_identity": "svm-layerpeeler-output@0.1",
+                    "manifest_identity": "svm-layerpeeler-output@0.2",
                     "run_identity": run_identity,
                     **producer,
                     "layer_id": f"layer:{layer_name}",
@@ -65,7 +67,7 @@ class LayerPeelerOutputGoldenKTest(unittest.TestCase):
             )
         )
         payload = {
-            "schema_version": "svm-layerpeeler-output-0.1",
+            "schema_version": "svm-layerpeeler-output-0.2",
             "source_artifact_id": self.source.artifact_id,
             "run_identity": run_identity,
             "producer": producer,
@@ -88,7 +90,7 @@ class LayerPeelerOutputGoldenKTest(unittest.TestCase):
             provenance={
                 "derived_type": "layerpeeler-output-manifest",
                 "source_artifact_id": self.source.artifact_id,
-                "manifest_identity": "svm-layerpeeler-output@0.1",
+                "manifest_identity": "svm-layerpeeler-output@0.2",
                 "run_identity": run_identity,
             },
         )
@@ -205,6 +207,20 @@ class LayerPeelerOutputGoldenKTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(LayerPeelerOutputError, "provenance is inconsistent"):
             LayerPeelerOutputAdapter().propose(mixed_request, self.artifacts)
+
+    def test_acceptor_rejects_handcrafted_source_layer_semantics(self) -> None:
+        proposal = LayerPeelerOutputAdapter().propose(self.request(), self.artifacts)
+        change = proposal.transaction.changes[0]
+        fragment = change.fragment  # type: ignore[attr-defined]
+        entities = copy.deepcopy(fragment.entities)
+        entities[0]["source_layer"]["run_identity"] = f"sha256:{'f' * 64}"
+        forged_change = replace(change, fragment=replace(fragment, entities=tuple(entities)))
+        forged = replace(
+            proposal,
+            transaction=replace(proposal.transaction, changes=(forged_change,)),
+        )
+        with self.assertRaisesRegex(ProposalArtifactError, "does not match"):
+            ProposalAcceptor().accept(self.store, forged, self.artifacts)
 
 
 if __name__ == "__main__":

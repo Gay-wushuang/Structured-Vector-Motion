@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from ..artifacts import ArtifactKind, ArtifactResolver, ArtifactSnapshot
@@ -20,8 +20,9 @@ from ..revisions import AppendSceneFragmentChange, Transaction
 from .svg_import import SVGImportError, SVGNormalizer
 
 MANIFEST_MEDIA_TYPE = "application/vnd.svm.layerpeeler-output+json"
-MANIFEST_SCHEMA = "svm-layerpeeler-output-0.1"
-ADAPTER_IDENTITY = "svm-layerpeeler-output@0.1"
+MANIFEST_SCHEMA = "svm-layerpeeler-output-0.2"
+ADAPTER_IDENTITY = "svm-layerpeeler-output@0.2"
+LAYERPEELER_RUN_IDENTITY = "svm-layerpeeler-run@0.1"
 MAX_LAYERS = 128
 
 
@@ -34,7 +35,7 @@ def layerpeeler_run_identity(payload: dict[str, Any]) -> str:
     digest = hashlib.sha256(
         canonical_bytes(
             {
-                "identity": ADAPTER_IDENTITY,
+                "identity": LAYERPEELER_RUN_IDENTITY,
                 "source_artifact_id": payload["source_artifact_id"],
                 "repository": producer["repository"],
                 "commit": producer["commit"],
@@ -47,11 +48,71 @@ def layerpeeler_run_identity(payload: dict[str, Any]) -> str:
     return f"sha256:{digest}"
 
 
+class _ResolvedBundle:
+    def __init__(self, snapshots: dict[str, ArtifactSnapshot]):
+        self.snapshots = snapshots
+
+    def resolve(self, artifact_ids: tuple[str, ...]) -> tuple[ArtifactSnapshot, ...]:
+        return tuple(self.snapshots[artifact_id] for artifact_id in artifact_ids)
+
+    def resolve_as(
+        self,
+        artifact_ids: tuple[str, ...],
+        *,
+        kind: ArtifactKind,
+        media_types: frozenset[str],
+    ) -> tuple[ArtifactSnapshot, ...]:
+        snapshots = self.resolve(artifact_ids)
+        if any(
+            snapshot.kind != kind or snapshot.media_type not in media_types
+            for snapshot in snapshots
+        ):
+            raise LayerPeelerOutputError("Resolved Artifact interpretation is invalid")
+        return snapshots
+
+    def resolve_reference(self, reference: dict[str, Any]) -> ArtifactSnapshot:
+        snapshot = self.snapshots[reference["id"]]
+        if snapshot.document_reference() != reference:
+            raise LayerPeelerOutputError("Resolved Artifact reference is inconsistent")
+        return snapshot
+
+
+@dataclass(frozen=True)
+class ImportLayeredSceneChange:
+    fragment: AppendSceneFragmentChange
+    namespace: str
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return self.fragment.references
+
+    def policy_intent(self) -> tuple[str, str, str | None]:
+        return self.fragment.policy_intent()
+
+    def apply(self, document: dict[str, Any]) -> None:
+        self.fragment.apply(document)
+
+    def verify_artifacts(self, resolved: dict[str, ArtifactSnapshot]) -> None:
+        request = AdapterRequest(
+            base_revision_id="revision:artifact-verification",
+            document={"entities": []},
+            scope=("document",),
+            artifact_ids=tuple(sorted(resolved)),
+            options={"namespace": self.namespace},
+        )
+        proposal = LayerPeelerOutputAdapter().propose(request, _ResolvedBundle(resolved))
+        expected = proposal.transaction.changes[0]
+        if not isinstance(expected, ImportLayeredSceneChange) or expected != self:
+            raise LayerPeelerOutputError(
+                "LayerPeeler SceneFragment does not match resolved Artifact semantics"
+            )
+
+
 class LayerPeelerOutputAdapter:
     """Consume snapshotted LayerPeeler output; never execute the research model."""
 
     adapter_id = "adapter:layerpeeler-output"
-    adapter_version = "0.1"
+    adapter_version = "0.2"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -101,7 +162,7 @@ class LayerPeelerOutputAdapter:
                 render_entries.append(entity["id"])
 
         references = tuple(by_id[artifact_id].document_reference() for artifact_id in sorted(by_id))
-        change = AppendSceneFragmentChange(
+        fragment = AppendSceneFragmentChange(
             entities=tuple(entities),
             operations=tuple(operations),
             output_bindings=tuple(bindings),
@@ -109,6 +170,7 @@ class LayerPeelerOutputAdapter:
             styles=tuple(styles),
             references=references,
         )
+        change = ImportLayeredSceneChange(fragment=fragment, namespace=namespace)
         producer = payload["producer"]
         parameters = {
             "identity": ADAPTER_IDENTITY,
