@@ -212,6 +212,7 @@
         "additionalProperties": false,
         "required": ["content", "construction_scheduling_hints"],
         "properties": {
+          "semantics_version": {"const": "svm-motion@0.1"},
           "timebase": {
             "type": "object",
             "additionalProperties": false,
@@ -222,7 +223,13 @@
           },
           "content": {"type": "array", "items": {"$ref": "#/$defs/animationTrack"}},
           "construction_scheduling_hints": {"type": "array", "items": {"type": "object"}}
-        }
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"content": {"minItems": 1}}},
+            "then": {"required": ["semantics_version", "timebase"]}
+          }
+        ]
       },
       "animationTrack": {
         "type": "object",

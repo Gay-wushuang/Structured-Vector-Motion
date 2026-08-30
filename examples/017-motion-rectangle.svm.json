@@ -39,6 +39,7 @@
   "evaluation_policies": [],
   "edit_permissions": [],
   "animation": {
+    "semantics_version": "svm-motion@0.1",
     "timebase": {"ticks_per_second": 1000},
     "content": [
       {

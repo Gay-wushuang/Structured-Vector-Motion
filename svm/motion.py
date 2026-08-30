@@ -37,9 +37,14 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
         raise DocumentError("Animation content must be an array")
     timebase = animation.get("timebase")
     if not tracks:
+        semantics_version = animation.get("semantics_version")
+        if semantics_version is not None and semantics_version != MOTION_SEMANTICS_IDENTITY:
+            raise DocumentError(f"Unsupported Motion semantics {semantics_version!r}")
         if timebase is not None:
             _ticks_per_second(timebase)
         return
+    if animation.get("semantics_version") != MOTION_SEMANTICS_IDENTITY:
+        raise DocumentError(f"Animated content requires {MOTION_SEMANTICS_IDENTITY} semantics")
     _ticks_per_second(timebase)
     track_ids: set[str] = set()
     targets: set[tuple[str, str]] = set()
@@ -155,7 +160,10 @@ class MotionEvaluator:
             )
         return sampled
 
-    def set_keyframe_value(self, track_id: str, keyframe_id: str, value: float) -> TemporalInterval:
+    def set_keyframe_value(
+        self, track_id: str, keyframe_id: str, value: float
+    ) -> TemporalInterval | None:
+        """Exercise runtime invalidation; this is not a persistent Document edit API."""
         if not _finite_number(value):
             raise DocumentError("Keyframe value must be finite")
         track = next(
@@ -172,6 +180,8 @@ class MotionEvaluator:
         if index is None:
             raise DocumentError(f"Missing Keyframe {keyframe_id}")
         previous = keyframes[index]["value"]
+        if canonical_motion_number(previous) == canonical_motion_number(value):
+            return None
         keyframes[index]["value"] = value
         try:
             validate_motion(
@@ -211,9 +221,9 @@ def _ticks_per_second(timebase: Any) -> int:
 def _sample_track(track: dict[str, Any], tick: int) -> int | float:
     keyframes = track["keyframes"]
     if tick <= keyframes[0]["tick"]:
-        return keyframes[0]["value"]
+        return canonical_motion_number(keyframes[0]["value"])
     if tick >= keyframes[-1]["tick"]:
-        return keyframes[-1]["value"]
+        return canonical_motion_number(keyframes[-1]["value"])
     for left, right in zip(keyframes, keyframes[1:], strict=False):
         if left["tick"] <= tick <= right["tick"]:
             span = right["tick"] - left["tick"]
@@ -221,9 +231,19 @@ def _sample_track(track: dict[str, Any], tick: int) -> int | float:
             value = Fraction(str(left["value"])) + (
                 Fraction(str(right["value"])) - Fraction(str(left["value"]))
             ) * Fraction(offset, span)
-            return value.numerator if value.denominator == 1 else float(value)
+            return canonical_motion_number(value)
     raise DocumentError(f"Cannot sample Track {track['id']} at tick {tick}")
 
 
 def _finite_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def canonical_motion_number(value: Any) -> int | float:
+    if isinstance(value, Fraction):
+        number = value
+    elif _finite_number(value):
+        number = Fraction(str(value))
+    else:
+        raise DocumentError("Motion number must be finite")
+    return number.numerator if number.denominator == 1 else float(number)

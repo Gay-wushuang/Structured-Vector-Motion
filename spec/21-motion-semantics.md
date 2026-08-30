@@ -7,6 +7,11 @@ is motion rather than construction or external evidence integration.
 
 ## 1. Timebase
 
+Every Document with content Tracks records
+`animation.semantics_version = svm-motion@0.1`. Validation fails closed for a
+missing or unknown Motion identity. This versions temporal meaning independently
+from Construction semantics without adding time to static evaluation keys.
+
 Content animation uses non-negative integer ticks and an explicit positive
 `ticks_per_second`. Recorded semantics never depend on wall-clock time, display
 refresh rate, locale, floating-point seconds, or export FPS. Seconds are a
@@ -35,8 +40,9 @@ constraints, hierarchy, and arbitrary Entity properties are deferred.
 
 v0.1 supports `linear` only. Before the first and after the last Keyframe the
 endpoint value is held. Interpolation is computed from exact decimal-to-rational
-values and integer tick ratios, then canonicalized to an integer when exact or a
-finite float otherwise.
+values and integer tick ratios. Every exit—including exact and held
+Keyframes—is canonicalized to an integer when mathematically integral or a
+finite float otherwise. Thus `100` and `100.0` sample to identical content.
 
 ## 6. Evaluation at time
 
@@ -56,6 +62,12 @@ remain valid. Endpoint edits include their held range. Within affected Frames,
 ordinary Construction dependency invalidation is still determined by changed
 sampled parameters.
 
+`MotionEvaluator.set_keyframe_value()` exists only as a v0.1 runtime invalidation
+harness. It is not persistent Document mutation authority and MUST NOT be used
+by an Editor to save changes. Persistent Keyframe edits require a typed Change,
+atomic Transaction, and new Revision. A canonically equivalent no-op runtime
+edit invalidates no Frames.
+
 Construction scheduling remains a separate time system and is not interpreted
 by Motion v0.1.
 
@@ -65,10 +77,14 @@ Golden M animates `op:moving-rectangle.x` at 1000 ticks/second:
 
 ```text
 tick 0    (0.0 s) -> 100
+tick 250  (0.25 s) -> 200
 tick 500  (0.5 s) -> 300
+tick 750  (0.75 s) -> 400
 tick 1000 (1.0 s) -> 500
 ```
 
 It proves deterministic evaluation and SVG frames, stable Entity/Operation/
 Track/Keyframe IDs, middle-Keyframe temporal invalidation, and cross-time cache
-reuse for an independent static rectangle.
+reuse for an independent static rectangle. A separate `0 -> 1` over three ticks
+case proves non-integral rational interpolation, while `100` versus `100.0`
+proves endpoint numeric canonicalization.
