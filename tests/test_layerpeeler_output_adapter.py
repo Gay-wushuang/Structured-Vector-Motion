@@ -222,6 +222,32 @@ class LayerPeelerOutputGoldenKTest(unittest.TestCase):
         with self.assertRaisesRegex(ProposalArtifactError, "does not match"):
             ProposalAcceptor().accept(self.store, forged, self.artifacts)
 
+        generic_bypass = replace(
+            proposal,
+            transaction=replace(proposal.transaction, changes=(forged_change.fragment,)),
+        )
+        with self.assertRaisesRegex(ProposalArtifactError, "reserved"):
+            ProposalAcceptor().accept(self.store, generic_bypass, self.artifacts)
+
+    def test_untrusted_manifest_types_fail_with_domain_error(self) -> None:
+        payload = json.loads(self.manifest.content)
+        payload["producer"]["commit"] = 123
+        malformed = self.artifacts.import_bytes(
+            canonical_bytes(payload),
+            media_type=MEDIA_TYPE,
+            kind=ArtifactKind.DERIVED,
+            provenance=copy.deepcopy(self.manifest.provenance),
+        )
+        request = self.request(
+            (
+                self.source.artifact_id,
+                malformed.artifact_id,
+                *(artifact.artifact_id for artifact in self.layer_artifacts),
+            )
+        )
+        with self.assertRaisesRegex(LayerPeelerOutputError, "full Git SHA"):
+            LayerPeelerOutputAdapter().propose(request, self.artifacts)
+
 
 if __name__ == "__main__":
     unittest.main()

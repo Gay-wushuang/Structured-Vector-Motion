@@ -212,12 +212,27 @@ class ProposalAcceptor:
     def _verify_artifact_bound_changes(
         proposal: Proposal, resolved: dict[str, ArtifactSnapshot]
     ) -> None:
+        from .adapters.layerpeeler_output import ImportLayeredSceneChange
+
+        trusted_verifiers: dict[type[Any], Any] = {
+            ImportLayeredSceneChange: lambda change: change.verify_artifacts(resolved),
+        }
         for change in proposal.transaction.changes:
-            if isinstance(change, ArtifactBoundChange):
+            entities = getattr(change, "entities", ())
+            if any(isinstance(entity, dict) and "source_layer" in entity for entity in entities):
+                raise ProposalArtifactError(
+                    "source_layer is reserved for a trusted Artifact-bound Change"
+                )
+            verifier = trusted_verifiers.get(type(change))
+            if verifier is not None:
                 try:
-                    change.verify_artifacts(resolved)
-                except ValueError as exc:
+                    verifier(change)
+                except (ValueError, TypeError, KeyError) as exc:
                     raise ProposalArtifactError(str(exc)) from exc
+            elif isinstance(change, ArtifactBoundChange):
+                raise ProposalArtifactError(
+                    f"Unregistered Artifact-bound Change type {type(change).__name__}"
+                )
             if not isinstance(change, PromoteComponentsChange):
                 continue
             if len(change.references) != 1:

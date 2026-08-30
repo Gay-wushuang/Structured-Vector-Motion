@@ -21,7 +21,8 @@ from .svg_import import SVGImportError, SVGNormalizer
 
 MANIFEST_MEDIA_TYPE = "application/vnd.svm.layerpeeler-output+json"
 MANIFEST_SCHEMA = "svm-layerpeeler-output-0.2"
-ADAPTER_IDENTITY = "svm-layerpeeler-output@0.2"
+ADAPTER_IDENTITY = "svm-layerpeeler-output-adapter@0.2"
+BUNDLE_IDENTITY = "svm-layerpeeler-output@0.2"
 LAYERPEELER_RUN_IDENTITY = "svm-layerpeeler-run@0.1"
 MAX_LAYERS = 128
 
@@ -273,9 +274,15 @@ class LayerPeelerOutputAdapter:
             raise LayerPeelerOutputError("Manifest producer fields are invalid")
         if producer["repository"] != "https://github.com/kingnobro/LayerPeeler":
             raise LayerPeelerOutputError("Manifest repository is not the LayerPeeler upstream")
-        if re.fullmatch(r"[0-9a-f]{40}", producer["commit"] or "") is None:
+        if (
+            not isinstance(producer["commit"], str)
+            or re.fullmatch(r"[0-9a-f]{40}", producer["commit"]) is None
+        ):
             raise LayerPeelerOutputError("Manifest commit must be a full Git SHA")
-        if re.fullmatch(r"sha256:[0-9a-f]{64}", producer["checkpoint_hash"] or "") is None:
+        if (
+            not isinstance(producer["checkpoint_hash"], str)
+            or re.fullmatch(r"sha256:[0-9a-f]{64}", producer["checkpoint_hash"]) is None
+        ):
             raise LayerPeelerOutputError("Manifest checkpoint hash is invalid")
         if not isinstance(producer["model_id"], str) or not producer["model_id"]:
             raise LayerPeelerOutputError("Manifest model ID is invalid")
@@ -290,7 +297,7 @@ class LayerPeelerOutputAdapter:
         if (
             manifest.provenance.get("derived_type") != "layerpeeler-output-manifest"
             or manifest.provenance.get("source_artifact_id") != source.artifact_id
-            or manifest.provenance.get("manifest_identity") != ADAPTER_IDENTITY
+            or manifest.provenance.get("manifest_identity") != BUNDLE_IDENTITY
             or manifest.provenance.get("run_identity") != expected_run_identity
         ):
             raise LayerPeelerOutputError("Manifest provenance is inconsistent")
@@ -312,7 +319,10 @@ class LayerPeelerOutputAdapter:
             }:
                 raise LayerPeelerOutputError("Layer descriptor fields are invalid")
             layer_id = layer["layer_id"]
-            if re.fullmatch(r"layer:[a-z0-9][a-z0-9_-]*", layer_id or "") is None:
+            if (
+                not isinstance(layer_id, str)
+                or re.fullmatch(r"layer:[a-z0-9][a-z0-9_-]*", layer_id) is None
+            ):
                 raise LayerPeelerOutputError("Layer ID is invalid")
             if layer_id in seen_ids:
                 raise LayerPeelerOutputError("Layer IDs must be unique")
@@ -329,7 +339,7 @@ class LayerPeelerOutputAdapter:
             if (
                 provenance.get("derived_type") != "layer-svg"
                 or provenance.get("source_artifact_id") != source.artifact_id
-                or provenance.get("manifest_identity") != ADAPTER_IDENTITY
+                or provenance.get("manifest_identity") != BUNDLE_IDENTITY
                 or provenance.get("run_identity") != expected_run_identity
                 or provenance.get("repository") != producer["repository"]
                 or provenance.get("commit") != producer["commit"]

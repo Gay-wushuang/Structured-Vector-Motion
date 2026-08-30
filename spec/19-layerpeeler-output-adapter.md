@@ -33,11 +33,18 @@ Each accepted shape records a machine-readable `source_layer` association with
 the manifest, run, layer SVG, layer ID, and z-index. Multiple SVG shapes from one
 research layer therefore remain associated without creating semantic hierarchy.
 
-The Adapter identity is `svm-layerpeeler-output@0.2`; the manifest media type is
+The consumer Adapter identity is `svm-layerpeeler-output-adapter@0.2`; the
+independent bundle identity is `svm-layerpeeler-output@0.2`. The manifest media type is
 `application/vnd.svm.layerpeeler-output+json` and its schema identity is
 `svm-layerpeeler-output-0.2`. Model-run identity is independently versioned as
 `svm-layerpeeler-run@0.1`, so an Adapter-only upgrade does not rename the same
 recorded research run.
+
+`source_layer` is a reserved Artifact-bound semantic field. Generic scene
+changes may not introduce it. Proposal acceptance dispatches only exact built-in
+Change types through a trusted verifier registry; structurally compatible
+third-party classes do not acquire acceptance authority by implementing the
+Protocol. The verifier reconstructs the canonical fragment from resolved bytes.
 
 ## Golden K
 
