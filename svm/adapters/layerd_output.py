@@ -27,11 +27,11 @@ from ..revisions import (
 
 MANIFEST_MEDIA_TYPE = "application/vnd.svm.layerd-output+json"
 ANALYSIS_MEDIA_TYPE = "application/vnd.svm.layerd-analysis+json"
-MANIFEST_SCHEMA = "svm-layerd-output-0.3"
+MANIFEST_SCHEMA = "svm-layerd-output-0.4"
 ANALYSIS_SCHEMA = "svm-layerd-analysis-0.1"
-RUN_IDENTITY = "svm-layerd-run@0.3"
-BUNDLE_IDENTITY = "svm-layerd-output@0.3"
-ADAPTER_IDENTITY = "svm-layerd-output-adapter@0.3"
+RUN_IDENTITY = "svm-layerd-run@0.4"
+BUNDLE_IDENTITY = "svm-layerd-output@0.4"
+ADAPTER_IDENTITY = "svm-layerd-output-adapter@0.4"
 RGBA_IDENTITY = "svm-png-rgba8-filter0@0.1"
 MAX_LAYERS = 64
 MAX_PNG_BYTES = 16 * 1024 * 1024
@@ -114,7 +114,7 @@ class LayerDOutputAdapter:
     """Consume an immutable LayerD result bundle; never execute its models."""
 
     adapter_id = "adapter:layerd-output"
-    adapter_version = "0.3"
+    adapter_version = "0.4"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -524,7 +524,6 @@ def _validate_analysis_pipeline(value: Any) -> None:
         "classifier_parameters",
     }:
         raise LayerDOutputError("LayerD analysis pipeline contract is invalid")
-    identity_pattern = r"[a-z0-9][a-z0-9._-]*@[0-9]+\.[0-9]+"
     if (
         value["element_extractor_identity"] != "layerd-elements@0.1"
         or not isinstance(value["element_extractor_parameters"], dict)
@@ -532,8 +531,7 @@ def _validate_analysis_pipeline(value: Any) -> None:
         or not _unit_interval(value["element_extractor_parameters"]["overlap_threshold"])
         or value["ocr_identity"] != "disabled@0.1"
         or value["ocr_parameters"] != {}
-        or not isinstance(value["classifier_identity"], str)
-        or re.fullmatch(identity_pattern, value["classifier_identity"]) is None
+        or value["classifier_identity"] != "entropy-labeler@0.1"
         or not isinstance(value["classifier_parameters"], dict)
         or set(value["classifier_parameters"]) != {"threshold"}
         or not isinstance(value["classifier_parameters"]["threshold"], (int, float))

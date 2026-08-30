@@ -65,6 +65,7 @@ class LayerDGoldenLTest(unittest.TestCase):
         overlap_threshold: float = 0.9,
         ocr_identity: str = "disabled@0.1",
         classifier_identity: str = "entropy-labeler@0.1",
+        classifier_threshold: float = 5.0,
         manifest_hash_valid: bool = True,
         analysis_alpha_count: int = 4,
         analysis_canvas_width: int = 4,
@@ -102,7 +103,7 @@ class LayerDGoldenLTest(unittest.TestCase):
             "ocr_identity": ocr_identity,
             "ocr_parameters": {},
             "classifier_identity": classifier_identity,
-            "classifier_parameters": {"threshold": 5.0},
+            "classifier_parameters": {"threshold": classifier_threshold},
         }
         identity_payload = {
             "source_artifact_id": source.artifact_id,
@@ -126,7 +127,7 @@ class LayerDGoldenLTest(unittest.TestCase):
                     provenance={
                         "derived_type": "rgba-layer",
                         "producer_family": "layerd",
-                        "bundle_identity": "svm-layerd-output@0.3",
+                        "bundle_identity": "svm-layerd-output@0.4",
                         "run_identity": layer_run_override or run_identity,
                         "source_artifact_id": source.artifact_id,
                         "layer_id": layer_id,
@@ -171,13 +172,13 @@ class LayerDGoldenLTest(unittest.TestCase):
             provenance={
                 "derived_type": "layerd-analysis",
                 "producer_family": "layerd",
-                "bundle_identity": "svm-layerd-output@0.3",
+                "bundle_identity": "svm-layerd-output@0.4",
                 "run_identity": run_identity,
                 "source_artifact_id": source.artifact_id,
             },
         )
         manifest_payload = {
-            "schema_version": "svm-layerd-output-0.3",
+            "schema_version": "svm-layerd-output-0.4",
             "source_artifact_id": source.artifact_id,
             "run_identity": run_identity,
             "producer": producer,
@@ -207,7 +208,7 @@ class LayerDGoldenLTest(unittest.TestCase):
             provenance={
                 "derived_type": "layerd-manifest",
                 "producer_family": "layerd",
-                "bundle_identity": "svm-layerd-output@0.3",
+                "bundle_identity": "svm-layerd-output@0.4",
                 "run_identity": run_identity,
                 "source_artifact_id": source.artifact_id,
             },
@@ -330,7 +331,7 @@ class LayerDGoldenLTest(unittest.TestCase):
         self.assertNotEqual(run_two, run_five)
         artifacts_classifier, ids_classifier = self._bundle(
             max_iterations=2,
-            classifier_identity="gradient-aware-labeler@0.1",
+            classifier_threshold=7.0,
         )
         run_classifier = json.loads(artifacts_classifier.get(ids_classifier[1]).content)[
             "run_identity"
@@ -362,6 +363,18 @@ class LayerDGoldenLTest(unittest.TestCase):
 
     def test_golden_l_profile_rejects_enabled_ocr(self) -> None:
         artifacts, ids = self._bundle(ocr_identity="east-ocr@0.1")
+        request = AdapterRequest.from_store(
+            self.store,
+            self.store.head,
+            ("document",),
+            artifact_ids=ids,
+            options={"namespace": "golden-l"},
+        )
+        with self.assertRaisesRegex(LayerDOutputError, "analysis pipeline"):
+            LayerDOutputAdapter().propose(request, artifacts)
+
+    def test_golden_l_profile_rejects_gradient_aware_classifier(self) -> None:
+        artifacts, ids = self._bundle(classifier_identity="gradient-aware-labeler@0.1")
         request = AdapterRequest.from_store(
             self.store,
             self.store.head,
@@ -413,7 +426,7 @@ class LayerDGoldenLTest(unittest.TestCase):
         proposal = LayerDOutputAdapter().propose(self.request(), self.artifacts)
         run_identity = proposal.generator.parameters["run_identity"]
         self.assertNotIn(LayerDOutputAdapter.adapter_version, run_identity)
-        self.assertEqual(proposal.generator.parameters["bundle_identity"], "svm-layerd-output@0.3")
+        self.assertEqual(proposal.generator.parameters["bundle_identity"], "svm-layerd-output@0.4")
 
 
 if __name__ == "__main__":

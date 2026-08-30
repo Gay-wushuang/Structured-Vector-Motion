@@ -1,4 +1,4 @@
-# LayerD Raster Layer Evidence Adapter v0.3
+# LayerD Raster Layer Evidence Adapter v0.4
 
 ## Status
 
@@ -26,23 +26,29 @@ bounds, or classification participates in run identity. Run, bundle, and
 consumer Adapter identities are independent:
 
 ```text
-svm-layerd-run@0.3
-svm-layerd-output@0.3
-svm-layerd-output-adapter@0.3
+svm-layerd-run@0.4
+svm-layerd-output@0.4
+svm-layerd-output-adapter@0.4
 ```
 
-The v0.3 execution contract records `max_iterations`, `kernel_scale`,
+The v0.4 execution contract records `max_iterations`, `kernel_scale`,
 `matting_process_size`, `use_unblend`, `fg_refine`,
 `fg_refine_num_colors`, `bg_refine`, and `bg_refine_num_colors`. The analysis
-contract independently records a versioned element-extractor identity and its
-`overlap_threshold`, an OCR identity/configuration, and a classifier identity
-and threshold. Changing any of these fields changes run identity and prevents
-cross-run bundle mixing.
+contract independently records a fixed element-extractor identity and its
+`overlap_threshold`, an OCR identity/configuration, and the fixed
+`entropy-labeler@0.1` identity with its `threshold`. Changing any recorded field
+changes run identity and prevents cross-run bundle mixing.
 
 Golden L deliberately accepts only `ocr_identity = disabled@0.1` with empty OCR
 parameters. Outputs produced with EAST, GOT-OCR2, or any other enabled OCR
 backend are outside this profile and fail closed. Supporting one requires a new
 profile/run identity that also records its model and evidence contract.
+
+Golden L likewise rejects `GradientAwareLabeler` and every classifier other than
+`entropy-labeler@0.1`. Gradient-aware classification has a distinct two-parameter
+contract (`entropy_threshold` and `gradient_threshold`) and cannot be represented
+by this profile's single `threshold`. Supporting it requires a separately
+versioned profile that records both parameters.
 
 The accepted RGBA subset is non-interlaced 8-bit RGBA PNG with filter-0
 scanlines, identity `svm-png-rgba8-filter0@0.1`. The verifier derives alpha
@@ -90,5 +96,5 @@ Golden L proves deterministic Proposal identity, immutable base Revision,
 previewable RGBA/analysis evidence, exact acceptance-time reconstruction,
 neutral non-rendered Entities, and stable evidence order. It rejects unsupported
 classification, forged Change semantics, malformed provenance, inconsistent
-hashes or analysis, legal-label tampering, enabled OCR, reordered layers,
-invalid PNG structure, and mixed runs.
+hashes or analysis, legal-label tampering, enabled OCR, unsupported classifier
+profiles, reordered layers, invalid PNG structure, and mixed runs.

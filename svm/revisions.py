@@ -93,7 +93,7 @@ class RasterLayerEvidence:
 
     def to_entity(self, namespace: str) -> dict[str, Any]:
         content = {
-            "identity": "svm-layerd-entity@0.3",
+            "identity": "svm-layerd-entity@0.4",
             "bundle_artifact_id": self.bundle_artifact_id,
             "run_identity": self.run_identity,
             "layer_id": self.layer_id,
