@@ -73,14 +73,22 @@ recognized class. v0.5 creates no geometry Operation, output binding, Style, or
 Render Stack entry because component-analysis does not contain accepted vector
 geometry.
 
-Entity IDs are derived from the promotion identity, analysis Artifact ID,
-candidate ID, and component digest. Bounds are copied only after the Proposal
+All five `PromotedComponent` provenance fields shown above, including verified
+half-open `bounds`, are mandatory. Canonical relation materialization fails
+closed rather than silently skipping promoted Entities with incomplete bounds.
+
+Entity IDs are derived from the independently versioned promoted-Entity identity,
+analysis Artifact ID, candidate ID, and component digest. The frozen v0.1
+promoted-Entity identity retains the `svm-component-promotion@0.4` seed so
+relation-materialization and Adapter upgrades do not renumber existing Regions.
+`svm-component-promotion@0.5` is the Adapter/interpreter identity and MUST NOT
+participate in Entity ID derivation. Bounds are copied only after the Proposal
 Acceptor verifies them against the canonical analysis candidate. An optional
 safe namespace changes the ID namespace but not the evidence provenance.
 
 ## Transaction and policy
 
-Component Promotion v0.5 supersedes v0.4 because promoted evidence now
+Component Promotion Adapter v0.5 supersedes v0.4 because promoted evidence now
 materializes canonically ordered, immediate `bounds-contains` relations rather
 than an order-sensitive transitive closure. v0.4 recorded validated bounds and
 materialized independent Structural Relations. v0.3 made
@@ -88,6 +96,10 @@ Artifact-bound Change semantics enforceable by the Proposal Acceptor and made
 Entity IDs Core-derived rather than caller-supplied. v0.2 had already narrowed admissible evidence, added
 descriptor-chain consistency, closed arbitrary semantic Entity injection, and
 expanded the candidate-ID grammar.
+
+Adapter version, promoted-Entity identity, and Structural Relations identity
+are independent. A relation algorithm, preview, or CLI change MUST NOT alter a
+promoted Entity ID unless the promoted-Entity identity itself changes.
 
 `PromoteComponentsChange` accepts typed `PromotedComponent` records without an
 Entity ID rather than arbitrary Entity dictionaries. Core constructs the fixed

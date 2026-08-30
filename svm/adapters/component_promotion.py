@@ -19,7 +19,9 @@ from ..proposals import (
     StructuralRelationPreview,
 )
 from ..revisions import (
+    COMPONENT_PROMOTION_ADAPTER_VERSION,
     COMPONENT_PROMOTION_IDENTITY,
+    PROMOTED_ENTITY_IDENTITY,
     PromoteComponentsChange,
     PromotedComponent,
     Transaction,
@@ -41,7 +43,7 @@ class ComponentPromotionError(ValueError):
 
 class ComponentPromotionAdapter:
     adapter_id = "adapter:component-promotion"
-    adapter_version = "0.5"
+    adapter_version = COMPONENT_PROMOTION_ADAPTER_VERSION
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -110,6 +112,7 @@ class ComponentPromotionAdapter:
 
         parameters = {
             "promotion_identity": PROMOTION_IDENTITY,
+            "promoted_entity_identity": PROMOTED_ENTITY_IDENTITY,
             "analysis_schema": ANALYSIS_SCHEMA,
             "analysis_artifact_id": snapshot.artifact_id,
             "candidate_ids": [candidate["candidate_id"] for candidate in selected],

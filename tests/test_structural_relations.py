@@ -19,7 +19,7 @@ from svm import (
 from svm.adapters import ComponentPromotionAdapter
 from svm.document import validate_document
 from svm.evaluator import DocumentError, canonical_bytes
-from svm.structural_relations import structural_relation_id
+from svm.structural_relations import materialize_promoted_relations, structural_relation_id
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "examples" / "imported" / "014-contained-analysis.svm.json"
@@ -156,7 +156,7 @@ class StructuralRelationsGoldenJTest(unittest.TestCase):
 
         missing_bounds = copy.deepcopy(golden)
         del missing_bounds["entities"][1]["provenance"]["bounds"]
-        mutations.append((missing_bounds, "not supported"))
+        mutations.append((missing_bounds, "provenance fields"))
 
         unsupported = copy.deepcopy(golden)
         unsupported["structural_relations"][0]["type"] = "overlaps"
@@ -201,6 +201,19 @@ class StructuralRelationsGoldenJTest(unittest.TestCase):
         with self.assertRaisesRegex(DocumentError, "immediate containment"):
             validate_document(transitive)
 
+    def test_relation_graph_must_be_complete(self) -> None:
+        golden = json.loads(GOLDEN.read_text(encoding="utf-8"))
+        for relation_type in ("derived-from", "bounds-contains"):
+            incomplete = copy.deepcopy(golden)
+            incomplete["structural_relations"] = [
+                relation
+                for relation in incomplete["structural_relations"]
+                if relation["type"] != relation_type
+            ]
+            with self.subTest(relation_type=relation_type):
+                with self.assertRaisesRegex(DocumentError, "complete canonical"):
+                    validate_document(incomplete)
+
     def test_relation_materialization_limit_fails_closed(self) -> None:
         reference = next(
             item for item in self.document["references"] if item["id"] == self.analysis.artifact_id
@@ -221,6 +234,28 @@ class StructuralRelationsGoldenJTest(unittest.TestCase):
         with self.assertRaisesRegex(DocumentError, "limit of 512"):
             transaction.apply(self.document)
         self.assertEqual(self.store.get_document(self.store.head), self.document)
+
+    def test_relation_limit_is_applied_per_analysis_artifact(self) -> None:
+        entities = []
+        for artifact_index in (1, 2):
+            artifact_id = f"artifact:{artifact_index:064x}"
+            for candidate_index in range(1, 301):
+                entities.append(
+                    {
+                        "id": f"entity:artifact-{artifact_index}-{candidate_index:04d}",
+                        "provenance": {
+                            "type": "PromotedComponent",
+                            "artifact_id": artifact_id,
+                            "candidate_id": f"candidate:component-{candidate_index:04d}",
+                            "component_digest": f"sha256:{candidate_index:064x}",
+                            "bounds": [candidate_index, 0, candidate_index + 1, 1],
+                        },
+                    }
+                )
+
+        relations = materialize_promoted_relations(entities)
+        self.assertEqual(len(relations), 600)
+        self.assertTrue(all(relation["type"] == "derived-from" for relation in relations))
 
     def test_cli_previews_relations_and_validates_golden_j(self) -> None:
         preview = run_cli(

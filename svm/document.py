@@ -5,6 +5,7 @@ from typing import Any
 from .evaluator import DocumentError, Evaluator
 from .policies import PolicyDefinitionError, validate_policy_definitions
 from .structural_relations import (
+    materialize_promoted_relations,
     provenance_bounds,
     strictly_bounds_contains,
     structural_relation_id,
@@ -136,11 +137,11 @@ def _is_supported_color(value: str) -> bool:
 
 
 def _validate_entity_provenance(entity_id: str, provenance: Any, reference_ids: set[str]) -> None:
-    required = {"type", "artifact_id", "candidate_id", "component_digest"}
+    required = {"type", "artifact_id", "candidate_id", "component_digest", "bounds"}
     if (
         not isinstance(provenance, dict)
         or not required <= set(provenance)
-        or set(provenance) - required not in (set(), {"bounds"})
+        or set(provenance) != required
     ):
         raise DocumentError(f"Entity {entity_id} has invalid provenance fields")
     if provenance["type"] != "PromotedComponent":
@@ -163,7 +164,7 @@ def _validate_entity_provenance(entity_id: str, provenance: Any, reference_ids: 
         or any(character not in "0123456789abcdef" for character in digest[7:])
     ):
         raise DocumentError(f"Entity {entity_id} has invalid provenance component digest")
-    if "bounds" in provenance and _bounds(provenance["bounds"]) is None:
+    if _bounds(provenance["bounds"]) is None:
         raise DocumentError(f"Entity {entity_id} has invalid provenance bounds")
 
 
@@ -201,6 +202,11 @@ def _validate_structural_relations(
             )
     if [relation["id"] for relation in relations] != sorted(relation_ids):
         raise DocumentError("Structural relations must be sorted by canonical relation ID")
+    expected = materialize_promoted_relations(entities)
+    if relations != expected:
+        raise DocumentError(
+            "Structural relations must equal the complete canonical promoted relation graph"
+        )
 
 
 def _validate_derived_from(

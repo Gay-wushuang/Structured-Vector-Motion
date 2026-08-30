@@ -39,7 +39,9 @@ from .proposals import (
     StructuralRelationPreview,
 )
 from .revisions import (
+    COMPONENT_PROMOTION_ADAPTER_VERSION,
     COMPONENT_PROMOTION_IDENTITY,
+    PROMOTED_ENTITY_IDENTITY,
     AppendReferencesChange,
     AppendSceneFragmentChange,
     PromoteComponentsChange,
@@ -78,6 +80,8 @@ __all__ = [
     "get_operation_registry",
     "RevisionStore",
     "COMPONENT_PROMOTION_IDENTITY",
+    "COMPONENT_PROMOTION_ADAPTER_VERSION",
+    "PROMOTED_ENTITY_IDENTITY",
     "STRUCTURAL_RELATIONS_IDENTITY",
     "AppendSceneFragmentChange",
     "AppendReferencesChange",

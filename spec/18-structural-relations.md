@@ -1,4 +1,4 @@
-# Structural Relations v0.1
+# Structural Relations v0.2
 
 ## Status
 
@@ -8,11 +8,12 @@ Golden Test J is normative.
 
 ## Document dimension
 
-`structural_relations` is an optional top-level Document array. Absence means no
-recorded structural relations. Its order has no rendering, hierarchy, or
-evaluation meaning.
+`structural_relations` is an optional top-level Document array only when the
+canonical promoted relation graph is empty. When promoted Entities exist, the
+array MUST equal the complete canonical materialization. Its order has no
+rendering, hierarchy, or evaluation meaning.
 
-v0.1 supports exactly two relation types:
+v0.2 supports exactly two relation types:
 
 ```text
 derived-from
@@ -23,9 +24,14 @@ bounds-contains
   evidence: same analysis Artifact + candidate pair + bounds basis
 ```
 
-Relation IDs are canonical hashes of `svm-structural-relations@0.1` and the
+Relation IDs are canonical hashes of `svm-structural-relations@0.2` and the
 complete relation content. IDs, endpoints, evidence, and relation type are
 validated semantically.
+
+Core exposes one canonical `materialize_promoted_relations(entities)` function.
+Promotion writes its result and Document validation independently recomputes it;
+the recorded array MUST equal the expected array byte-for-byte. Missing,
+additional, transitive, misordered, or otherwise non-canonical edges are invalid.
 
 ## Derived-from
 
@@ -38,7 +44,7 @@ record; the relation is the queryable, orthogonal graph edge.
 
 ## Bounds containment
 
-`bounds-contains` v0.1 is a deterministic AABB evidence relation, not filled-region
+`bounds-contains` v0.2 is a deterministic AABB evidence relation, not filled-region
 containment and not semantic hierarchy.
 It is created only when two promoted candidates:
 
@@ -52,8 +58,10 @@ bounds are not equal; sharing one or more boundary coordinates is allowed.
 Only immediate containment edges are stored: if A bounds-contain B and B
 bounds-contain C, the materialized graph stores A -> B and B -> C, not A -> C.
 Transitive containment is a query result rather than persisted closure. Promotion
-fails closed when more than 512 promoted components would participate, bounding
-the quadratic candidate-pair analysis.
+fails closed when more than 512 promoted components from one analysis Artifact
+would participate, bounding each quadratic candidate-pair analysis. Independent
+Artifact groups are materialized separately, with complexity
+`sum(O(n_artifact^2))`; their combined Document total may exceed 512.
 
 No pixel mask is reopened and no semantic claim such as parent/child, group,
 occlusion, or render precedence is implied.

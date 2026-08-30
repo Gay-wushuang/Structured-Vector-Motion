@@ -10,6 +10,7 @@ from unittest.mock import patch
 from test_cli import run_cli
 
 from svm import (
+    PROMOTED_ENTITY_IDENTITY,
     AdapterRequest,
     ArtifactKind,
     ArtifactStore,
@@ -90,6 +91,11 @@ class ComponentPromotionGoldenITest(unittest.TestCase):
 
         self.assertEqual(self.store.get_document(self.store.head), self.document)
         self.assertEqual(proposal.generator.engine_version, "svm-component-promotion@0.5")
+        self.assertEqual(PROMOTED_ENTITY_IDENTITY, "svm-component-promotion@0.4")
+        self.assertEqual(
+            proposal.generator.parameters["promoted_entity_identity"],
+            PROMOTED_ENTITY_IDENTITY,
+        )
         self.assertIsNone(proposal.confidence)
         self.assertEqual(proposal.report.metrics, {"promoted_components": 2.0})
         self.assertEqual(
