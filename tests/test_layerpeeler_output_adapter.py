@@ -13,6 +13,7 @@ from svm import (
     build_evaluated_scene,
 )
 from svm.adapters import LayerPeelerOutputAdapter, LayerPeelerOutputError
+from svm.adapters.layerpeeler_output import layerpeeler_run_identity
 from svm.evaluator import canonical_bytes
 from svm.renderers import SVGRenderer, SVGRenderOptions
 
@@ -35,32 +36,39 @@ class LayerPeelerOutputGoldenKTest(unittest.TestCase):
             kind=ArtifactKind.REFERENCE,
             provenance={"source_name": SOURCE.name},
         )
-        provenance = {
-            "derived_type": "layer-svg",
-            "source_artifact_id": self.source.artifact_id,
-            "manifest_identity": "svm-layerpeeler-output@0.1",
+        producer = {
             "repository": "https://github.com/kingnobro/LayerPeeler",
             "commit": COMMIT,
+            "model_id": "golden-k-recorded-output",
+            "checkpoint_hash": f"sha256:{'1' * 64}",
+            "seed": 7,
         }
+        identity_payload = {"source_artifact_id": self.source.artifact_id, "producer": producer}
+        run_identity = layerpeeler_run_identity(identity_payload)
         self.layer_artifacts = tuple(
             self.artifacts.import_bytes(
                 (LAYERS / name).read_bytes(),
                 media_type="image/svg+xml",
                 kind=ArtifactKind.DERIVED,
-                provenance=provenance,
+                provenance={
+                    "derived_type": "layer-svg",
+                    "source_artifact_id": self.source.artifact_id,
+                    "manifest_identity": "svm-layerpeeler-output@0.1",
+                    "run_identity": run_identity,
+                    **producer,
+                    "layer_id": f"layer:{layer_name}",
+                    "z_index": index,
+                },
             )
-            for name in ("layer-background.svg", "layer-foreground.svg")
+            for index, (layer_name, name) in enumerate(
+                (("background", "layer-background.svg"), ("foreground", "layer-foreground.svg"))
+            )
         )
         payload = {
             "schema_version": "svm-layerpeeler-output-0.1",
             "source_artifact_id": self.source.artifact_id,
-            "producer": {
-                "repository": "https://github.com/kingnobro/LayerPeeler",
-                "commit": COMMIT,
-                "model_id": "golden-k-recorded-output",
-                "checkpoint_hash": f"sha256:{'1' * 64}",
-                "seed": 7,
-            },
+            "run_identity": run_identity,
+            "producer": producer,
             "layers": [
                 {
                     "layer_id": f"layer:{name}",
@@ -81,6 +89,7 @@ class LayerPeelerOutputGoldenKTest(unittest.TestCase):
                 "derived_type": "layerpeeler-output-manifest",
                 "source_artifact_id": self.source.artifact_id,
                 "manifest_identity": "svm-layerpeeler-output@0.1",
+                "run_identity": run_identity,
             },
         )
 
@@ -104,9 +113,9 @@ class LayerPeelerOutputGoldenKTest(unittest.TestCase):
         second = adapter.propose(self.request(), self.artifacts)
         self.assertEqual(first.proposal_id, second.proposal_id)
         self.assertEqual(self.store.get_document(self.store.head), self.document)
-        self.assertEqual(first.report.metrics, {"layers": 2.0, "shapes": 2.0})
+        self.assertEqual(first.report.metrics, {"layers": 2.0, "shapes": 4.0})
         self.assertEqual(len(first.preview_artifacts), 4)
-        self.assertEqual(len(first.preview.proposed_render_stack), 2)
+        self.assertEqual(len(first.preview.proposed_render_stack), 4)
 
         revision = ProposalAcceptor().accept(self.store, first, self.artifacts)
         accepted = self.store.get_document(revision.revision_id)
@@ -115,11 +124,18 @@ class LayerPeelerOutputGoldenKTest(unittest.TestCase):
         )
         self.assertEqual(
             [entity["semantic_tags"] for entity in accepted["entities"]],
-            [["research-layer", "layerpeeler-output"]] * 2,
+            [["research-layer", "layerpeeler-output"]] * 4,
         )
+        foreground_origins = [
+            entity["source_layer"]
+            for entity in accepted["entities"]
+            if entity["source_layer"]["layer_id"] == "layer:foreground"
+        ]
+        self.assertEqual(len(foreground_origins), 3)
+        self.assertEqual(len({canonical_bytes(origin) for origin in foreground_origins}), 1)
         self.assertEqual(
             [operation["type"] for operation in accepted["construction"]["operations"]],
-            ["CreateRectangle", "CreatePath"],
+            ["CreateRectangle", "CreatePath", "CreateEllipse", "CreateRectangle"],
         )
         evaluator = Evaluator(accepted)
         evaluator.evaluate_all()
@@ -159,6 +175,36 @@ class LayerPeelerOutputGoldenKTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(LayerPeelerOutputError, "z_index"):
             LayerPeelerOutputAdapter().propose(request, self.artifacts)
+
+        mixed_svg = self.artifacts.import_bytes(
+            self.layer_artifacts[1].content + b"\n",
+            media_type="image/svg+xml",
+            kind=ArtifactKind.DERIVED,
+            provenance={
+                **self.layer_artifacts[1].provenance,
+                "commit": "2" * 40,
+                "run_identity": f"sha256:{'2' * 64}",
+            },
+        )
+        mixed_payload = json.loads(self.manifest.content)
+        mixed_payload["layers"][1]["svg_artifact_id"] = mixed_svg.artifact_id
+        mixed_payload["layers"][1]["svg_content_hash"] = mixed_svg.content_hash
+        mixed_manifest = self.artifacts.import_bytes(
+            canonical_bytes(mixed_payload),
+            media_type=MEDIA_TYPE,
+            kind=ArtifactKind.DERIVED,
+            provenance=copy.deepcopy(self.manifest.provenance),
+        )
+        mixed_request = self.request(
+            (
+                self.source.artifact_id,
+                mixed_manifest.artifact_id,
+                self.layer_artifacts[0].artifact_id,
+                mixed_svg.artifact_id,
+            )
+        )
+        with self.assertRaisesRegex(LayerPeelerOutputError, "provenance is inconsistent"):
+            LayerPeelerOutputAdapter().propose(mixed_request, self.artifacts)
 
 
 if __name__ == "__main__":

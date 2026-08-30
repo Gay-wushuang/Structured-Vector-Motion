@@ -17,7 +17,7 @@ from ..proposals import (
     ProposalPreview,
 )
 from ..revisions import AppendSceneFragmentChange, Transaction
-from .svg_import import SVGImportAdapter, SVGImportError
+from .svg_import import SVGImportError, SVGNormalizer
 
 MANIFEST_MEDIA_TYPE = "application/vnd.svm.layerpeeler-output+json"
 MANIFEST_SCHEMA = "svm-layerpeeler-output-0.1"
@@ -27,6 +27,24 @@ MAX_LAYERS = 128
 
 class LayerPeelerOutputError(ValueError):
     pass
+
+
+def layerpeeler_run_identity(payload: dict[str, Any]) -> str:
+    producer = payload["producer"]
+    digest = hashlib.sha256(
+        canonical_bytes(
+            {
+                "identity": ADAPTER_IDENTITY,
+                "source_artifact_id": payload["source_artifact_id"],
+                "repository": producer["repository"],
+                "commit": producer["commit"],
+                "model_id": producer["model_id"],
+                "checkpoint_hash": producer["checkpoint_hash"],
+                "seed": producer["seed"],
+            }
+        )
+    ).hexdigest()
+    return f"sha256:{digest}"
 
 
 class LayerPeelerOutputAdapter:
@@ -52,13 +70,12 @@ class LayerPeelerOutputAdapter:
         bindings: list[dict[str, Any]] = []
         styles: list[dict[str, Any]] = []
         render_entries: list[str] = []
-        svg_import = SVGImportAdapter()
+        normalizer = SVGNormalizer()
         for layer in payload["layers"]:
             snapshot = by_id[layer["svg_artifact_id"]]
             try:
-                root = svg_import._parse_svg(snapshot)
-                shapes = svg_import._extract_shapes(
-                    root, f"{namespace}-{layer['layer_id'].removeprefix('layer:')}"
+                shapes = normalizer.normalize(
+                    snapshot, f"{namespace}-{layer['layer_id'].removeprefix('layer:')}"
                 )
             except SVGImportError as exc:
                 raise LayerPeelerOutputError(
@@ -70,6 +87,13 @@ class LayerPeelerOutputAdapter:
                 entity = shape.entity
                 entity["name"] = f"{layer['layer_id']} / {entity['name']}"
                 entity["semantic_tags"] = ["research-layer", "layerpeeler-output"]
+                entity["source_layer"] = {
+                    "manifest_artifact_id": manifest.artifact_id,
+                    "run_identity": payload["run_identity"],
+                    "layer_id": layer["layer_id"],
+                    "layer_svg_artifact_id": snapshot.artifact_id,
+                    "z_index": layer["z_index"],
+                }
                 entities.append(entity)
                 operations.append(shape.operation)
                 bindings.append(shape.binding)
@@ -95,6 +119,7 @@ class LayerPeelerOutputAdapter:
             "checkpoint_hash": producer["checkpoint_hash"],
             "seed": producer["seed"],
             "manifest_artifact_id": manifest.artifact_id,
+            "svg_normalization_identity": normalizer.identity,
         }
         generator = GeneratorProvenance(
             adapter_id=self.adapter_id,
@@ -110,6 +135,7 @@ class LayerPeelerOutputAdapter:
                     "generator": asdict(generator),
                     "manifest": payload,
                     "references": references,
+                    "change": asdict(change),
                 }
             )
         ).hexdigest()[:16]
@@ -164,7 +190,13 @@ class LayerPeelerOutputAdapter:
     def _validate_bundle(
         payload: dict[str, Any], manifest: ArtifactSnapshot, by_id: dict[str, ArtifactSnapshot]
     ) -> None:
-        if set(payload) != {"schema_version", "source_artifact_id", "producer", "layers"}:
+        if set(payload) != {
+            "schema_version",
+            "source_artifact_id",
+            "run_identity",
+            "producer",
+            "layers",
+        }:
             raise LayerPeelerOutputError("Manifest fields are invalid")
         if payload["schema_version"] != MANIFEST_SCHEMA:
             raise LayerPeelerOutputError("Unsupported LayerPeeler output manifest schema")
@@ -190,6 +222,16 @@ class LayerPeelerOutputAdapter:
         source = by_id.get(payload["source_artifact_id"])
         if source is None or source.kind != ArtifactKind.REFERENCE:
             raise LayerPeelerOutputError("Manifest source must be a supplied ReferenceArtifact")
+        expected_run_identity = layerpeeler_run_identity(payload)
+        if payload["run_identity"] != expected_run_identity:
+            raise LayerPeelerOutputError("Manifest run identity is invalid")
+        if (
+            manifest.provenance.get("derived_type") != "layerpeeler-output-manifest"
+            or manifest.provenance.get("source_artifact_id") != source.artifact_id
+            or manifest.provenance.get("manifest_identity") != ADAPTER_IDENTITY
+            or manifest.provenance.get("run_identity") != expected_run_identity
+        ):
+            raise LayerPeelerOutputError("Manifest provenance is inconsistent")
         layers = payload["layers"]
         if not isinstance(layers, list) or not 1 <= len(layers) <= MAX_LAYERS:
             raise LayerPeelerOutputError("Manifest must contain between 1 and 128 layers")
@@ -226,6 +268,14 @@ class LayerPeelerOutputAdapter:
                 provenance.get("derived_type") != "layer-svg"
                 or provenance.get("source_artifact_id") != source.artifact_id
                 or provenance.get("manifest_identity") != ADAPTER_IDENTITY
+                or provenance.get("run_identity") != expected_run_identity
+                or provenance.get("repository") != producer["repository"]
+                or provenance.get("commit") != producer["commit"]
+                or provenance.get("model_id") != producer["model_id"]
+                or provenance.get("checkpoint_hash") != producer["checkpoint_hash"]
+                or provenance.get("seed") != producer["seed"]
+                or provenance.get("layer_id") != layer_id
+                or provenance.get("z_index") != layer["z_index"]
             ):
                 raise LayerPeelerOutputError(f"Layer {layer_id} provenance is inconsistent")
             expected_artifacts.add(artifact.artifact_id)

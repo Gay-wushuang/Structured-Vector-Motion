@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.metadata
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from ..artifacts import ArtifactKind, ArtifactResolver, ArtifactSnapshot
+from ..evaluator import canonical_bytes
 from ..path_bounds import PATH_BOUNDS_IDENTITY, PathBoundsError, canonical_path_bounds
 from ..proposals import (
     AdapterRequest,
@@ -17,6 +19,8 @@ from ..revisions import AppendSceneFragmentChange, Transaction
 
 SVG_MEDIA_TYPES = {"image/svg+xml", "application/svg+xml"}
 SVG_NAMESPACE = "http://www.w3.org/2000/svg"
+SVG_NORMALIZATION_IDENTITY = f"svm-svg-normalization@0.1+{PATH_BOUNDS_IDENTITY}"
+MAX_SVG_BYTES = 5 * 1024 * 1024
 _STYLE_ATTRIBUTES = {"fill", "stroke", "stroke-width"}
 _LEAF_STYLE_ATTRIBUTES = _STYLE_ATTRIBUTES | {"opacity"}
 _ALLOWED_ATTRIBUTES = {
@@ -36,6 +40,20 @@ class SVGImportError(ValueError):
     pass
 
 
+class SVGNormalizer:
+    """Versioned strict SVG-to-SceneFragment normalization capability."""
+
+    identity = SVG_NORMALIZATION_IDENTITY
+
+    def normalize(self, artifact: ArtifactSnapshot, namespace: str) -> tuple[_ImportedShape, ...]:
+        if artifact.media_type not in SVG_MEDIA_TYPES:
+            raise SVGImportError(f"Unsupported SVG media type {artifact.media_type!r}")
+        if len(artifact.content) > MAX_SVG_BYTES:
+            raise SVGImportError("SVG Artifact exceeds the 5 MiB import limit")
+        adapter = SVGImportAdapter()
+        return tuple(adapter._extract_shapes(adapter._parse_svg(artifact), namespace))
+
+
 @dataclass(frozen=True)
 class _ImportedShape:
     entity: dict[str, Any]
@@ -46,7 +64,7 @@ class _ImportedShape:
 
 class SVGImportAdapter:
     adapter_id = "adapter:svg-import"
-    adapter_version = "0.1"
+    adapter_version = "0.2"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
         artifact = self._select_artifact(
@@ -56,9 +74,9 @@ class SVGImportAdapter:
                 media_types=frozenset(SVG_MEDIA_TYPES),
             )
         )
-        root = self._parse_svg(artifact)
         namespace = self._namespace(request, artifact)
-        shapes = self._extract_shapes(root, namespace)
+        shapes = SVGNormalizer().normalize(artifact, namespace)
+        root = self._parse_svg(artifact)
         if not shapes:
             raise SVGImportError("SVG contains no supported renderable shapes")
 
@@ -74,8 +92,17 @@ class SVGImportAdapter:
             styles=tuple(shape.style for shape in shapes),
             references=(reference,),
         )
-        transaction_id = f"transaction:svg-import:{namespace}"
-        proposal_id = f"proposal:svg-import:{namespace}"
+        digest = hashlib.sha256(
+            canonical_bytes(
+                {
+                    "base_revision_id": request.base_revision_id,
+                    "normalization_identity": SVG_NORMALIZATION_IDENTITY,
+                    "change": asdict(change),
+                }
+            )
+        ).hexdigest()[:16]
+        transaction_id = f"transaction:svg-import:{digest}"
+        proposal_id = f"proposal:svg-import:{digest}"
         return Proposal(
             proposal_id=proposal_id,
             base_revision_id=request.base_revision_id,
@@ -86,7 +113,10 @@ class SVGImportAdapter:
                 engine_version=(
                     f"{importlib.metadata.version('svgpathtools')}+{PATH_BOUNDS_IDENTITY}"
                 ),
-                parameters={"namespace": namespace},
+                parameters={
+                    "namespace": namespace,
+                    "svg_normalization_identity": SVG_NORMALIZATION_IDENTITY,
+                },
             ),
             transaction=Transaction(
                 transaction_id=transaction_id,
@@ -110,7 +140,7 @@ class SVGImportAdapter:
             raise SVGImportError("SVG Import requires a ReferenceArtifact")
         if artifact.media_type not in SVG_MEDIA_TYPES:
             raise SVGImportError(f"Unsupported SVG media type {artifact.media_type!r}")
-        if len(artifact.content) > 5 * 1024 * 1024:
+        if len(artifact.content) > MAX_SVG_BYTES:
             raise SVGImportError("SVG Artifact exceeds the 5 MiB import limit")
         return artifact
 

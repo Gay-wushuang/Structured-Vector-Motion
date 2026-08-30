@@ -66,6 +66,18 @@
         "name": {"type": "string", "minLength": 1},
         "parent_id": {"$ref": "#/$defs/entityId"},
         "semantic_tags": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "source_layer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["manifest_artifact_id", "run_identity", "layer_id", "layer_svg_artifact_id", "z_index"],
+          "properties": {
+            "manifest_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+            "run_identity": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+            "layer_id": {"type": "string", "pattern": "^layer:[a-z0-9][a-z0-9_-]*$"},
+            "layer_svg_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+            "z_index": {"type": "integer", "minimum": 0}
+          }
+        },
         "provenance": {
           "type": "object",
           "additionalProperties": false,

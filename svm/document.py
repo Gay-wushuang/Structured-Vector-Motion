@@ -51,6 +51,9 @@ def validate_document(document: dict[str, Any]) -> None:
         provenance = entity.get("provenance")
         if provenance is not None:
             _validate_entity_provenance(entity["id"], provenance, reference_ids)
+        source_layer = entity.get("source_layer")
+        if source_layer is not None:
+            _validate_source_layer(entity["id"], source_layer, reference_ids)
         parent_id = entity.get("parent_id")
         if parent_id is not None:
             if parent_id not in known_entities:
@@ -166,6 +169,30 @@ def _validate_entity_provenance(entity_id: str, provenance: Any, reference_ids: 
         raise DocumentError(f"Entity {entity_id} has invalid provenance component digest")
     if _bounds(provenance["bounds"]) is None:
         raise DocumentError(f"Entity {entity_id} has invalid provenance bounds")
+
+
+def _validate_source_layer(entity_id: str, source_layer: Any, reference_ids: set[str]) -> None:
+    expected = {
+        "manifest_artifact_id",
+        "run_identity",
+        "layer_id",
+        "layer_svg_artifact_id",
+        "z_index",
+    }
+    if not isinstance(source_layer, dict) or set(source_layer) != expected:
+        raise DocumentError(f"Entity {entity_id} has invalid source-layer fields")
+    if source_layer["manifest_artifact_id"] not in reference_ids:
+        raise DocumentError(f"Entity {entity_id} source layer has missing manifest Artifact")
+    if source_layer["layer_svg_artifact_id"] not in reference_ids:
+        raise DocumentError(f"Entity {entity_id} source layer has missing SVG Artifact")
+    run_identity = source_layer["run_identity"]
+    if (
+        not isinstance(run_identity, str)
+        or len(run_identity) != 71
+        or not run_identity.startswith("sha256:")
+        or any(character not in "0123456789abcdef" for character in run_identity[7:])
+    ):
+        raise DocumentError(f"Entity {entity_id} source layer has invalid run identity")
 
 
 def _validate_structural_relations(

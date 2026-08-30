@@ -1,1 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path id="foreground" d="M 10 8 L 24 16 L 10 24 Z" fill="#D1495B"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path id="foreground-a" d="M 10 8 L 24 16 L 10 24 Z" fill="#D1495B"/><ellipse id="foreground-b" cx="15" cy="16" rx="2" ry="2" fill="#00798C"/><rect id="foreground-c" x="18" y="14" width="2" height="4" fill="#30638E"/></svg>
