@@ -64,9 +64,9 @@ sampled parameters.
 
 `MotionEvaluator.set_keyframe_value()` exists only as a v0.1 runtime invalidation
 harness. It is not persistent Document mutation authority and MUST NOT be used
-by an Editor to save changes. Persistent Keyframe edits require a typed Change,
-atomic Transaction, and new Revision. A canonically equivalent no-op runtime
-edit invalidates no Frames.
+by an Editor to save changes. Persistent Keyframe edits use
+`SetKeyframeValueChange`, an atomic Transaction, and a new Revision. A
+canonically equivalent no-op edit creates no Revision and invalidates no Frames.
 
 Construction scheduling remains a separate time system and is not interpreted
 by Motion v0.1.
@@ -88,3 +88,6 @@ Track/Keyframe IDs, middle-Keyframe temporal invalidation, and cross-time cache
 reuse for an independent static rectangle. A separate `0 -> 1` over three ticks
 case proves non-integral rational interpolation, while `100` versus `100.0`
 proves endpoint numeric canonicalization.
+
+Golden N extends this model across immutable Revision snapshots; see
+`22-motion-revisions.md`.

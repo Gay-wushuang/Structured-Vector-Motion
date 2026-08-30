@@ -47,6 +47,33 @@ class SetOperationParameterChange:
 
 
 @dataclass(frozen=True)
+class SetKeyframeValueChange:
+    """Persist one numeric Keyframe edit without changing Track identity."""
+
+    track_id: str
+    keyframe_id: str
+    value: int | float
+
+    def apply(self, document: dict[str, Any]) -> None:
+        from .motion import canonical_motion_number
+
+        tracks = document.get("animation", {}).get("content", [])
+        track = next((item for item in tracks if item.get("id") == self.track_id), None)
+        if track is None:
+            raise DocumentError(f"Cannot edit missing Animation Track {self.track_id}")
+        keyframe = next(
+            (item for item in track.get("keyframes", []) if item.get("id") == self.keyframe_id),
+            None,
+        )
+        if keyframe is None:
+            raise DocumentError(f"Cannot edit missing Keyframe {self.keyframe_id}")
+        value = canonical_motion_number(self.value)
+        if canonical_motion_number(keyframe.get("value")) == value:
+            raise DocumentError("SetKeyframeValueChange must change the canonical value")
+        keyframe["value"] = value
+
+
+@dataclass(frozen=True)
 class AppendSceneFragmentChange:
     entities: tuple[dict[str, Any], ...]
     operations: tuple[dict[str, Any], ...]

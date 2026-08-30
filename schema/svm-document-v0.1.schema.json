@@ -195,7 +195,8 @@
               "import_scene",
               "reconcile_scene",
               "attach_analysis",
-              "promote_components"
+                "promote_components",
+                "set_keyframe_value"
             ]
           }
         },

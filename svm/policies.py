@@ -72,6 +72,7 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
                     "reconcile_scene",
                     "attach_analysis",
                     "promote_components",
+                    "set_keyframe_value",
                 }
                 for action in actions
             )
@@ -88,6 +89,11 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
             {"document"}
             | {entity["id"] for entity in document["entities"]}
             | {operation["id"] for operation in document["construction"]["operations"]}
+            | {
+                track["id"]
+                for track in document.get("animation", {}).get("content", [])
+                if isinstance(track, dict) and isinstance(track.get("id"), str)
+            }
         )
         missing_targets = sorted(
             target for target in targets if target != "*" and target not in known_targets

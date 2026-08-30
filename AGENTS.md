@@ -49,8 +49,9 @@ Read these files before changing core behavior:
 17. `spec/19-layerpeeler-output-adapter.md` — snapshotted research-output boundary.
 18. `spec/20-layerd-output-adapter.md` — raster layer evidence research boundary.
 19. `spec/21-motion-semantics.md` — deterministic content-animation semantics.
-20. `examples/001-head-basic.svm.json` — current example Document.
-21. `tests/test_golden_a.py` — executable expectations.
+20. `spec/22-motion-revisions.md` — persistent Keyframe editing and revision transition.
+21. `examples/001-head-basic.svm.json` — current example Document.
+22. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -293,6 +294,9 @@ Next milestones:
 14. Motion Semantics and Golden M define integer Timebase, numeric Operation
     parameter Tracks, stable Keyframes, linear sampling, temporal invalidation,
     cross-time static cache reuse, and deterministic SVG Frames.
+15. Motion × Revision and Golden N persist Keyframe values through a registered
+    Change and atomic Revision, retain only unaffected Frame cache entries, keep
+    old snapshots evaluable, and restore exact sampled content through Undo.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

@@ -21,6 +21,13 @@ class TemporalInterval:
 
 
 @dataclass(frozen=True)
+class MotionRevisionDelta:
+    track_id: str
+    keyframe_id: str
+    interval: TemporalInterval
+
+
+@dataclass(frozen=True)
 class MotionFrame:
     tick: int
     seconds: Fraction
@@ -204,6 +211,85 @@ class MotionEvaluator:
             )
         }
         return interval
+
+    def transition_to_revision(
+        self, document: dict[str, Any]
+    ) -> tuple[MotionEvaluator, tuple[MotionRevisionDelta, ...]]:
+        """Create a runtime for a new snapshot and retain only unaffected frame entries."""
+        successor = MotionEvaluator(document, geometry_backend=self.geometry_backend)
+        deltas = motion_revision_deltas(self.document, successor.document)
+        successor.value_cache = self.value_cache
+        successor.frame_cache = {
+            key: frame
+            for key, frame in self.frame_cache.items()
+            if not any(_tick_in_interval(key[0], delta.interval) for delta in deltas)
+        }
+        return successor, deltas
+
+
+def motion_revision_deltas(
+    previous: dict[str, Any], current: dict[str, Any]
+) -> tuple[MotionRevisionDelta, ...]:
+    """Compare compatible Motion snapshots and locate changed interpolation domains."""
+    if _without_keyframe_values(previous) != _without_keyframe_values(current):
+        raise DocumentError("Motion revision transition supports only Keyframe value changes")
+    previous_animation = previous.get("animation", {})
+    current_animation = current.get("animation", {})
+    if {key: value for key, value in previous_animation.items() if key != "content"} != {
+        key: value for key, value in current_animation.items() if key != "content"
+    }:
+        raise DocumentError("Motion revision transition requires unchanged animation semantics")
+    previous_tracks = previous_animation.get("content", [])
+    current_tracks = current_animation.get("content", [])
+    if len(previous_tracks) != len(current_tracks):
+        raise DocumentError("Motion revision transition requires stable Track structure")
+    deltas: list[MotionRevisionDelta] = []
+    for old_track, new_track in zip(previous_tracks, current_tracks, strict=True):
+        old_shape = {key: value for key, value in old_track.items() if key != "keyframes"}
+        new_shape = {key: value for key, value in new_track.items() if key != "keyframes"}
+        old_keyframes = old_track.get("keyframes", [])
+        new_keyframes = new_track.get("keyframes", [])
+        if old_shape != new_shape or len(old_keyframes) != len(new_keyframes):
+            raise DocumentError("Motion revision transition requires stable Track structure")
+        for index, (old_keyframe, new_keyframe) in enumerate(
+            zip(old_keyframes, new_keyframes, strict=True)
+        ):
+            if {key: value for key, value in old_keyframe.items() if key != "value"} != {
+                key: value for key, value in new_keyframe.items() if key != "value"
+            }:
+                raise DocumentError("Motion revision transition requires stable Keyframe identity")
+            if canonical_motion_number(old_keyframe["value"]) == canonical_motion_number(
+                new_keyframe["value"]
+            ):
+                continue
+            deltas.append(
+                MotionRevisionDelta(
+                    track_id=old_track["id"],
+                    keyframe_id=old_keyframe["id"],
+                    interval=_keyframe_influence_interval(old_keyframes, index),
+                )
+            )
+    return tuple(deltas)
+
+
+def _without_keyframe_values(document: dict[str, Any]) -> dict[str, Any]:
+    shape = copy.deepcopy(document)
+    for track in shape.get("animation", {}).get("content", []):
+        for keyframe in track.get("keyframes", []):
+            if "value" in keyframe:
+                keyframe["value"] = None
+    return shape
+
+
+def _keyframe_influence_interval(keyframes: list[dict[str, Any]], index: int) -> TemporalInterval:
+    return TemporalInterval(
+        start_tick=keyframes[index - 1]["tick"] + 1 if index > 0 else 0,
+        end_tick=keyframes[index + 1]["tick"] - 1 if index + 1 < len(keyframes) else None,
+    )
+
+
+def _tick_in_interval(tick: int, interval: TemporalInterval) -> bool:
+    return tick >= interval.start_tick and (interval.end_tick is None or tick <= interval.end_tick)
 
 
 def _ticks_per_second(timebase: Any) -> int:

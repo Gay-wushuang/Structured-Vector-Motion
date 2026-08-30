@@ -219,6 +219,13 @@ only affected sampling ticks, while an independent static rectangle reuses the
 same immutable Value across time. See `spec/21-motion-semantics.md`,
 `examples/017-motion-rectangle.svm.json`, and `tests/test_motion.py`.
 
+Golden N connects Motion to persistent editing. `SetKeyframeValueChange` commits
+one numeric Keyframe value as an atomic Revision without changing Track,
+Keyframe, Operation, or Entity identity. Revision transition keeps unaffected
+Frames and shared immutable Values, invalidates only the changed interpolation
+domain, and leaves the prior Revision independently evaluable and recoverable by
+Undo. See `spec/22-motion-revisions.md` and `tests/test_motion_revision.py`.
+
 ## Development
 
 Install the project and development tools in editable mode:

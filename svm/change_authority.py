@@ -15,6 +15,7 @@ from .revisions import (
     PromoteComponentsChange,
     PromotedComponent,
     ReplaceSceneFragmentChange,
+    SetKeyframeValueChange,
     SetOperationParameterChange,
     SplitEntityChange,
 )
@@ -98,6 +99,10 @@ def _set_parameter(change: Any) -> tuple[Intent, ...]:
     return (("set_parameter", change.operation_id, change.parameter),)
 
 
+def _set_keyframe_value(change: Any) -> tuple[Intent, ...]:
+    return (("set_keyframe_value", change.track_id, None),)
+
+
 def _replace_scene(change: Any) -> tuple[Intent, ...]:
     return (("reconcile_scene", "document", None),) + tuple(
         ("reconcile_scene", entity_id, None) for entity_id in change.existing_entity_ids
@@ -112,6 +117,7 @@ CHANGE_AUTHORITIES = {
     authority.change_type: authority
     for authority in (
         ChangeAuthority(SetOperationParameterChange, _set_parameter),
+        ChangeAuthority(SetKeyframeValueChange, _set_keyframe_value),
         ChangeAuthority(AppendSceneFragmentChange, _single("import_scene")),
         ChangeAuthority(AppendReferencesChange, _single("attach_analysis")),
         ChangeAuthority(PromoteComponentsChange, _single("promote_components"), _verify_promotion),

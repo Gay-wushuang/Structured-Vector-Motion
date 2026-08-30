@@ -13,7 +13,14 @@ from .artifacts import (
 )
 from .backends import GeometryBackend, GeometryBackendError
 from .evaluator import EvaluationState, Evaluator, Quality
-from .motion import MOTION_SEMANTICS_IDENTITY, MotionEvaluator, MotionFrame, TemporalInterval
+from .motion import (
+    MOTION_SEMANTICS_IDENTITY,
+    MotionEvaluator,
+    MotionFrame,
+    MotionRevisionDelta,
+    TemporalInterval,
+    motion_revision_deltas,
+)
 from .operations import (
     OperationDefinition,
     OperationExecutionContext,
@@ -51,6 +58,7 @@ from .revisions import (
     RasterLayerEvidence,
     ReplaceSceneFragmentChange,
     RevisionStore,
+    SetKeyframeValueChange,
     SetOperationParameterChange,
     SplitEntityChange,
     SplitPart,
@@ -84,7 +92,9 @@ __all__ = [
     "MOTION_SEMANTICS_IDENTITY",
     "MotionEvaluator",
     "MotionFrame",
+    "MotionRevisionDelta",
     "TemporalInterval",
+    "motion_revision_deltas",
     "RevisionStore",
     "COMPONENT_PROMOTION_IDENTITY",
     "COMPONENT_PROMOTION_ADAPTER_VERSION",
@@ -98,6 +108,7 @@ __all__ = [
     "ReplaceSceneFragmentChange",
     "RasterLayerEvidence",
     "SetOperationParameterChange",
+    "SetKeyframeValueChange",
     "SplitEntityChange",
     "SplitPart",
     "Transaction",
