@@ -46,8 +46,9 @@ Read these files before changing core behavior:
 14. `spec/16-opencv-artifact-analysis.md` — deterministic raster analysis evidence.
 15. `spec/17-component-promotion.md` — explicit evidence-to-Entity promotion.
 16. `spec/18-structural-relations.md` — orthogonal evidence-backed relations.
-17. `examples/001-head-basic.svm.json` — current example Document.
-18. `tests/test_golden_a.py` — executable expectations.
+17. `spec/19-layerpeeler-output-adapter.md` — snapshotted research-output boundary.
+18. `examples/001-head-basic.svm.json` — current example Document.
+19. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -276,6 +277,10 @@ Next milestones:
     immediate `bounds-contains` edges without changing Entity hierarchy, Render
     Stack order, construction, or animation. Document Format v0.1 remains an
     explicitly unfrozen development draft until the first public format freeze.
+12. LayerPeeler Output Adapter and Golden K consume only immutable, manifest-bound
+    research output Artifacts and normalize supported layer SVGs through existing
+    Entity, Operation, Style, and Render Stack semantics. Core never invokes or
+    depends on the research model.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

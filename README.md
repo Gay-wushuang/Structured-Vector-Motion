@@ -186,6 +186,17 @@ modify `parent_id`, Render Stack order,
 construction, or animation. See Golden J and
 `spec/18-structural-relations.md`.
 
+## LayerPeeler research output
+
+Golden K consumes a fixed, content-addressed snapshot of an external LayerPeeler
+run. Its canonical manifest records the upstream commit, model identity,
+checkpoint hash, seed, source Artifact, SVG hashes, and back-to-front layer
+order. The Adapter never imports or executes the research model; accepted SVG
+shapes are normalized through the existing SVG subset into ordinary Entities,
+Operations, Styles, and Render Stack entries. See
+`spec/19-layerpeeler-output-adapter.md` and
+`tests/test_layerpeeler_output_adapter.py`.
+
 ## Development
 
 Install the project and development tools in editable mode:
