@@ -17,9 +17,15 @@ from ..proposals import (
     Proposal,
     ProposalPreview,
 )
-from ..revisions import PromoteComponentsChange, PromotedComponent, Transaction
+from ..revisions import (
+    COMPONENT_PROMOTION_IDENTITY,
+    PromoteComponentsChange,
+    PromotedComponent,
+    Transaction,
+    promoted_component_entity_id,
+)
 
-PROMOTION_IDENTITY = "svm-component-promotion@0.2"
+PROMOTION_IDENTITY = COMPONENT_PROMOTION_IDENTITY
 ANALYSIS_SCHEMA = "svm-component-analysis-0.2"
 ANALYSIS_IDENTITY = "svm-opencv-components@0.2"
 ANALYSIS_MEDIA_TYPE = "application/vnd.svm.component-analysis+json"
@@ -34,7 +40,7 @@ class ComponentPromotionError(ValueError):
 
 class ComponentPromotionAdapter:
     adapter_id = "adapter:component-promotion"
-    adapter_version = "0.2"
+    adapter_version = "0.3"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -80,16 +86,15 @@ class ComponentPromotionAdapter:
                 raise ComponentPromotionError(
                     f"Candidate {candidate['candidate_id']} is already promoted"
                 )
-            entity_id = _entity_id(namespace, snapshot.artifact_id, candidate)
-            if entity_id in existing_ids:
-                raise ComponentPromotionError(f"Promoted Entity ID collision: {entity_id}")
             component = PromotedComponent(
-                entity_id=entity_id,
                 artifact_id=snapshot.artifact_id,
                 candidate_id=candidate["candidate_id"],
                 component_digest=candidate["component_digest"],
             )
-            entity = component.to_entity()
+            entity_id = promoted_component_entity_id(namespace, component)
+            if entity_id in existing_ids:
+                raise ComponentPromotionError(f"Promoted Entity ID collision: {entity_id}")
+            entity = component.to_entity(namespace)
             components.append(component)
             entities.append(entity)
             previews.append(
@@ -135,6 +140,7 @@ class ComponentPromotionAdapter:
                     PromoteComponentsChange(
                         components=tuple(components),
                         references=(reference,),
+                        namespace=namespace,
                     ),
                 ),
                 message="Promote accepted component-analysis candidates to Entities",
@@ -366,20 +372,6 @@ def _select_candidates(
         raise ComponentPromotionError(f"Unknown component candidate(s): {', '.join(missing)}")
     selected = set(selected_ids)
     return tuple(candidate for candidate in candidates if candidate["candidate_id"] in selected)
-
-
-def _entity_id(namespace: str, artifact_id: str, candidate: dict[str, Any]) -> str:
-    digest = hashlib.sha256(
-        canonical_bytes(
-            {
-                "promotion_identity": PROMOTION_IDENTITY,
-                "artifact_id": artifact_id,
-                "candidate_id": candidate["candidate_id"],
-                "component_digest": candidate["component_digest"],
-            }
-        )
-    ).hexdigest()[:16]
-    return f"entity:{namespace}-{digest}"
 
 
 def _positive_int(value: Any) -> bool:

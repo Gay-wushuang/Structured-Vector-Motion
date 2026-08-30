@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 import copy
+import json
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from .artifacts import ArtifactError, ArtifactResolver
-from .evaluator import Quality
+from .artifacts import ArtifactError, ArtifactResolver, ArtifactSnapshot
+from .evaluator import Quality, canonical_bytes
 from .policies import PolicyEnforcementError, enforce_transaction_policies
-from .revisions import Revision, RevisionStore, Transaction
+from .revisions import (
+    PromoteComponentsChange,
+    PromotedComponent,
+    Revision,
+    RevisionStore,
+    Transaction,
+)
 
 
 class ProposalConflictError(RuntimeError):
@@ -144,7 +151,8 @@ class ProposalAcceptor:
             )
         if proposal.report.constraint_violations:
             raise ProposalPolicyError("Proposal has unresolved constraint violations")
-        self._verify_artifacts(proposal, artifacts)
+        resolved_artifacts = self._verify_artifacts(proposal, artifacts)
+        self._verify_artifact_bound_changes(proposal, resolved_artifacts)
         document = store.get_document(proposal.base_revision_id)
         try:
             enforce_transaction_policies(
@@ -155,7 +163,9 @@ class ProposalAcceptor:
         return store.commit(proposal.base_revision_id, proposal.transaction)
 
     @staticmethod
-    def _verify_artifacts(proposal: Proposal, artifacts: ArtifactResolver | None) -> None:
+    def _verify_artifacts(
+        proposal: Proposal, artifacts: ArtifactResolver | None
+    ) -> dict[str, ArtifactSnapshot]:
         references = tuple(
             reference
             for change in proposal.transaction.changes
@@ -170,11 +180,81 @@ class ProposalAcceptor:
                 "Proposal required Artifact IDs do not match Transaction references"
             )
         if not required_ids:
-            return
+            return {}
         if artifacts is None:
             raise ProposalArtifactError("Proposal acceptance requires an Artifact resolver")
         try:
+            resolved: dict[str, ArtifactSnapshot] = {}
             for reference in references:
-                artifacts.resolve_reference(reference)
+                snapshot = artifacts.resolve_reference(reference)
+                resolved[snapshot.artifact_id] = snapshot
         except ArtifactError as exc:
             raise ProposalArtifactError(str(exc)) from exc
+        return resolved
+
+    @staticmethod
+    def _verify_artifact_bound_changes(
+        proposal: Proposal, resolved: dict[str, ArtifactSnapshot]
+    ) -> None:
+        for change in proposal.transaction.changes:
+            if not isinstance(change, PromoteComponentsChange):
+                continue
+            if len(change.references) != 1:
+                raise ProposalArtifactError(
+                    "Component promotion requires exactly one resolved analysis Artifact"
+                )
+            artifact_id = change.references[0].get("id")
+            if not isinstance(artifact_id, str):
+                raise ProposalArtifactError(
+                    "Component promotion analysis reference requires an Artifact ID"
+                )
+            snapshot = resolved.get(artifact_id)
+            if snapshot is None:
+                raise ProposalArtifactError(
+                    "Component promotion analysis Artifact was not resolved"
+                )
+            try:
+                payload = json.loads(snapshot.content.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise ProposalArtifactError(
+                    "Component promotion analysis Artifact is not valid UTF-8 JSON"
+                ) from exc
+            if (
+                not isinstance(payload, dict)
+                or canonical_bytes(payload) != snapshot.content
+                or payload.get("schema_version") != "svm-component-analysis-0.2"
+                or not isinstance(payload.get("components"), list)
+            ):
+                raise ProposalArtifactError(
+                    "Component promotion requires canonical component-analysis v0.2"
+                )
+            candidates: dict[str, str] = {}
+            for candidate in payload["components"]:
+                if not isinstance(candidate, dict):
+                    raise ProposalArtifactError("Component-analysis candidate is invalid")
+                candidate_id = candidate.get("candidate_id")
+                component_digest = candidate.get("component_digest")
+                if not isinstance(candidate_id, str) or not isinstance(component_digest, str):
+                    raise ProposalArtifactError("Component-analysis candidate identity is invalid")
+                if candidate_id in candidates:
+                    raise ProposalArtifactError("Component-analysis candidate IDs must be unique")
+                candidates[candidate_id] = component_digest
+            for component in change.components:
+                if type(component) is not PromotedComponent:
+                    raise ProposalArtifactError(
+                        "Component promotion accepts only PromotedComponent records"
+                    )
+                if component.artifact_id != snapshot.artifact_id:
+                    raise ProposalArtifactError(
+                        "Promoted component Artifact does not match resolved analysis"
+                    )
+                expected_digest = candidates.get(component.candidate_id)
+                if expected_digest is None:
+                    raise ProposalArtifactError(
+                        f"Promoted candidate {component.candidate_id} is absent from analysis"
+                    )
+                if component.component_digest != expected_digest:
+                    raise ProposalArtifactError(
+                        f"Promoted candidate {component.candidate_id} digest "
+                        "does not match analysis"
+                    )

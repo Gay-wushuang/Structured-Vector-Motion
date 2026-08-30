@@ -13,14 +13,17 @@ from svm import (
     AdapterRequest,
     ArtifactKind,
     ArtifactStore,
+    GeneratorProvenance,
     PromoteComponentsChange,
     PromotedComponent,
+    Proposal,
     ProposalAcceptor,
     ProposalArtifactError,
     ProposalConflictError,
     ProposalPolicyError,
     RevisionStore,
     Transaction,
+    promoted_component_entity_id,
 )
 from svm.adapters import ComponentPromotionAdapter, ComponentPromotionError
 from svm.document import validate_document
@@ -86,7 +89,7 @@ class ComponentPromotionGoldenITest(unittest.TestCase):
             )
 
         self.assertEqual(self.store.get_document(self.store.head), self.document)
-        self.assertEqual(proposal.generator.engine_version, "svm-component-promotion@0.2")
+        self.assertEqual(proposal.generator.engine_version, "svm-component-promotion@0.3")
         self.assertIsNone(proposal.confidence)
         self.assertEqual(proposal.report.metrics, {"promoted_components": 2.0})
         self.assertEqual(
@@ -155,6 +158,15 @@ class ComponentPromotionGoldenITest(unittest.TestCase):
             ),
             references=(reference,),
         )
+        raw_proposal = Proposal(
+            proposal_id="proposal:raw-injection",
+            base_revision_id=self.store.head,
+            generator=GeneratorProvenance("adapter:untrusted-third-party", "1.0", "manual", "1.0"),
+            transaction=Transaction("transaction:raw-injection", (malicious,)),
+            required_artifact_ids=(self.analysis.artifact_id,),  # type: ignore[attr-defined]
+        )
+        with self.assertRaisesRegex(ProposalArtifactError, "only PromotedComponent"):
+            ProposalAcceptor().accept(self.store, raw_proposal, self.artifacts)
         with self.assertRaisesRegex(DocumentError, "only PromotedComponent"):
             self.store.commit(
                 self.store.head,
@@ -163,7 +175,6 @@ class ComponentPromotionGoldenITest(unittest.TestCase):
         self.assertEqual(self.store.get_document(self.store.head), self.document)
 
         component = PromotedComponent(
-            entity_id="entity:opaque-core-owned-id",
             artifact_id=self.analysis.artifact_id,  # type: ignore[attr-defined]
             candidate_id=CANDIDATES[0],
             component_digest="sha256:a5f53746c04e276c7f63092959c1ea9f3ef736db4479f8f331c05083abd74f8a",
@@ -176,9 +187,53 @@ class ComponentPromotionGoldenITest(unittest.TestCase):
             ),
         )
         entity = self.store.get_document(revision.revision_id)["entities"][0]
+        self.assertEqual(entity["id"], promoted_component_entity_id("region", component))
         self.assertEqual(entity["name"], "Region 0001")
         self.assertEqual(entity["semantic_tags"], ["region", "promoted-component"])
         self.assertEqual(entity["provenance"]["type"], "PromotedComponent")
+
+    def test_acceptor_rejects_handcrafted_absent_candidate_and_wrong_digest(self) -> None:
+        reference = next(
+            reference
+            for reference in self.document["references"]
+            if reference["id"] == self.analysis.artifact_id  # type: ignore[attr-defined]
+        )
+        generator = GeneratorProvenance(
+            adapter_id="adapter:untrusted-third-party",
+            adapter_version="1.0",
+            engine="manual",
+            engine_version="1.0",
+        )
+        for component, message in (
+            (
+                PromotedComponent(
+                    artifact_id=self.analysis.artifact_id,  # type: ignore[attr-defined]
+                    candidate_id="candidate:component-999999",
+                    component_digest="sha256:" + "0" * 64,
+                ),
+                "absent from analysis",
+            ),
+            (
+                PromotedComponent(
+                    artifact_id=self.analysis.artifact_id,  # type: ignore[attr-defined]
+                    candidate_id=CANDIDATES[0],
+                    component_digest="sha256:" + "0" * 64,
+                ),
+                "digest does not match",
+            ),
+        ):
+            with self.subTest(candidate=component.candidate_id, message=message):
+                change = PromoteComponentsChange((component,), (reference,))
+                proposal = Proposal(
+                    proposal_id="proposal:handcrafted-promotion",
+                    base_revision_id=self.store.head,
+                    generator=generator,
+                    transaction=Transaction("transaction:handcrafted-promotion", (change,)),
+                    required_artifact_ids=(self.analysis.artifact_id,),  # type: ignore[attr-defined]
+                )
+                with self.assertRaisesRegex(ProposalArtifactError, message):
+                    ProposalAcceptor().accept(self.store, proposal, self.artifacts)
+                self.assertEqual(self.store.get_document(self.store.head), self.document)
 
     def test_unaccepted_malformed_and_wrong_provenance_evidence_fail_closed(self) -> None:
         empty = copy.deepcopy(self.document)

@@ -38,6 +38,7 @@ from .proposals import (
     StructuralCandidatePreview,
 )
 from .revisions import (
+    COMPONENT_PROMOTION_IDENTITY,
     AppendReferencesChange,
     AppendSceneFragmentChange,
     PromoteComponentsChange,
@@ -48,6 +49,7 @@ from .revisions import (
     SplitEntityChange,
     SplitPart,
     Transaction,
+    promoted_component_entity_id,
 )
 from .scene import EvaluatedEntity, EvaluatedScene, EvaluatedStyle, build_evaluated_scene
 
@@ -73,6 +75,7 @@ __all__ = [
     "ValueType",
     "get_operation_registry",
     "RevisionStore",
+    "COMPONENT_PROMOTION_IDENTITY",
     "AppendSceneFragmentChange",
     "AppendReferencesChange",
     "PromoteComponentsChange",
@@ -82,6 +85,7 @@ __all__ = [
     "SplitEntityChange",
     "SplitPart",
     "Transaction",
+    "promoted_component_entity_id",
     "EvaluatedEntity",
     "EvaluatedScene",
     "EvaluatedStyle",

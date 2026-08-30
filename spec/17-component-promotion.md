@@ -1,4 +1,4 @@
-# Component Promotion v0.2
+# Component Promotion v0.3
 
 ## Status
 
@@ -68,7 +68,7 @@ Each selected candidate creates one deterministic neutral Entity:
 
 Promotion means only that a user accepted an evidence region as an independent,
 addressable semantic object. It does not claim `Hair`, `Face`, or any other
-recognized class. v0.2 creates no geometry Operation, output binding, Style, or
+recognized class. v0.3 creates no geometry Operation, output binding, Style, or
 Render Stack entry because component-analysis does not contain accepted vector
 geometry.
 
@@ -78,22 +78,31 @@ namespace but not the evidence provenance.
 
 ## Transaction and policy
 
-Component Promotion v0.2 supersedes v0.1 because it narrows admissible evidence,
-adds descriptor-chain consistency requirements, closes arbitrary Entity
-injection, and expands the candidate-ID grammar.
+Component Promotion v0.3 supersedes v0.2 because Artifact-bound Change semantics
+are now enforced by the Proposal Acceptor and Entity IDs are Core-derived rather
+than caller-supplied. v0.2 had already narrowed admissible evidence, added
+descriptor-chain consistency, closed arbitrary semantic Entity injection, and
+expanded the candidate-ID grammar.
 
-`PromoteComponentsChange` accepts typed `PromotedComponent` records rather than
-arbitrary Entity dictionaries. Core constructs the fixed neutral name, semantic
-tags, and provenance shown above. Core rejects mismatched Artifact IDs,
-duplicate candidates, repeated promotion, malformed candidate/digest IDs, and
-existing Entity IDs. An Adapter cannot use this Change to introduce arbitrary
-recognized-object semantics.
+`PromoteComponentsChange` accepts typed `PromotedComponent` records without an
+Entity ID rather than arbitrary Entity dictionaries. Core constructs the fixed
+neutral name, semantic tags, provenance, and deterministic Entity ID shown
+above. Core rejects mismatched Artifact IDs, duplicate candidates, repeated
+promotion, malformed candidate/digest IDs, and derived Entity ID collisions. An
+Adapter cannot use this Change to introduce arbitrary recognized-object
+semantics.
 
 The Change atomically appends all selected Entities and requires the exact
 component-analysis reference to already exist in the base Document.
 Its policy intent is `promote_components` on `document`. The Proposal requires
 that Artifact descriptor and bytes again at acceptance, so content or descriptor
 drift fails closed.
+
+Before policy enforcement or Transaction application, `ProposalAcceptor`
+performs Artifact-bound Change validation. It parses the resolved canonical
+component-analysis v0.2 bytes, requires every promoted candidate to exist, and
+requires its digest to match exactly. Handcrafted or third-party Proposals
+therefore cannot bypass the official Adapter's evidence validation.
 
 Without opening source or mask pixels, the Adapter cross-checks the evidence
 chain. Analysis payload source, threshold, foreground, and connectivity MUST
@@ -119,3 +128,5 @@ Golden I promotes both candidates from Golden H and proves:
 7. stale, duplicate, and repeated promotion are rejected.
 8. arbitrary Entity injection, payload/descriptor drift, unrelated accepted
    PNG masks, and candidate IDs above 9999 are covered by fail-closed tests.
+9. handcrafted Proposals with absent candidates or forged component digests are
+   rejected by the acceptance authority before commit.

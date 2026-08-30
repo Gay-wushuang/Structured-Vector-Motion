@@ -9,6 +9,8 @@ from typing import Any, Protocol
 from .document import validate_document
 from .evaluator import DocumentError, canonical_bytes
 
+COMPONENT_PROMOTION_IDENTITY = "svm-component-promotion@0.3"
+
 
 class Change(Protocol):
     def apply(self, document: dict[str, Any]) -> None: ...
@@ -86,14 +88,11 @@ class AppendReferencesChange:
 
 @dataclass(frozen=True)
 class PromotedComponent:
-    entity_id: str
     artifact_id: str
     candidate_id: str
     component_digest: str
 
-    def to_entity(self) -> dict[str, Any]:
-        if not self.entity_id.startswith("entity:"):
-            raise DocumentError("Promoted component Entity ID must start with entity:")
+    def to_entity(self, namespace: str) -> dict[str, Any]:
         if re.fullmatch(r"artifact:[0-9a-f]{64}", self.artifact_id) is None:
             raise DocumentError("Promoted component Artifact ID is invalid")
         if re.fullmatch(r"candidate:component-[0-9]{4,}", self.candidate_id) is None:
@@ -101,7 +100,7 @@ class PromotedComponent:
         if re.fullmatch(r"sha256:[0-9a-f]{64}", self.component_digest) is None:
             raise DocumentError("Promoted component digest is invalid")
         return {
-            "id": self.entity_id,
+            "id": promoted_component_entity_id(namespace, self),
             "name": f"Region {self.candidate_id.rsplit('-', 1)[1]}",
             "semantic_tags": ["region", "promoted-component"],
             "provenance": {
@@ -119,6 +118,7 @@ class PromoteComponentsChange:
 
     components: tuple[PromotedComponent, ...]
     references: tuple[dict[str, Any], ...]
+    namespace: str = "region"
 
     def policy_intent(self) -> tuple[str, str, str | None]:
         return "promote_components", "document", None
@@ -128,6 +128,8 @@ class PromoteComponentsChange:
             raise DocumentError("Component promotion requires at least one component")
         if any(type(component) is not PromotedComponent for component in self.components):
             raise DocumentError("Component promotion accepts only PromotedComponent records")
+        if re.fullmatch(r"[a-z0-9][a-z0-9_-]*", self.namespace) is None:
+            raise DocumentError("Component promotion namespace is invalid")
         if len(self.references) != 1:
             raise DocumentError("Component promotion requires one analysis Artifact reference")
         accepted_references = {reference["id"]: reference for reference in document["references"]}
@@ -162,7 +164,7 @@ class PromoteComponentsChange:
             for component in self.components
         ):
             raise DocumentError("Component promotion candidate is already promoted")
-        entities = [component.to_entity() for component in self.components]
+        entities = [component.to_entity(self.namespace) for component in self.components]
         entity_ids = {entity["id"] for entity in document["entities"]}
         new_ids = [entity["id"] for entity in entities]
         if len(new_ids) != len(set(new_ids)) or any(
@@ -170,6 +172,22 @@ class PromoteComponentsChange:
         ):
             raise DocumentError("Promoted component Entity IDs must be new and unique")
         document["entities"].extend(entities)
+
+
+def promoted_component_entity_id(namespace: str, component: PromotedComponent) -> str:
+    if re.fullmatch(r"[a-z0-9][a-z0-9_-]*", namespace) is None:
+        raise DocumentError("Component promotion namespace is invalid")
+    digest = hashlib.sha256(
+        canonical_bytes(
+            {
+                "promotion_identity": COMPONENT_PROMOTION_IDENTITY,
+                "artifact_id": component.artifact_id,
+                "candidate_id": component.candidate_id,
+                "component_digest": component.component_digest,
+            }
+        )
+    ).hexdigest()[:16]
+    return f"entity:{namespace}-{digest}"
 
 
 @dataclass(frozen=True)
