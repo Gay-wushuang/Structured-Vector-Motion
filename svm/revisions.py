@@ -93,7 +93,7 @@ class RasterLayerEvidence:
 
     def to_entity(self, namespace: str) -> dict[str, Any]:
         content = {
-            "identity": "svm-layerd-entity@0.1",
+            "identity": "svm-layerd-entity@0.2",
             "bundle_artifact_id": self.bundle_artifact_id,
             "run_identity": self.run_identity,
             "layer_id": self.layer_id,
@@ -114,7 +114,7 @@ class RasterLayerEvidence:
                 "layer_artifact_id": self.layer_artifact_id,
                 "order": {
                     "index": self.order_index,
-                    "semantics": "background-then-top-to-bottom-extraction",
+                    "semantics": "svm-order:layerd-extraction@0.1",
                 },
             },
         }

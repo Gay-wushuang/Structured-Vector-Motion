@@ -1,4 +1,4 @@
-# LayerPeeler Research Output Adapter v0.2
+# LayerPeeler Research Output Adapter v0.3
 
 ## Status
 
@@ -32,16 +32,20 @@ checkpoint, prompt, or private layer graph becomes Core Document semantics.
 Each accepted shape records the generic machine-readable `source_layer`
 association: producer family, bundle Artifact, run identity, layer ID, layer
 Artifact, and an explicit `{index, semantics}` order-evidence record. LayerPeeler
-uses `back-to-front`; it does not give that order semantic-hierarchy meaning.
+uses `svm-order:back-to-front@0.1`; it does not give that order
+semantic-hierarchy meaning.
 Multiple SVG shapes from one research layer therefore remain associated without
 creating semantic hierarchy.
 
-The consumer Adapter identity is `svm-layerpeeler-output-adapter@0.2`; the
+The consumer Adapter identity is `svm-layerpeeler-output-adapter@0.3`; the
 independent bundle identity is `svm-layerpeeler-output@0.2`. The manifest media type is
 `application/vnd.svm.layerpeeler-output+json` and its schema identity is
 `svm-layerpeeler-output-0.2`. Model-run identity is independently versioned as
 `svm-layerpeeler-run@0.1`, so an Adapter-only upgrade does not rename the same
 recorded research run.
+
+Adapter v0.3 changes only accepted Document normalization by adopting the
+generic `source_layer` evidence binding. Bundle v0.2 and run v0.1 remain stable.
 
 `source_layer` is a reserved Artifact-bound semantic field. Generic scene
 changes may not introduce it. Proposal acceptance dispatches only exact built-in

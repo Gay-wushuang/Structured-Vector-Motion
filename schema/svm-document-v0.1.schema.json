@@ -82,7 +82,7 @@
                 "required": ["index", "semantics"],
                 "properties": {
                   "index": {"type": "integer", "minimum": 0},
-                  "semantics": {"type": "string", "enum": ["back-to-front", "background-then-top-to-bottom-extraction"]}
+                  "semantics": {"type": "string", "pattern": "^svm-order:[a-z0-9][a-z0-9_-]*@[0-9]+\\.[0-9]+$"}
                 }
               }
             }

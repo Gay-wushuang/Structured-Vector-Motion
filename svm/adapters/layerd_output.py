@@ -26,11 +26,11 @@ from ..revisions import (
 
 MANIFEST_MEDIA_TYPE = "application/vnd.svm.layerd-output+json"
 ANALYSIS_MEDIA_TYPE = "application/vnd.svm.layerd-analysis+json"
-MANIFEST_SCHEMA = "svm-layerd-output-0.1"
+MANIFEST_SCHEMA = "svm-layerd-output-0.2"
 ANALYSIS_SCHEMA = "svm-layerd-analysis-0.1"
-RUN_IDENTITY = "svm-layerd-run@0.1"
-BUNDLE_IDENTITY = "svm-layerd-output@0.1"
-ADAPTER_IDENTITY = "svm-layerd-output-adapter@0.1"
+RUN_IDENTITY = "svm-layerd-run@0.2"
+BUNDLE_IDENTITY = "svm-layerd-output@0.2"
+ADAPTER_IDENTITY = "svm-layerd-output-adapter@0.2"
 RGBA_IDENTITY = "svm-png-rgba8-filter0@0.1"
 MAX_LAYERS = 64
 MAX_PNG_BYTES = 16 * 1024 * 1024
@@ -55,6 +55,8 @@ def layerd_run_identity(payload: dict[str, Any]) -> str:
                 "seed": producer["seed"],
                 "runtime": producer["runtime"],
                 "device": producer["device"],
+                "execution": payload["execution"],
+                "analysis_pipeline": payload["analysis_pipeline"],
             }
         )
     ).hexdigest()
@@ -111,7 +113,7 @@ class LayerDOutputAdapter:
     """Consume an immutable LayerD result bundle; never execute its models."""
 
     adapter_id = "adapter:layerd-output"
-    adapter_version = "0.1"
+    adapter_version = "0.2"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -258,6 +260,8 @@ def _validate_bundle(
             "producer",
             "analysis_artifact_id",
             "analysis_content_hash",
+            "execution",
+            "analysis_pipeline",
             "layers",
         }
         or payload.get("schema_version") != MANIFEST_SCHEMA
@@ -292,6 +296,8 @@ def _validate_bundle(
         or not producer["device"]
     ):
         raise LayerDOutputError("LayerD execution provenance is invalid")
+    _validate_execution(payload.get("execution"))
+    _validate_analysis_pipeline(payload.get("analysis_pipeline"))
     if payload.get("run_identity") != layerd_run_identity(payload):
         raise LayerDOutputError("LayerD run identity is invalid")
     source_artifact_id = payload.get("source_artifact_id")
@@ -471,6 +477,52 @@ def _validate_descriptor(
     }
     if snapshot.provenance != expected:
         raise LayerDOutputError(f"{derived_type} provenance is inconsistent")
+
+
+def _validate_execution(value: Any) -> None:
+    if not isinstance(value, dict) or set(value) != {
+        "max_iterations",
+        "kernel_scale",
+        "matting_process_size",
+        "use_unblend",
+        "fg_refine",
+        "bg_refine",
+    }:
+        raise LayerDOutputError("LayerD execution contract is invalid")
+    size = value["matting_process_size"]
+    if (
+        not isinstance(value["max_iterations"], int)
+        or isinstance(value["max_iterations"], bool)
+        or value["max_iterations"] <= 0
+        or not isinstance(value["kernel_scale"], (int, float))
+        or isinstance(value["kernel_scale"], bool)
+        or not 0 < value["kernel_scale"] <= 1
+        or not isinstance(size, list)
+        or len(size) != 2
+        or any(not isinstance(item, int) or isinstance(item, bool) or item <= 0 for item in size)
+        or any(
+            not isinstance(value[key], bool) for key in ("use_unblend", "fg_refine", "bg_refine")
+        )
+    ):
+        raise LayerDOutputError("LayerD execution parameters are invalid")
+
+
+def _validate_analysis_pipeline(value: Any) -> None:
+    if not isinstance(value, dict) or set(value) != {
+        "element_extractor_identity",
+        "classifier_identity",
+        "classifier_parameters",
+    }:
+        raise LayerDOutputError("LayerD analysis pipeline contract is invalid")
+    identity_pattern = r"[a-z0-9][a-z0-9._-]*@[0-9]+\.[0-9]+"
+    if (
+        not isinstance(value["element_extractor_identity"], str)
+        or re.fullmatch(identity_pattern, value["element_extractor_identity"]) is None
+        or not isinstance(value["classifier_identity"], str)
+        or re.fullmatch(identity_pattern, value["classifier_identity"]) is None
+        or not isinstance(value["classifier_parameters"], dict)
+    ):
+        raise LayerDOutputError("LayerD analysis pipeline identity is invalid")
 
 
 def _full_sha(value: Any) -> bool:

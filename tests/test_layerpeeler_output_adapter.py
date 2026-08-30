@@ -114,6 +114,11 @@ class LayerPeelerOutputGoldenKTest(unittest.TestCase):
         adapter = LayerPeelerOutputAdapter()
         first = adapter.propose(self.request(), self.artifacts)
         second = adapter.propose(self.request(), self.artifacts)
+        self.assertEqual(adapter.adapter_version, "0.3")
+        self.assertEqual(
+            first.generator.parameters["identity"],
+            "svm-layerpeeler-output-adapter@0.3",
+        )
         self.assertEqual(first.proposal_id, second.proposal_id)
         self.assertEqual(self.store.get_document(self.store.head), self.document)
         self.assertEqual(first.report.metrics, {"layers": 2.0, "shapes": 4.0})

@@ -1,3 +1,4 @@
+import builtins
 import hashlib
 import json
 import struct
@@ -5,6 +6,7 @@ import unittest
 import zlib
 from dataclasses import replace
 from pathlib import Path
+from unittest import mock
 
 from svm import (
     AdapterRequest,
@@ -13,10 +15,12 @@ from svm import (
     ImportRasterLayerEvidenceChange,
     ProposalAcceptor,
     ProposalArtifactError,
+    ProposalPolicyError,
     RevisionStore,
 )
 from svm.adapters import LayerDOutputAdapter, LayerDOutputError
 from svm.adapters.layerd_output import layerd_run_identity
+from svm.document import validate_document
 from svm.evaluator import canonical_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,7 +56,17 @@ class LayerDGoldenLTest(unittest.TestCase):
         self.store = RevisionStore.create(self.document)
         self.artifacts, self.ids = self._bundle()
 
-    def _bundle(self, *, label: str = "text") -> tuple[ArtifactStore, tuple[str, ...]]:
+    def _bundle(
+        self,
+        *,
+        label: str = "text",
+        max_iterations: int = 3,
+        classifier_identity: str = "entropy-labeler@0.1",
+        manifest_hash_valid: bool = True,
+        analysis_alpha_count: int = 4,
+        analysis_canvas_width: int = 4,
+        layer_run_override: str | None = None,
+    ) -> tuple[ArtifactStore, tuple[str, ...]]:
         artifacts = ArtifactStore()
         source = artifacts.import_bytes(
             SOURCE.read_bytes(),
@@ -69,7 +83,25 @@ class LayerDGoldenLTest(unittest.TestCase):
             "runtime": "recorded-golden-l",
             "device": "cpu",
         }
-        identity_payload = {"source_artifact_id": source.artifact_id, "producer": producer}
+        execution = {
+            "max_iterations": max_iterations,
+            "kernel_scale": 0.015,
+            "matting_process_size": [1024, 1024],
+            "use_unblend": True,
+            "fg_refine": True,
+            "bg_refine": True,
+        }
+        analysis_pipeline = {
+            "element_extractor_identity": "layerd-elements@0.1",
+            "classifier_identity": classifier_identity,
+            "classifier_parameters": {"bins": 16},
+        }
+        identity_payload = {
+            "source_artifact_id": source.artifact_id,
+            "producer": producer,
+            "execution": execution,
+            "analysis_pipeline": analysis_pipeline,
+        }
         run_identity = layerd_run_identity(identity_payload)
         pixel_sets = (
             {(x, y) for y in range(4) for x in range(4)},
@@ -86,8 +118,8 @@ class LayerDGoldenLTest(unittest.TestCase):
                     provenance={
                         "derived_type": "rgba-layer",
                         "producer_family": "layerd",
-                        "bundle_identity": "svm-layerd-output@0.1",
-                        "run_identity": run_identity,
+                        "bundle_identity": "svm-layerd-output@0.2",
+                        "run_identity": layer_run_override or run_identity,
                         "source_artifact_id": source.artifact_id,
                         "layer_id": layer_id,
                         "sequence_index": index,
@@ -98,7 +130,7 @@ class LayerDGoldenLTest(unittest.TestCase):
             "schema_version": "svm-layerd-analysis-0.1",
             "source_artifact_id": source.artifact_id,
             "run_identity": run_identity,
-            "canvas": {"width": 4, "height": 4},
+            "canvas": {"width": analysis_canvas_width, "height": 4},
             "layers": [
                 {
                     "layer_id": "layer:background",
@@ -113,7 +145,7 @@ class LayerDGoldenLTest(unittest.TestCase):
                     "sequence_index": 1,
                     "rgba_artifact_id": layer_artifacts[1].artifact_id,
                     "alpha_bounds": [1, 1, 3, 3],
-                    "alpha_pixel_count": 4,
+                    "alpha_pixel_count": analysis_alpha_count,
                     "elements": [
                         {
                             "element_id": "candidate:element-0001",
@@ -131,16 +163,18 @@ class LayerDGoldenLTest(unittest.TestCase):
             provenance={
                 "derived_type": "layerd-analysis",
                 "producer_family": "layerd",
-                "bundle_identity": "svm-layerd-output@0.1",
+                "bundle_identity": "svm-layerd-output@0.2",
                 "run_identity": run_identity,
                 "source_artifact_id": source.artifact_id,
             },
         )
         manifest_payload = {
-            "schema_version": "svm-layerd-output-0.1",
+            "schema_version": "svm-layerd-output-0.2",
             "source_artifact_id": source.artifact_id,
             "run_identity": run_identity,
             "producer": producer,
+            "execution": execution,
+            "analysis_pipeline": analysis_pipeline,
             "analysis_artifact_id": analysis.artifact_id,
             "analysis_content_hash": analysis.content_hash,
             "layers": [
@@ -149,7 +183,11 @@ class LayerDGoldenLTest(unittest.TestCase):
                     "sequence_index": index,
                     "role": "background" if index == 0 else "foreground",
                     "rgba_artifact_id": artifact.artifact_id,
-                    "rgba_content_hash": artifact.content_hash,
+                    "rgba_content_hash": (
+                        artifact.content_hash
+                        if manifest_hash_valid or index == 0
+                        else f"sha256:{'f' * 64}"
+                    ),
                 }
                 for index, artifact in enumerate(layer_artifacts)
             ],
@@ -161,7 +199,7 @@ class LayerDGoldenLTest(unittest.TestCase):
             provenance={
                 "derived_type": "layerd-manifest",
                 "producer_family": "layerd",
-                "bundle_identity": "svm-layerd-output@0.1",
+                "bundle_identity": "svm-layerd-output@0.2",
                 "run_identity": run_identity,
                 "source_artifact_id": source.artifact_id,
             },
@@ -202,8 +240,8 @@ class LayerDGoldenLTest(unittest.TestCase):
         self.assertEqual(
             [entity["source_layer"]["order"] for entity in accepted["entities"]],
             [
-                {"index": 0, "semantics": "background-then-top-to-bottom-extraction"},
-                {"index": 1, "semantics": "background-then-top-to-bottom-extraction"},
+                {"index": 0, "semantics": "svm-order:layerd-extraction@0.1"},
+                {"index": 1, "semantics": "svm-order:layerd-extraction@0.1"},
             ],
         )
         self.assertTrue(
@@ -236,6 +274,84 @@ class LayerDGoldenLTest(unittest.TestCase):
         with self.assertRaisesRegex(LayerDOutputError, "classification"):
             LayerDOutputAdapter().propose(request, artifacts)
 
+    def test_hash_alpha_and_canvas_mismatches_fail_closed(self) -> None:
+        cases = (
+            ({"manifest_hash_valid": False}, "RGBA Artifact"),
+            ({"analysis_alpha_count": 3}, "analysis record"),
+            ({"analysis_canvas_width": 5}, "analysis record"),
+        )
+        for options, message in cases:
+            with self.subTest(options=options):
+                artifacts, ids = self._bundle(**options)
+                request = AdapterRequest.from_store(
+                    self.store,
+                    self.store.head,
+                    ("document",),
+                    artifact_ids=ids,
+                    options={"namespace": "golden-l"},
+                )
+                with self.assertRaisesRegex(LayerDOutputError, message):
+                    LayerDOutputAdapter().propose(request, artifacts)
+
+    def test_execution_configuration_changes_run_identity_and_mixed_run_fails(self) -> None:
+        artifacts_two, ids_two = self._bundle(max_iterations=2)
+        artifacts_five, ids_five = self._bundle(max_iterations=5)
+        run_two = json.loads(artifacts_two.get(ids_two[1]).content)["run_identity"]
+        run_five = json.loads(artifacts_five.get(ids_five[1]).content)["run_identity"]
+        self.assertNotEqual(run_two, run_five)
+        artifacts_classifier, ids_classifier = self._bundle(
+            max_iterations=2,
+            classifier_identity="gradient-aware-labeler@0.1",
+        )
+        run_classifier = json.loads(artifacts_classifier.get(ids_classifier[1]).content)[
+            "run_identity"
+        ]
+        self.assertNotEqual(run_two, run_classifier)
+
+        mixed_artifacts, mixed_ids = self._bundle(max_iterations=2, layer_run_override=run_five)
+        request = AdapterRequest.from_store(
+            self.store,
+            self.store.head,
+            ("document",),
+            artifact_ids=mixed_ids,
+            options={"namespace": "golden-l"},
+        )
+        with self.assertRaisesRegex(LayerDOutputError, "provenance"):
+            LayerDOutputAdapter().propose(request, mixed_artifacts)
+
+    def test_generic_wrapper_change_cannot_bypass_authority(self) -> None:
+        proposal = LayerDOutputAdapter().propose(self.request(), self.artifacts)
+        trusted_change = proposal.transaction.changes[0]
+
+        class DelegatingChange:
+            @property
+            def references(self) -> object:
+                return trusted_change.references
+
+            def apply(self, document: dict[str, object]) -> None:
+                trusted_change.apply(document)
+
+        wrapped = replace(
+            proposal,
+            transaction=replace(proposal.transaction, changes=(DelegatingChange(),)),
+        )
+        with self.assertRaisesRegex(ProposalPolicyError, "Unregistered Change type"):
+            ProposalAcceptor().accept(self.store, wrapped, self.artifacts)
+
+    def test_accepted_document_does_not_require_layerd_adapter(self) -> None:
+        proposal = LayerDOutputAdapter().propose(self.request(), self.artifacts)
+        revision = ProposalAcceptor().accept(self.store, proposal, self.artifacts)
+        accepted = self.store.get_document(revision.revision_id)
+        original_import = builtins.__import__
+
+        def reject_layerd(name: str, *args: object, **kwargs: object) -> object:
+            if "layerd" in name:
+                raise AssertionError("Document validation imported the LayerD Adapter")
+            return original_import(name, *args, **kwargs)
+
+        with mock.patch("builtins.__import__", side_effect=reject_layerd):
+            validate_document(json.loads(json.dumps(accepted)))
+
     def test_proposal_acceptor_remains_frozen_for_second_research_adapter(self) -> None:
         digest = hashlib.sha256((ROOT / "svm" / "proposals.py").read_bytes()).hexdigest()
         self.assertEqual(digest, PROPOSALS_SHA256)
@@ -244,7 +360,7 @@ class LayerDGoldenLTest(unittest.TestCase):
         proposal = LayerDOutputAdapter().propose(self.request(), self.artifacts)
         run_identity = proposal.generator.parameters["run_identity"]
         self.assertNotIn(LayerDOutputAdapter.adapter_version, run_identity)
-        self.assertEqual(proposal.generator.parameters["bundle_identity"], "svm-layerd-output@0.1")
+        self.assertEqual(proposal.generator.parameters["bundle_identity"], "svm-layerd-output@0.2")
 
 
 if __name__ == "__main__":

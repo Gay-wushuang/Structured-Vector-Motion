@@ -21,7 +21,7 @@ from .svg_import import SVGImportError, SVGNormalizer
 
 MANIFEST_MEDIA_TYPE = "application/vnd.svm.layerpeeler-output+json"
 MANIFEST_SCHEMA = "svm-layerpeeler-output-0.2"
-ADAPTER_IDENTITY = "svm-layerpeeler-output-adapter@0.2"
+ADAPTER_IDENTITY = "svm-layerpeeler-output-adapter@0.3"
 BUNDLE_IDENTITY = "svm-layerpeeler-output@0.2"
 LAYERPEELER_RUN_IDENTITY = "svm-layerpeeler-run@0.1"
 MAX_LAYERS = 128
@@ -100,7 +100,7 @@ class LayerPeelerOutputAdapter:
     """Consume snapshotted LayerPeeler output; never execute the research model."""
 
     adapter_id = "adapter:layerpeeler-output"
-    adapter_version = "0.2"
+    adapter_version = "0.3"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -142,7 +142,10 @@ class LayerPeelerOutputAdapter:
                     "run_identity": payload["run_identity"],
                     "layer_id": layer["layer_id"],
                     "layer_artifact_id": snapshot.artifact_id,
-                    "order": {"index": layer["z_index"], "semantics": "back-to-front"},
+                    "order": {
+                        "index": layer["z_index"],
+                        "semantics": "svm-order:back-to-front@0.1",
+                    },
                 }
                 entities.append(entity)
                 operations.append(shape.operation)

@@ -208,7 +208,12 @@ def _validate_source_layer(entity_id: str, source_layer: Any, reference_ids: set
         or not isinstance(order["index"], int)
         or isinstance(order["index"], bool)
         or order["index"] < 0
-        or order["semantics"] not in {"back-to-front", "background-then-top-to-bottom-extraction"}
+        or not isinstance(order["semantics"], str)
+        or re.fullmatch(
+            r"svm-order:[a-z0-9][a-z0-9_-]*@[0-9]+\.[0-9]+",
+            order["semantics"],
+        )
+        is None
     ):
         raise DocumentError(f"Entity {entity_id} source layer has invalid order evidence")
 
