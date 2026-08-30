@@ -61,6 +61,9 @@ class LayerDGoldenLTest(unittest.TestCase):
         *,
         label: str = "text",
         max_iterations: int = 3,
+        fg_refine_num_colors: int = 2,
+        overlap_threshold: float = 0.9,
+        ocr_identity: str = "disabled@0.1",
         classifier_identity: str = "entropy-labeler@0.1",
         manifest_hash_valid: bool = True,
         analysis_alpha_count: int = 4,
@@ -89,12 +92,17 @@ class LayerDGoldenLTest(unittest.TestCase):
             "matting_process_size": [1024, 1024],
             "use_unblend": True,
             "fg_refine": True,
+            "fg_refine_num_colors": fg_refine_num_colors,
             "bg_refine": True,
+            "bg_refine_num_colors": 10,
         }
         analysis_pipeline = {
             "element_extractor_identity": "layerd-elements@0.1",
+            "element_extractor_parameters": {"overlap_threshold": overlap_threshold},
+            "ocr_identity": ocr_identity,
+            "ocr_parameters": {},
             "classifier_identity": classifier_identity,
-            "classifier_parameters": {"bins": 16},
+            "classifier_parameters": {"threshold": 5.0},
         }
         identity_payload = {
             "source_artifact_id": source.artifact_id,
@@ -118,7 +126,7 @@ class LayerDGoldenLTest(unittest.TestCase):
                     provenance={
                         "derived_type": "rgba-layer",
                         "producer_family": "layerd",
-                        "bundle_identity": "svm-layerd-output@0.2",
+                        "bundle_identity": "svm-layerd-output@0.3",
                         "run_identity": layer_run_override or run_identity,
                         "source_artifact_id": source.artifact_id,
                         "layer_id": layer_id,
@@ -163,13 +171,13 @@ class LayerDGoldenLTest(unittest.TestCase):
             provenance={
                 "derived_type": "layerd-analysis",
                 "producer_family": "layerd",
-                "bundle_identity": "svm-layerd-output@0.2",
+                "bundle_identity": "svm-layerd-output@0.3",
                 "run_identity": run_identity,
                 "source_artifact_id": source.artifact_id,
             },
         )
         manifest_payload = {
-            "schema_version": "svm-layerd-output-0.2",
+            "schema_version": "svm-layerd-output-0.3",
             "source_artifact_id": source.artifact_id,
             "run_identity": run_identity,
             "producer": producer,
@@ -199,7 +207,7 @@ class LayerDGoldenLTest(unittest.TestCase):
             provenance={
                 "derived_type": "layerd-manifest",
                 "producer_family": "layerd",
-                "bundle_identity": "svm-layerd-output@0.2",
+                "bundle_identity": "svm-layerd-output@0.3",
                 "run_identity": run_identity,
                 "source_artifact_id": source.artifact_id,
             },
@@ -274,6 +282,27 @@ class LayerDGoldenLTest(unittest.TestCase):
         with self.assertRaisesRegex(LayerDOutputError, "classification"):
             LayerDOutputAdapter().propose(request, artifacts)
 
+    def test_legal_classification_tampering_breaks_manifest_binding(self) -> None:
+        analysis = self.artifacts.get(self.ids[2])
+        payload = json.loads(analysis.content)
+        payload["layers"][1]["elements"][0]["classification_candidate"]["label"] = "image"
+        tampered = self.artifacts.import_bytes(
+            canonical_bytes(payload),
+            media_type=analysis.media_type,
+            kind=analysis.kind,
+            provenance=analysis.provenance,
+        )
+        ids = (self.ids[0], self.ids[1], tampered.artifact_id, *self.ids[3:])
+        request = AdapterRequest.from_store(
+            self.store,
+            self.store.head,
+            ("document",),
+            artifact_ids=ids,
+            options={"namespace": "golden-l"},
+        )
+        with self.assertRaisesRegex(LayerDOutputError, "bind the layer-analysis"):
+            LayerDOutputAdapter().propose(request, self.artifacts)
+
     def test_hash_alpha_and_canvas_mismatches_fail_closed(self) -> None:
         cases = (
             ({"manifest_hash_valid": False}, "RGBA Artifact"),
@@ -307,6 +336,18 @@ class LayerDGoldenLTest(unittest.TestCase):
             "run_identity"
         ]
         self.assertNotEqual(run_two, run_classifier)
+        artifacts_colors, ids_colors = self._bundle(
+            max_iterations=2,
+            fg_refine_num_colors=8,
+        )
+        run_colors = json.loads(artifacts_colors.get(ids_colors[1]).content)["run_identity"]
+        self.assertNotEqual(run_two, run_colors)
+        artifacts_overlap, ids_overlap = self._bundle(
+            max_iterations=2,
+            overlap_threshold=0.5,
+        )
+        run_overlap = json.loads(artifacts_overlap.get(ids_overlap[1]).content)["run_identity"]
+        self.assertNotEqual(run_two, run_overlap)
 
         mixed_artifacts, mixed_ids = self._bundle(max_iterations=2, layer_run_override=run_five)
         request = AdapterRequest.from_store(
@@ -318,6 +359,18 @@ class LayerDGoldenLTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(LayerDOutputError, "provenance"):
             LayerDOutputAdapter().propose(request, mixed_artifacts)
+
+    def test_golden_l_profile_rejects_enabled_ocr(self) -> None:
+        artifacts, ids = self._bundle(ocr_identity="east-ocr@0.1")
+        request = AdapterRequest.from_store(
+            self.store,
+            self.store.head,
+            ("document",),
+            artifact_ids=ids,
+            options={"namespace": "golden-l"},
+        )
+        with self.assertRaisesRegex(LayerDOutputError, "analysis pipeline"):
+            LayerDOutputAdapter().propose(request, artifacts)
 
     def test_generic_wrapper_change_cannot_bypass_authority(self) -> None:
         proposal = LayerDOutputAdapter().propose(self.request(), self.artifacts)
@@ -360,7 +413,7 @@ class LayerDGoldenLTest(unittest.TestCase):
         proposal = LayerDOutputAdapter().propose(self.request(), self.artifacts)
         run_identity = proposal.generator.parameters["run_identity"]
         self.assertNotIn(LayerDOutputAdapter.adapter_version, run_identity)
-        self.assertEqual(proposal.generator.parameters["bundle_identity"], "svm-layerd-output@0.2")
+        self.assertEqual(proposal.generator.parameters["bundle_identity"], "svm-layerd-output@0.3")
 
 
 if __name__ == "__main__":

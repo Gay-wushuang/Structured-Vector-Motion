@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import struct
 import zlib
@@ -26,11 +27,11 @@ from ..revisions import (
 
 MANIFEST_MEDIA_TYPE = "application/vnd.svm.layerd-output+json"
 ANALYSIS_MEDIA_TYPE = "application/vnd.svm.layerd-analysis+json"
-MANIFEST_SCHEMA = "svm-layerd-output-0.2"
+MANIFEST_SCHEMA = "svm-layerd-output-0.3"
 ANALYSIS_SCHEMA = "svm-layerd-analysis-0.1"
-RUN_IDENTITY = "svm-layerd-run@0.2"
-BUNDLE_IDENTITY = "svm-layerd-output@0.2"
-ADAPTER_IDENTITY = "svm-layerd-output-adapter@0.2"
+RUN_IDENTITY = "svm-layerd-run@0.3"
+BUNDLE_IDENTITY = "svm-layerd-output@0.3"
+ADAPTER_IDENTITY = "svm-layerd-output-adapter@0.3"
 RGBA_IDENTITY = "svm-png-rgba8-filter0@0.1"
 MAX_LAYERS = 64
 MAX_PNG_BYTES = 16 * 1024 * 1024
@@ -113,7 +114,7 @@ class LayerDOutputAdapter:
     """Consume an immutable LayerD result bundle; never execute its models."""
 
     adapter_id = "adapter:layerd-output"
-    adapter_version = "0.2"
+    adapter_version = "0.3"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -486,7 +487,9 @@ def _validate_execution(value: Any) -> None:
         "matting_process_size",
         "use_unblend",
         "fg_refine",
+        "fg_refine_num_colors",
         "bg_refine",
+        "bg_refine_num_colors",
     }:
         raise LayerDOutputError("LayerD execution contract is invalid")
     size = value["matting_process_size"]
@@ -503,6 +506,10 @@ def _validate_execution(value: Any) -> None:
         or any(
             not isinstance(value[key], bool) for key in ("use_unblend", "fg_refine", "bg_refine")
         )
+        or any(
+            not isinstance(value[key], int) or isinstance(value[key], bool) or value[key] < 2
+            for key in ("fg_refine_num_colors", "bg_refine_num_colors")
+        )
     ):
         raise LayerDOutputError("LayerD execution parameters are invalid")
 
@@ -510,19 +517,35 @@ def _validate_execution(value: Any) -> None:
 def _validate_analysis_pipeline(value: Any) -> None:
     if not isinstance(value, dict) or set(value) != {
         "element_extractor_identity",
+        "element_extractor_parameters",
+        "ocr_identity",
+        "ocr_parameters",
         "classifier_identity",
         "classifier_parameters",
     }:
         raise LayerDOutputError("LayerD analysis pipeline contract is invalid")
     identity_pattern = r"[a-z0-9][a-z0-9._-]*@[0-9]+\.[0-9]+"
     if (
-        not isinstance(value["element_extractor_identity"], str)
-        or re.fullmatch(identity_pattern, value["element_extractor_identity"]) is None
+        value["element_extractor_identity"] != "layerd-elements@0.1"
+        or not isinstance(value["element_extractor_parameters"], dict)
+        or set(value["element_extractor_parameters"]) != {"overlap_threshold"}
+        or not _unit_interval(value["element_extractor_parameters"]["overlap_threshold"])
+        or value["ocr_identity"] != "disabled@0.1"
+        or value["ocr_parameters"] != {}
         or not isinstance(value["classifier_identity"], str)
         or re.fullmatch(identity_pattern, value["classifier_identity"]) is None
         or not isinstance(value["classifier_parameters"], dict)
+        or set(value["classifier_parameters"]) != {"threshold"}
+        or not isinstance(value["classifier_parameters"]["threshold"], (int, float))
+        or isinstance(value["classifier_parameters"]["threshold"], bool)
+        or not math.isfinite(value["classifier_parameters"]["threshold"])
+        or value["classifier_parameters"]["threshold"] < 0
     ):
         raise LayerDOutputError("LayerD analysis pipeline identity is invalid")
+
+
+def _unit_interval(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and 0.0 <= value <= 1.0
 
 
 def _full_sha(value: Any) -> bool:
