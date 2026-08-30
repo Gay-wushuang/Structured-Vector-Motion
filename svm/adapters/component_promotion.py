@@ -17,14 +17,14 @@ from ..proposals import (
     Proposal,
     ProposalPreview,
 )
-from ..revisions import PromoteComponentsChange, Transaction
+from ..revisions import PromoteComponentsChange, PromotedComponent, Transaction
 
-PROMOTION_IDENTITY = "svm-component-promotion@0.1"
+PROMOTION_IDENTITY = "svm-component-promotion@0.2"
 ANALYSIS_SCHEMA = "svm-component-analysis-0.2"
 ANALYSIS_IDENTITY = "svm-opencv-components@0.2"
 ANALYSIS_MEDIA_TYPE = "application/vnd.svm.component-analysis+json"
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
-_CANDIDATE_ID = re.compile(r"^candidate:component-[0-9]{4}$")
+_CANDIDATE_ID = re.compile(r"^candidate:component-[0-9]{4,}$")
 _NAMESPACE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 
 
@@ -34,7 +34,7 @@ class ComponentPromotionError(ValueError):
 
 class ComponentPromotionAdapter:
     adapter_id = "adapter:component-promotion"
-    adapter_version = "0.1"
+    adapter_version = "0.2"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -51,7 +51,7 @@ class ComponentPromotionAdapter:
             )
         _validate_analysis_provenance(snapshot.provenance)
         payload = _parse_analysis(snapshot.content)
-        candidates = _validate_analysis_payload(payload, request.document)
+        candidates = _validate_analysis_payload(payload, snapshot.provenance, request.document)
         selected = _select_candidates(candidates, request.options)
         namespace = request.options.get("namespace", "region")
         if not isinstance(namespace, str) or _NAMESPACE.fullmatch(namespace) is None:
@@ -71,6 +71,7 @@ class ComponentPromotionAdapter:
             if isinstance((provenance := entity.get("provenance")), dict)
             and provenance.get("type") == "PromotedComponent"
         }
+        components: list[PromotedComponent] = []
         entities: list[dict[str, Any]] = []
         previews: list[EntityDiffPreview] = []
         for candidate in selected:
@@ -82,17 +83,14 @@ class ComponentPromotionAdapter:
             entity_id = _entity_id(namespace, snapshot.artifact_id, candidate)
             if entity_id in existing_ids:
                 raise ComponentPromotionError(f"Promoted Entity ID collision: {entity_id}")
-            entity = {
-                "id": entity_id,
-                "name": f"Region {candidate['candidate_id'].rsplit('-', 1)[1]}",
-                "semantic_tags": ["region", "promoted-component"],
-                "provenance": {
-                    "type": "PromotedComponent",
-                    "artifact_id": snapshot.artifact_id,
-                    "candidate_id": candidate["candidate_id"],
-                    "component_digest": candidate["component_digest"],
-                },
-            }
+            component = PromotedComponent(
+                entity_id=entity_id,
+                artifact_id=snapshot.artifact_id,
+                candidate_id=candidate["candidate_id"],
+                component_digest=candidate["component_digest"],
+            )
+            entity = component.to_entity()
+            components.append(component)
             entities.append(entity)
             previews.append(
                 EntityDiffPreview(
@@ -135,7 +133,7 @@ class ComponentPromotionAdapter:
                 transaction_id=f"transaction:component-promotion:{digest}",
                 changes=(
                     PromoteComponentsChange(
-                        entities=tuple(entities),
+                        components=tuple(components),
                         references=(reference,),
                     ),
                 ),
@@ -173,9 +171,10 @@ def _validate_analysis_provenance(provenance: dict[str, Any]) -> None:
         provenance.get("derived_type") != "component-analysis"
         or not isinstance(parameters, dict)
         or parameters.get("analysis_identity") != ANALYSIS_IDENTITY
+        or parameters.get("mask_identity") != "svm-binary-mask-png@0.2"
     ):
         raise ComponentPromotionError(
-            f"Component-analysis provenance must declare {ANALYSIS_IDENTITY}"
+            "Component-analysis provenance must declare analysis v0.2 and mask v0.2"
         )
 
 
@@ -192,7 +191,7 @@ def _parse_analysis(content: bytes) -> dict[str, Any]:
 
 
 def _validate_analysis_payload(
-    payload: dict[str, Any], document: dict[str, Any]
+    payload: dict[str, Any], analysis_provenance: dict[str, Any], document: dict[str, Any]
 ) -> tuple[dict[str, Any], ...]:
     expected_keys = {
         "schema_version",
@@ -211,6 +210,8 @@ def _validate_analysis_payload(
     mask = references.get(payload.get("binary_mask_artifact_id"))
     if source is None or source.get("content_hash") != payload.get("source_content_hash"):
         raise ComponentPromotionError("Component-analysis source Artifact is not accepted")
+    if source.get("import_metadata", {}).get("artifact_kind") != "ReferenceArtifact":
+        raise ComponentPromotionError("Component-analysis source must be a ReferenceArtifact")
     if mask is None or mask.get("media_type") != "image/png":
         raise ComponentPromotionError("Component-analysis binary mask Artifact is not accepted")
     image = payload.get("image")
@@ -231,6 +232,7 @@ def _validate_analysis_payload(
         or payload.get("connectivity") != 8
     ):
         raise ComponentPromotionError("Component-analysis threshold semantics are invalid")
+    _validate_evidence_chain(analysis_provenance, payload, mask)
     components = payload.get("components")
     if not isinstance(components, list):
         raise ComponentPromotionError("Component-analysis components must be an array")
@@ -297,6 +299,54 @@ def _validate_analysis_payload(
     if ordering != sorted(ordering):
         raise ComponentPromotionError("Component-analysis candidates are not canonically ordered")
     return tuple(validated)
+
+
+def _validate_evidence_chain(
+    analysis_provenance: dict[str, Any],
+    payload: dict[str, Any],
+    mask_reference: dict[str, Any],
+) -> None:
+    threshold = payload["threshold"]
+    parameters = analysis_provenance.get("parameters", {})
+    if (
+        analysis_provenance.get("source_artifact_id") != payload["source_artifact_id"]
+        or analysis_provenance.get("source_content_hash") != payload["source_content_hash"]
+        or parameters.get("threshold") != threshold["value"]
+        or parameters.get("foreground") != threshold["foreground"]
+        or parameters.get("connectivity") != payload["connectivity"]
+    ):
+        raise ComponentPromotionError(
+            "Component-analysis payload does not match its Artifact provenance"
+        )
+    mask_metadata = mask_reference.get("import_metadata")
+    if (
+        not isinstance(mask_metadata, dict)
+        or mask_metadata.get("artifact_kind") != "DerivedArtifact"
+    ):
+        raise ComponentPromotionError("Component-analysis mask must be a DerivedArtifact")
+    mask_provenance = mask_metadata.get("provenance")
+    if not isinstance(mask_provenance, dict):
+        raise ComponentPromotionError("Component-analysis mask provenance is missing")
+    mask_parameters = mask_provenance.get("parameters")
+    if (
+        mask_provenance.get("derived_type") != "binary-mask"
+        or not isinstance(mask_parameters, dict)
+        or mask_parameters.get("mask_identity") != "svm-binary-mask-png@0.2"
+        or mask_parameters.get("mask_identity") != parameters.get("mask_identity")
+        or mask_parameters.get("analysis_identity") != ANALYSIS_IDENTITY
+        or mask_provenance.get("source_artifact_id") != payload["source_artifact_id"]
+        or mask_provenance.get("source_content_hash") != payload["source_content_hash"]
+        or mask_parameters.get("threshold") != threshold["value"]
+        or mask_parameters.get("foreground") != threshold["foreground"]
+        or mask_parameters.get("connectivity") != payload["connectivity"]
+        or any(
+            mask_provenance.get(field) != analysis_provenance.get(field)
+            for field in ("adapter_id", "adapter_version", "engine", "engine_version")
+        )
+    ):
+        raise ComponentPromotionError(
+            "Binary-mask provenance does not match component-analysis evidence"
+        )
 
 
 def _select_candidates(

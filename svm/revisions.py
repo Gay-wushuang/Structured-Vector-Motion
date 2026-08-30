@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import re
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -84,18 +85,49 @@ class AppendReferencesChange:
 
 
 @dataclass(frozen=True)
+class PromotedComponent:
+    entity_id: str
+    artifact_id: str
+    candidate_id: str
+    component_digest: str
+
+    def to_entity(self) -> dict[str, Any]:
+        if not self.entity_id.startswith("entity:"):
+            raise DocumentError("Promoted component Entity ID must start with entity:")
+        if re.fullmatch(r"artifact:[0-9a-f]{64}", self.artifact_id) is None:
+            raise DocumentError("Promoted component Artifact ID is invalid")
+        if re.fullmatch(r"candidate:component-[0-9]{4,}", self.candidate_id) is None:
+            raise DocumentError("Promoted component candidate ID is invalid")
+        if re.fullmatch(r"sha256:[0-9a-f]{64}", self.component_digest) is None:
+            raise DocumentError("Promoted component digest is invalid")
+        return {
+            "id": self.entity_id,
+            "name": f"Region {self.candidate_id.rsplit('-', 1)[1]}",
+            "semantic_tags": ["region", "promoted-component"],
+            "provenance": {
+                "type": "PromotedComponent",
+                "artifact_id": self.artifact_id,
+                "candidate_id": self.candidate_id,
+                "component_digest": self.component_digest,
+            },
+        }
+
+
+@dataclass(frozen=True)
 class PromoteComponentsChange:
     """Promote accepted analysis evidence into addressable, non-rendered Entities."""
 
-    entities: tuple[dict[str, Any], ...]
+    components: tuple[PromotedComponent, ...]
     references: tuple[dict[str, Any], ...]
 
     def policy_intent(self) -> tuple[str, str, str | None]:
         return "promote_components", "document", None
 
     def apply(self, document: dict[str, Any]) -> None:
-        if not self.entities:
-            raise DocumentError("Component promotion requires at least one Entity")
+        if not self.components:
+            raise DocumentError("Component promotion requires at least one component")
+        if any(type(component) is not PromotedComponent for component in self.components):
+            raise DocumentError("Component promotion accepts only PromotedComponent records")
         if len(self.references) != 1:
             raise DocumentError("Component promotion requires one analysis Artifact reference")
         accepted_references = {reference["id"]: reference for reference in document["references"]}
@@ -104,7 +136,40 @@ class PromoteComponentsChange:
             raise DocumentError(
                 "Component promotion source must already be an accepted Artifact reference"
             )
-        document["entities"].extend(copy.deepcopy(self.entities))
+        metadata = reference.get("import_metadata", {})
+        provenance = metadata.get("provenance", {})
+        parameters = provenance.get("parameters", {})
+        if (
+            reference.get("media_type") != "application/vnd.svm.component-analysis+json"
+            or metadata.get("artifact_kind") != "DerivedArtifact"
+            or provenance.get("derived_type") != "component-analysis"
+            or parameters.get("analysis_identity") != "svm-opencv-components@0.2"
+        ):
+            raise DocumentError("Component promotion reference is not accepted analysis v0.2")
+        candidate_ids = [component.candidate_id for component in self.components]
+        if len(candidate_ids) != len(set(candidate_ids)):
+            raise DocumentError("Component promotion candidate IDs must be unique")
+        if any(component.artifact_id != reference["id"] for component in self.components):
+            raise DocumentError("Promoted component Artifact must match the promotion reference")
+        promoted_keys = {
+            (entity_provenance.get("artifact_id"), entity_provenance.get("candidate_id"))
+            for entity in document["entities"]
+            if isinstance((entity_provenance := entity.get("provenance")), dict)
+            and entity_provenance.get("type") == "PromotedComponent"
+        }
+        if any(
+            (component.artifact_id, component.candidate_id) in promoted_keys
+            for component in self.components
+        ):
+            raise DocumentError("Component promotion candidate is already promoted")
+        entities = [component.to_entity() for component in self.components]
+        entity_ids = {entity["id"] for entity in document["entities"]}
+        new_ids = [entity["id"] for entity in entities]
+        if len(new_ids) != len(set(new_ids)) or any(
+            entity_id in entity_ids for entity_id in new_ids
+        ):
+            raise DocumentError("Promoted component Entity IDs must be new and unique")
+        document["entities"].extend(entities)
 
 
 @dataclass(frozen=True)

@@ -138,8 +138,8 @@ def _validate_entity_provenance(entity_id: str, provenance: Any, reference_ids: 
     if (
         not isinstance(candidate_id, str)
         or not candidate_id.startswith("candidate:component-")
-        or len(candidate_id) != 24
-        or not candidate_id[-4:].isdigit()
+        or len(candidate_id) < 24
+        or any(character not in "0123456789" for character in candidate_id[20:])
     ):
         raise DocumentError(f"Entity {entity_id} has invalid provenance candidate ID")
     digest = provenance["component_digest"]

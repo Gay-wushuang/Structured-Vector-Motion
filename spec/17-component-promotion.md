@@ -1,4 +1,4 @@
-# Component Promotion v0.1
+# Component Promotion v0.2
 
 ## Status
 
@@ -38,7 +38,8 @@ contract, including:
 
 - accepted source and binary-mask Artifact references;
 - image, threshold, polarity, and 8-connectivity fields;
-- canonical sequential candidate IDs;
+- canonical sequential candidate IDs using at least four decimal digits
+  (`0001` through `9999`, then `10000` and above);
 - half-open in-image bounds, positive area, finite in-bounds centroid;
 - SHA-256 component digest;
 - canonical component ordering.
@@ -67,7 +68,7 @@ Each selected candidate creates one deterministic neutral Entity:
 
 Promotion means only that a user accepted an evidence region as an independent,
 addressable semantic object. It does not claim `Hair`, `Face`, or any other
-recognized class. v0.1 creates no geometry Operation, output binding, Style, or
+recognized class. v0.2 creates no geometry Operation, output binding, Style, or
 Render Stack entry because component-analysis does not contain accepted vector
 geometry.
 
@@ -77,11 +78,28 @@ namespace but not the evidence provenance.
 
 ## Transaction and policy
 
-`PromoteComponentsChange` atomically appends all selected Entities and requires
-the exact component-analysis reference to already exist in the base Document.
+Component Promotion v0.2 supersedes v0.1 because it narrows admissible evidence,
+adds descriptor-chain consistency requirements, closes arbitrary Entity
+injection, and expands the candidate-ID grammar.
+
+`PromoteComponentsChange` accepts typed `PromotedComponent` records rather than
+arbitrary Entity dictionaries. Core constructs the fixed neutral name, semantic
+tags, and provenance shown above. Core rejects mismatched Artifact IDs,
+duplicate candidates, repeated promotion, malformed candidate/digest IDs, and
+existing Entity IDs. An Adapter cannot use this Change to introduce arbitrary
+recognized-object semantics.
+
+The Change atomically appends all selected Entities and requires the exact
+component-analysis reference to already exist in the base Document.
 Its policy intent is `promote_components` on `document`. The Proposal requires
 that Artifact descriptor and bytes again at acceptance, so content or descriptor
 drift fails closed.
+
+Without opening source or mask pixels, the Adapter cross-checks the evidence
+chain. Analysis payload source, threshold, foreground, and connectivity MUST
+equal its descriptor provenance. The referenced mask MUST be a DerivedArtifact
+with `derived_type=binary-mask`, `svm-binary-mask-png@0.2`, matching analysis
+identity, source, parameters, Adapter, and engine provenance.
 
 `ProposalPreview.entity_diffs` exposes every proposed Entity ID and candidate
 bounds. Confidence is `None`: deterministic interpretation is not semantic
@@ -99,3 +117,5 @@ Golden I promotes both candidates from Golden H and proves:
    validated fail closed;
 6. candidate order and Entity IDs are deterministic;
 7. stale, duplicate, and repeated promotion are rejected.
+8. arbitrary Entity injection, payload/descriptor drift, unrelated accepted
+   PNG masks, and candidate IDs above 9999 are covered by fail-closed tests.

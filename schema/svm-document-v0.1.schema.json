@@ -69,7 +69,7 @@
           "properties": {
             "type": {"const": "PromotedComponent"},
             "artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
-            "candidate_id": {"type": "string", "pattern": "^candidate:component-[0-9]{4}$"},
+            "candidate_id": {"type": "string", "pattern": "^candidate:component-[0-9]{4,}$"},
             "component_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
           }
         }

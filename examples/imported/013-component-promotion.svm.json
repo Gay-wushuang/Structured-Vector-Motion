@@ -17,7 +17,7 @@
   "edit_permissions": [],
   "entities": [
     {
-      "id": "entity:region-2081ef3f351b3f60",
+      "id": "entity:region-1cb0f386ed021ebc",
       "name": "Region 0001",
       "provenance": {
         "artifact_id": "artifact:77122ed8011a65a89f1f1e7247c7d255bc23f0ec741dcb5c183d1a54d2a978c5",
@@ -31,7 +31,7 @@
       ]
     },
     {
-      "id": "entity:region-e816098dd3db7f07",
+      "id": "entity:region-b84903410a98e3bc",
       "name": "Region 0002",
       "provenance": {
         "artifact_id": "artifact:77122ed8011a65a89f1f1e7247c7d255bc23f0ec741dcb5c183d1a54d2a978c5",

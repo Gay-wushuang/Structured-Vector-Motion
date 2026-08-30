@@ -13,11 +13,14 @@ from svm import (
     AdapterRequest,
     ArtifactKind,
     ArtifactStore,
+    PromoteComponentsChange,
+    PromotedComponent,
     ProposalAcceptor,
     ProposalArtifactError,
     ProposalConflictError,
     ProposalPolicyError,
     RevisionStore,
+    Transaction,
 )
 from svm.adapters import ComponentPromotionAdapter, ComponentPromotionError
 from svm.document import validate_document
@@ -83,7 +86,7 @@ class ComponentPromotionGoldenITest(unittest.TestCase):
             )
 
         self.assertEqual(self.store.get_document(self.store.head), self.document)
-        self.assertEqual(proposal.generator.engine_version, "svm-component-promotion@0.1")
+        self.assertEqual(proposal.generator.engine_version, "svm-component-promotion@0.2")
         self.assertIsNone(proposal.confidence)
         self.assertEqual(proposal.report.metrics, {"promoted_components": 2.0})
         self.assertEqual(
@@ -136,6 +139,47 @@ class ComponentPromotionGoldenITest(unittest.TestCase):
                 with self.assertRaisesRegex(ComponentPromotionError, message):
                     ComponentPromotionAdapter().propose(request, self.artifacts)
 
+    def test_core_change_constructs_neutral_entities_and_rejects_raw_injection(self) -> None:
+        reference = next(
+            reference
+            for reference in self.document["references"]
+            if reference["id"] == self.analysis.artifact_id  # type: ignore[attr-defined]
+        )
+        malicious = PromoteComponentsChange(
+            components=(
+                {
+                    "id": "entity:fake-hair",
+                    "name": "Hair",
+                    "semantic_tags": ["hair", "recognized-object"],
+                },  # type: ignore[arg-type]
+            ),
+            references=(reference,),
+        )
+        with self.assertRaisesRegex(DocumentError, "only PromotedComponent"):
+            self.store.commit(
+                self.store.head,
+                Transaction("transaction:raw-injection", (malicious,)),
+            )
+        self.assertEqual(self.store.get_document(self.store.head), self.document)
+
+        component = PromotedComponent(
+            entity_id="entity:opaque-core-owned-id",
+            artifact_id=self.analysis.artifact_id,  # type: ignore[attr-defined]
+            candidate_id=CANDIDATES[0],
+            component_digest="sha256:a5f53746c04e276c7f63092959c1ea9f3ef736db4479f8f331c05083abd74f8a",
+        )
+        revision = self.store.commit(
+            self.store.head,
+            Transaction(
+                "transaction:core-owned-entity",
+                (PromoteComponentsChange((component,), (reference,)),),
+            ),
+        )
+        entity = self.store.get_document(revision.revision_id)["entities"][0]
+        self.assertEqual(entity["name"], "Region 0001")
+        self.assertEqual(entity["semantic_tags"], ["region", "promoted-component"])
+        self.assertEqual(entity["provenance"]["type"], "PromotedComponent")
+
     def test_unaccepted_malformed_and_wrong_provenance_evidence_fail_closed(self) -> None:
         empty = copy.deepcopy(self.document)
         empty["references"] = []
@@ -173,11 +217,91 @@ class ComponentPromotionGoldenITest(unittest.TestCase):
             provenance=analysis_reference["import_metadata"]["provenance"],
         )
         wrong_store = RevisionStore.create(wrong_document)
-        with self.assertRaisesRegex(ComponentPromotionError, "svm-opencv-components@0.2"):
+        with self.assertRaisesRegex(ComponentPromotionError, "analysis v0.2"):
             ComponentPromotionAdapter().propose(self.request(store=wrong_store), wrong_artifacts)
 
-    def _replace_analysis(self, content: bytes) -> tuple[dict[str, object], ArtifactStore, str]:
-        document = copy.deepcopy(self.document)
+    def test_payload_descriptor_and_mask_provenance_must_form_one_evidence_chain(self) -> None:
+        analysis_mismatch = copy.deepcopy(self.document)
+        analysis_reference = next(
+            reference
+            for reference in analysis_mismatch["references"]
+            if reference["media_type"] == MEDIA_TYPE
+        )
+        analysis_reference["import_metadata"]["provenance"]["parameters"]["threshold"] = 64
+        mismatch_artifacts = ArtifactStore()
+        mismatch_artifacts.import_bytes(
+            ANALYSIS.read_bytes(),
+            media_type=MEDIA_TYPE,
+            kind=ArtifactKind.DERIVED,
+            provenance=analysis_reference["import_metadata"]["provenance"],
+        )
+        mismatch_store = RevisionStore.create(analysis_mismatch)
+        with self.assertRaisesRegex(ComponentPromotionError, "does not match"):
+            ComponentPromotionAdapter().propose(
+                self.request(store=mismatch_store), mismatch_artifacts
+            )
+
+        unrelated_mask = copy.deepcopy(self.document)
+        payload = json.loads(ANALYSIS.read_text(encoding="utf-8"))
+        payload["binary_mask_artifact_id"] = payload["source_artifact_id"]
+        unrelated_bytes = canonical_bytes(payload)
+        unrelated_document, unrelated_artifacts, unrelated_id = self._replace_analysis(
+            unrelated_bytes, document=unrelated_mask
+        )
+        unrelated_store = RevisionStore.create(unrelated_document)
+        with self.assertRaisesRegex(ComponentPromotionError, "DerivedArtifact"):
+            ComponentPromotionAdapter().propose(
+                self.request(store=unrelated_store, artifact_id=unrelated_id),
+                unrelated_artifacts,
+            )
+
+        wrong_mask = copy.deepcopy(self.document)
+        mask_reference = next(
+            reference
+            for reference in wrong_mask["references"]
+            if reference["import_metadata"]["provenance"].get("derived_type") == "binary-mask"
+        )
+        mask_reference["import_metadata"]["provenance"]["parameters"]["threshold"] = 64
+        wrong_mask_store = RevisionStore.create(wrong_mask)
+        with self.assertRaisesRegex(ComponentPromotionError, "Binary-mask provenance"):
+            ComponentPromotionAdapter().propose(
+                self.request(store=wrong_mask_store), self.artifacts
+            )
+
+    def test_candidate_ids_above_9999_remain_promotable(self) -> None:
+        payload = json.loads(ANALYSIS.read_text(encoding="utf-8"))
+        payload["image"] = {"width": 100, "height": 100}
+        payload["components"] = [
+            {
+                "candidate_id": f"candidate:component-{index:04d}",
+                "bounds": [x, y, x + 1, y + 1],
+                "pixel_area": 1,
+                "centroid": [float(x), float(y)],
+                "component_digest": f"sha256:{hashlib.sha256(str(index).encode()).hexdigest()}",
+            }
+            for index in range(1, 10_001)
+            for x, y in [((index - 1) % 100, (index - 1) // 100)]
+        ]
+        content = canonical_bytes(payload)
+        document, artifacts, artifact_id = self._replace_analysis(content)
+        store = RevisionStore.create(document)
+        proposal = ComponentPromotionAdapter().propose(
+            AdapterRequest.from_store(
+                store,
+                store.head,
+                ("document",),
+                artifact_ids=(artifact_id,),
+                options={"candidate_ids": ["candidate:component-10000"]},
+            ),
+            artifacts,
+        )
+        component = proposal.transaction.changes[0].components[0]  # type: ignore[attr-defined]
+        self.assertEqual(component.candidate_id, "candidate:component-10000")
+
+    def _replace_analysis(
+        self, content: bytes, *, document: dict[str, object] | None = None
+    ) -> tuple[dict[str, object], ArtifactStore, str]:
+        document = copy.deepcopy(document or self.document)
         old_reference = next(
             reference
             for reference in document["references"]

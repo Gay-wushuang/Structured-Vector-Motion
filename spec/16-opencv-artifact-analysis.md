@@ -49,7 +49,8 @@ centroid. Background label 0 is excluded. Each component records a SHA-256
 digest of its canonical bbox-relative foreground pixel coordinates. Candidates
 are sorted by `(min_y, min_x, max_y, max_x, pixel_area, centroid,
 component_digest)` and assigned analysis-local IDs
-`candidate:component-0001`, etc. The digest removes candidate identity's
+`candidate:component-0001`, etc. IDs use a minimum width of four digits and
+continue naturally as `candidate:component-10000` above 9999. The digest removes candidate identity's
 dependency on OpenCV label enumeration when all statistical fields tie.
 
 Bounds are half-open pixel coordinates `[min_x, min_y, max_x, max_y]`.
