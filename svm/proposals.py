@@ -3,21 +3,17 @@ from __future__ import annotations
 import copy
 import json
 from dataclasses import dataclass, field
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol
 
 from .artifacts import ArtifactError, ArtifactResolver, ArtifactSnapshot
+from .change_authority import change_authority
 from .evaluator import Quality, canonical_bytes
 from .policies import PolicyEnforcementError, enforce_transaction_policies
 from .revisions import (
-    AppendReferencesChange,
-    AppendSceneFragmentChange,
     PromoteComponentsChange,
     PromotedComponent,
-    ReplaceSceneFragmentChange,
     Revision,
     RevisionStore,
-    SetOperationParameterChange,
-    SplitEntityChange,
     Transaction,
 )
 
@@ -32,11 +28,6 @@ class ProposalPolicyError(RuntimeError):
 
 class ProposalArtifactError(RuntimeError):
     pass
-
-
-@runtime_checkable
-class ArtifactBoundChange(Protocol):
-    def verify_artifacts(self, resolved: dict[str, ArtifactSnapshot]) -> None: ...
 
 
 @dataclass(frozen=True)
@@ -186,19 +177,8 @@ class ProposalAcceptor:
 
     @staticmethod
     def _verify_trusted_change_types(proposal: Proposal) -> None:
-        from .adapters.layerpeeler_output import ImportLayeredSceneChange
-
-        trusted_types = {
-            SetOperationParameterChange,
-            AppendSceneFragmentChange,
-            AppendReferencesChange,
-            PromoteComponentsChange,
-            ReplaceSceneFragmentChange,
-            SplitEntityChange,
-            ImportLayeredSceneChange,
-        }
         for change in proposal.transaction.changes:
-            if type(change) not in trusted_types:
+            if change_authority(change) is None:
                 raise ProposalPolicyError(f"Unregistered Change type {type(change).__name__}")
 
     @staticmethod
@@ -235,27 +215,19 @@ class ProposalAcceptor:
     def _verify_artifact_bound_changes(
         proposal: Proposal, resolved: dict[str, ArtifactSnapshot]
     ) -> None:
-        from .adapters.layerpeeler_output import ImportLayeredSceneChange
-
-        trusted_verifiers: dict[type[Any], Any] = {
-            ImportLayeredSceneChange: lambda change: change.verify_artifacts(resolved),
-        }
         for change in proposal.transaction.changes:
             entities = getattr(change, "entities", ())
             if any(isinstance(entity, dict) and "source_layer" in entity for entity in entities):
                 raise ProposalArtifactError(
                     "source_layer is reserved for a trusted Artifact-bound Change"
                 )
-            verifier = trusted_verifiers.get(type(change))
+            authority = change_authority(change)
+            verifier = authority.artifact_verifier if authority is not None else None
             if verifier is not None:
                 try:
-                    verifier(change)
+                    verifier(change, resolved)
                 except (ValueError, TypeError, KeyError) as exc:
                     raise ProposalArtifactError(str(exc)) from exc
-            elif isinstance(change, ArtifactBoundChange):
-                raise ProposalArtifactError(
-                    f"Unregistered Artifact-bound Change type {type(change).__name__}"
-                )
             if not isinstance(change, PromoteComponentsChange):
                 continue
             if len(change.references) != 1:

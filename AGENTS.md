@@ -109,6 +109,9 @@ Do not collapse these concepts:
   transaction.
 - External optimizers and AI adapters produce Proposals; they do not directly
   mutate an accepted Document.
+- Proposal Change execution is closed-world: only exact Core-registered Change
+  primitives may cross the acceptance boundary. `RevisionStore.commit()` is a
+  trusted internal mechanism, never an Adapter acceptance API.
 
 ## Evaluation model
 

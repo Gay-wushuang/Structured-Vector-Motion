@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from typing import Any
 
 from ..artifacts import ArtifactKind, ArtifactResolver, ArtifactSnapshot
@@ -16,7 +16,7 @@ from ..proposals import (
     Proposal,
     ProposalPreview,
 )
-from ..revisions import AppendSceneFragmentChange, Transaction
+from ..revisions import AppendSceneFragmentChange, ImportLayeredSceneChange, Transaction
 from .svg_import import SVGImportError, SVGNormalizer
 
 MANIFEST_MEDIA_TYPE = "application/vnd.svm.layerpeeler-output+json"
@@ -78,35 +78,22 @@ class _ResolvedBundle:
         return snapshot
 
 
-@dataclass(frozen=True)
-class ImportLayeredSceneChange:
-    fragment: AppendSceneFragmentChange
-    namespace: str
-
-    @property
-    def references(self) -> tuple[dict[str, Any], ...]:
-        return self.fragment.references
-
-    def policy_intent(self) -> tuple[str, str, str | None]:
-        return self.fragment.policy_intent()
-
-    def apply(self, document: dict[str, Any]) -> None:
-        self.fragment.apply(document)
-
-    def verify_artifacts(self, resolved: dict[str, ArtifactSnapshot]) -> None:
-        request = AdapterRequest(
-            base_revision_id="revision:artifact-verification",
-            document={"entities": []},
-            scope=("document",),
-            artifact_ids=tuple(sorted(resolved)),
-            options={"namespace": self.namespace},
+def verify_import_layered_scene_change(
+    change: ImportLayeredSceneChange, resolved: dict[str, ArtifactSnapshot]
+) -> None:
+    request = AdapterRequest(
+        base_revision_id="revision:artifact-verification",
+        document={"entities": []},
+        scope=("document",),
+        artifact_ids=tuple(sorted(resolved)),
+        options={"namespace": change.namespace},
+    )
+    proposal = LayerPeelerOutputAdapter().propose(request, _ResolvedBundle(resolved))
+    expected = proposal.transaction.changes[0]
+    if not isinstance(expected, ImportLayeredSceneChange) or expected != change:
+        raise LayerPeelerOutputError(
+            "LayerPeeler SceneFragment does not match resolved Artifact semantics"
         )
-        proposal = LayerPeelerOutputAdapter().propose(request, _ResolvedBundle(resolved))
-        expected = proposal.transaction.changes[0]
-        if not isinstance(expected, ImportLayeredSceneChange) or expected != self:
-            raise LayerPeelerOutputError(
-                "LayerPeeler SceneFragment does not match resolved Artifact semantics"
-            )
 
 
 class LayerPeelerOutputAdapter:

@@ -199,6 +199,16 @@ Revision. It verifies:
 - correspondence between required Artifact IDs and Transaction references;
 - atomic Transaction validity.
 
+Proposal execution is closed-world. Every executable Change must have an exact
+type registered in the Core Change Authority Registry, which records its policy
+semantics and any required Artifact verifier. An object does not gain mutation
+authority merely by implementing `apply()` or an Adapter-facing protocol.
+
+`RevisionStore.commit()` is a trusted lower-level Core mechanism used after
+intent is already trusted. It is not an external acceptance API. Adapters,
+plugins, and other untrusted callers MUST submit Proposals through
+`ProposalAcceptor.accept()` and MUST NOT call `RevisionStore.commit()` directly.
+
 Unsupported policy semantics must fail closed.
 
 ## 8. Backend

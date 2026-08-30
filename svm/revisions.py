@@ -71,7 +71,25 @@ class AppendSceneFragmentChange:
         for reference in self.references:
             if reference["id"] not in known_references:
                 document["references"].append(copy.deepcopy(reference))
-                known_references.add(reference["id"])
+            known_references.add(reference["id"])
+
+
+@dataclass(frozen=True)
+class ImportLayeredSceneChange:
+    """Core-owned primitive for a verifier-bound layered scene fragment."""
+
+    fragment: AppendSceneFragmentChange
+    namespace: str
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return self.fragment.references
+
+    def policy_intent(self) -> tuple[str, str, str | None]:
+        return "import_scene", "document", None
+
+    def apply(self, document: dict[str, Any]) -> None:
+        self.fragment.apply(document)
 
 
 @dataclass(frozen=True)
