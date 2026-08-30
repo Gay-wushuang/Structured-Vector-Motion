@@ -137,11 +137,12 @@ class LayerPeelerOutputAdapter:
                 entity["name"] = f"{layer['layer_id']} / {entity['name']}"
                 entity["semantic_tags"] = ["research-layer", "layerpeeler-output"]
                 entity["source_layer"] = {
-                    "manifest_artifact_id": manifest.artifact_id,
+                    "producer_family": "layerpeeler",
+                    "bundle_artifact_id": manifest.artifact_id,
                     "run_identity": payload["run_identity"],
                     "layer_id": layer["layer_id"],
-                    "layer_svg_artifact_id": snapshot.artifact_id,
-                    "z_index": layer["z_index"],
+                    "layer_artifact_id": snapshot.artifact_id,
+                    "order": {"index": layer["z_index"], "semantics": "back-to-front"},
                 }
                 entities.append(entity)
                 operations.append(shape.operation)

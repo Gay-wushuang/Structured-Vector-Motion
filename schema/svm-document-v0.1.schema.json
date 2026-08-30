@@ -69,14 +69,23 @@
         "source_layer": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["manifest_artifact_id", "run_identity", "layer_id", "layer_svg_artifact_id", "z_index"],
-          "properties": {
-            "manifest_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
-            "run_identity": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-            "layer_id": {"type": "string", "pattern": "^layer:[a-z0-9][a-z0-9_-]*$"},
-            "layer_svg_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
-            "z_index": {"type": "integer", "minimum": 0}
-          }
+            "required": ["producer_family", "bundle_artifact_id", "run_identity", "layer_id", "layer_artifact_id", "order"],
+            "properties": {
+              "producer_family": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+              "bundle_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+              "run_identity": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+              "layer_id": {"type": "string", "pattern": "^layer:[a-z0-9][a-z0-9_-]*$"},
+              "layer_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+              "order": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["index", "semantics"],
+                "properties": {
+                  "index": {"type": "integer", "minimum": 0},
+                  "semantics": {"type": "string", "enum": ["back-to-front", "background-then-top-to-bottom-extraction"]}
+                }
+              }
+            }
         },
         "provenance": {
           "type": "object",

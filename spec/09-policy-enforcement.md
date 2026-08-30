@@ -22,7 +22,9 @@ Proposal + exact base Revision
 
 ## 2. Change intents
 
-Every Change accepted under a non-empty policy set must expose a policy intent.
+Every accepted Change has policy intent derived by its exact entry in the Core
+Change Authority Registry. Change objects do not self-declare acceptance policy
+through reflected methods.
 The v0.1 intents are:
 
 | Change | Action | Target | Parameter |
@@ -33,9 +35,11 @@ The v0.1 intents are:
 | `ReplaceSceneFragmentChange` | `reconcile_scene` | `document` and each scoped Entity ID | none |
 | `AppendReferencesChange` | `attach_analysis` | `document` | none |
 | `PromoteComponentsChange` | `promote_components` | `document` | none |
+| `ImportLayeredSceneChange` | `import_scene` | `document` | none |
+| `ImportRasterLayerEvidenceChange` | `import_scene` | `document` | none |
 
-An unknown Change under policy enforcement fails closed because Core cannot
-prove that accepting it is allowed.
+An unknown Change always fails closed before policy enforcement because Core
+cannot prove its executable semantics or intent.
 
 ## 3. PreserveParameter Constraint
 

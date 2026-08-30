@@ -29,9 +29,12 @@ attribute, numeric, and path checks. The normalizer identity and canonicalized
 SceneFragment Change participate in Proposal identity. No model tensor,
 checkpoint, prompt, or private layer graph becomes Core Document semantics.
 
-Each accepted shape records a machine-readable `source_layer` association with
-the manifest, run, layer SVG, layer ID, and z-index. Multiple SVG shapes from one
-research layer therefore remain associated without creating semantic hierarchy.
+Each accepted shape records the generic machine-readable `source_layer`
+association: producer family, bundle Artifact, run identity, layer ID, layer
+Artifact, and an explicit `{index, semantics}` order-evidence record. LayerPeeler
+uses `back-to-front`; it does not give that order semantic-hierarchy meaning.
+Multiple SVG shapes from one research layer therefore remain associated without
+creating semantic hierarchy.
 
 The consumer Adapter identity is `svm-layerpeeler-output-adapter@0.2`; the
 independent bundle identity is `svm-layerpeeler-output@0.2`. The manifest media type is

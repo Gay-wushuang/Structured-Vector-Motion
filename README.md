@@ -197,6 +197,18 @@ Operations, Styles, and Render Stack entries. See
 `spec/19-layerpeeler-output-adapter.md` and
 `tests/test_layerpeeler_output_adapter.py`.
 
+## LayerD raster layer evidence
+
+Golden L consumes a manifest-bound snapshot of LayerD's different output shape:
+RGBA PNG layers plus canonical layer-analysis evidence. The Adapter records the
+background/extraction sequence as evidence, not Render Stack order. It promotes
+only neutral, non-rendered Region Entities; text/vector/image classifications
+remain reviewable candidates in the Artifact and Proposal notes. Acceptance
+reconstructs the exact Change from resolved bytes through the same Change
+Authority Registry used by Golden K, without adding a LayerD branch to
+`ProposalAcceptor`. See `spec/20-layerd-output-adapter.md` and
+`tests/test_layerd_output_adapter.py`.
+
 ## Development
 
 Install the project and development tools in editable mode:

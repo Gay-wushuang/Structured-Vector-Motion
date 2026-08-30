@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from .evaluator import DocumentError, Evaluator
@@ -173,18 +174,25 @@ def _validate_entity_provenance(entity_id: str, provenance: Any, reference_ids: 
 
 def _validate_source_layer(entity_id: str, source_layer: Any, reference_ids: set[str]) -> None:
     expected = {
-        "manifest_artifact_id",
+        "producer_family",
+        "bundle_artifact_id",
         "run_identity",
         "layer_id",
-        "layer_svg_artifact_id",
-        "z_index",
+        "layer_artifact_id",
+        "order",
     }
     if not isinstance(source_layer, dict) or set(source_layer) != expected:
         raise DocumentError(f"Entity {entity_id} has invalid source-layer fields")
-    if source_layer["manifest_artifact_id"] not in reference_ids:
-        raise DocumentError(f"Entity {entity_id} source layer has missing manifest Artifact")
-    if source_layer["layer_svg_artifact_id"] not in reference_ids:
-        raise DocumentError(f"Entity {entity_id} source layer has missing SVG Artifact")
+    producer_family = source_layer["producer_family"]
+    if (
+        not isinstance(producer_family, str)
+        or re.fullmatch(r"[a-z0-9][a-z0-9_-]*", producer_family) is None
+    ):
+        raise DocumentError(f"Entity {entity_id} source layer has invalid producer family")
+    if source_layer["bundle_artifact_id"] not in reference_ids:
+        raise DocumentError(f"Entity {entity_id} source layer has missing bundle Artifact")
+    if source_layer["layer_artifact_id"] not in reference_ids:
+        raise DocumentError(f"Entity {entity_id} source layer has missing layer Artifact")
     run_identity = source_layer["run_identity"]
     if (
         not isinstance(run_identity, str)
@@ -193,6 +201,16 @@ def _validate_source_layer(entity_id: str, source_layer: Any, reference_ids: set
         or any(character not in "0123456789abcdef" for character in run_identity[7:])
     ):
         raise DocumentError(f"Entity {entity_id} source layer has invalid run identity")
+    order = source_layer["order"]
+    if (
+        not isinstance(order, dict)
+        or set(order) != {"index", "semantics"}
+        or not isinstance(order["index"], int)
+        or isinstance(order["index"], bool)
+        or order["index"] < 0
+        or order["semantics"] not in {"back-to-front", "background-then-top-to-bottom-extraction"}
+    ):
+        raise DocumentError(f"Entity {entity_id} source layer has invalid order evidence")
 
 
 def _validate_structural_relations(

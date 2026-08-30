@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
 
 class PolicyDefinitionError(ValueError):
@@ -137,18 +136,14 @@ def enforce_transaction_policies(document: dict[str, Any], actor: str, transacti
 
 
 def _intents_for_change(change: Any) -> tuple[ChangeIntent, ...]:
-    policy_intents = getattr(change, "policy_intents", None)
-    if callable(policy_intents):
-        typed_intents = cast(Callable[[], tuple[tuple[str, str, str | None], ...]], policy_intents)
-        return tuple(ChangeIntent(*intent) for intent in typed_intents())
-    policy_intent = getattr(change, "policy_intent", None)
-    if not callable(policy_intent):
+    from .change_authority import change_authority
+
+    authority = change_authority(change)
+    if authority is None:
         raise PolicyEnforcementError(
             f"Cannot enforce policies for unsupported Change {type(change).__name__}"
         )
-    typed_intent = cast(Callable[[], tuple[str, str, str | None]], policy_intent)
-    action, target, parameter = typed_intent()
-    return (ChangeIntent(action, target, parameter),)
+    return tuple(ChangeIntent(*intent) for intent in authority.intent_resolver(change))
 
 
 def _reconciliation_changes_constraint(

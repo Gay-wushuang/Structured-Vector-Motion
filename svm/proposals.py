@@ -1,21 +1,14 @@
 from __future__ import annotations
 
 import copy
-import json
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from .artifacts import ArtifactError, ArtifactResolver, ArtifactSnapshot
 from .change_authority import change_authority
-from .evaluator import Quality, canonical_bytes
+from .evaluator import Quality
 from .policies import PolicyEnforcementError, enforce_transaction_policies
-from .revisions import (
-    PromoteComponentsChange,
-    PromotedComponent,
-    Revision,
-    RevisionStore,
-    Transaction,
-)
+from .revisions import Revision, RevisionStore, Transaction
 
 
 class ProposalConflictError(RuntimeError):
@@ -228,68 +221,3 @@ class ProposalAcceptor:
                     verifier(change, resolved)
                 except (ValueError, TypeError, KeyError) as exc:
                     raise ProposalArtifactError(str(exc)) from exc
-            if not isinstance(change, PromoteComponentsChange):
-                continue
-            if len(change.references) != 1:
-                raise ProposalArtifactError(
-                    "Component promotion requires exactly one resolved analysis Artifact"
-                )
-            artifact_id = change.references[0].get("id")
-            if not isinstance(artifact_id, str):
-                raise ProposalArtifactError(
-                    "Component promotion analysis reference requires an Artifact ID"
-                )
-            snapshot = resolved.get(artifact_id)
-            if snapshot is None:
-                raise ProposalArtifactError(
-                    "Component promotion analysis Artifact was not resolved"
-                )
-            try:
-                payload = json.loads(snapshot.content.decode("utf-8"))
-            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-                raise ProposalArtifactError(
-                    "Component promotion analysis Artifact is not valid UTF-8 JSON"
-                ) from exc
-            if (
-                not isinstance(payload, dict)
-                or canonical_bytes(payload) != snapshot.content
-                or payload.get("schema_version") != "svm-component-analysis-0.2"
-                or not isinstance(payload.get("components"), list)
-            ):
-                raise ProposalArtifactError(
-                    "Component promotion requires canonical component-analysis v0.2"
-                )
-            candidates: dict[str, dict[str, Any]] = {}
-            for candidate in payload["components"]:
-                if not isinstance(candidate, dict):
-                    raise ProposalArtifactError("Component-analysis candidate is invalid")
-                candidate_id = candidate.get("candidate_id")
-                component_digest = candidate.get("component_digest")
-                if not isinstance(candidate_id, str) or not isinstance(component_digest, str):
-                    raise ProposalArtifactError("Component-analysis candidate identity is invalid")
-                if candidate_id in candidates:
-                    raise ProposalArtifactError("Component-analysis candidate IDs must be unique")
-                candidates[candidate_id] = candidate
-            for component in change.components:
-                if type(component) is not PromotedComponent:
-                    raise ProposalArtifactError(
-                        "Component promotion accepts only PromotedComponent records"
-                    )
-                if component.artifact_id != snapshot.artifact_id:
-                    raise ProposalArtifactError(
-                        "Promoted component Artifact does not match resolved analysis"
-                    )
-                candidate = candidates.get(component.candidate_id)
-                if candidate is None:
-                    raise ProposalArtifactError(
-                        f"Promoted candidate {component.candidate_id} is absent from analysis"
-                    )
-                if component.component_digest != candidate["component_digest"]:
-                    raise ProposalArtifactError(
-                        f"Promoted candidate {component.candidate_id} digest "
-                        "does not match analysis"
-                    )
-                if tuple(candidate.get("bounds", ())) != component.bounds:
-                    raise ProposalArtifactError(
-                        f"Promoted candidate {component.candidate_id} bounds do not match analysis"
-                    )

@@ -47,8 +47,9 @@ Read these files before changing core behavior:
 15. `spec/17-component-promotion.md` — explicit evidence-to-Entity promotion.
 16. `spec/18-structural-relations.md` — orthogonal evidence-backed relations.
 17. `spec/19-layerpeeler-output-adapter.md` — snapshotted research-output boundary.
-18. `examples/001-head-basic.svm.json` — current example Document.
-19. `tests/test_golden_a.py` — executable expectations.
+18. `spec/20-layerd-output-adapter.md` — raster layer evidence research boundary.
+19. `examples/001-head-basic.svm.json` — current example Document.
+20. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -284,6 +285,10 @@ Next milestones:
     research output Artifacts and normalize supported layer SVGs through existing
     Entity, Operation, Style, and Render Stack semantics. Core never invokes or
     depends on the research model.
+13. LayerD Output Adapter and Golden L consume a distinct raster-layer evidence
+    shape through the same Change authority boundary without modifying
+    ProposalAcceptor. Layer order and classification remain evidence; accepted
+    Entities are neutral and non-rendered.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

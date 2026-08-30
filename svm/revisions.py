@@ -35,9 +35,6 @@ class SetOperationParameterChange:
     parameter: str
     value: Any
 
-    def policy_intent(self) -> tuple[str, str, str | None]:
-        return "set_parameter", self.operation_id, self.parameter
-
     def apply(self, document: dict[str, Any]) -> None:
         operations = {
             operation["id"]: operation for operation in document["construction"]["operations"]
@@ -57,9 +54,6 @@ class AppendSceneFragmentChange:
     render_entries: tuple[str, ...]
     styles: tuple[dict[str, Any], ...]
     references: tuple[dict[str, Any], ...] = ()
-
-    def policy_intent(self) -> tuple[str, str, str | None]:
-        return "import_scene", "document", None
 
     def apply(self, document: dict[str, Any]) -> None:
         document["entities"].extend(copy.deepcopy(self.entities))
@@ -85,19 +79,78 @@ class ImportLayeredSceneChange:
     def references(self) -> tuple[dict[str, Any], ...]:
         return self.fragment.references
 
-    def policy_intent(self) -> tuple[str, str, str | None]:
-        return "import_scene", "document", None
-
     def apply(self, document: dict[str, Any]) -> None:
         self.fragment.apply(document)
 
 
 @dataclass(frozen=True)
+class RasterLayerEvidence:
+    bundle_artifact_id: str
+    run_identity: str
+    layer_id: str
+    layer_artifact_id: str
+    order_index: int
+
+    def to_entity(self, namespace: str) -> dict[str, Any]:
+        content = {
+            "identity": "svm-layerd-entity@0.1",
+            "bundle_artifact_id": self.bundle_artifact_id,
+            "run_identity": self.run_identity,
+            "layer_id": self.layer_id,
+            "layer_artifact_id": self.layer_artifact_id,
+            "order_index": self.order_index,
+        }
+        digest = hashlib.sha256(canonical_bytes(content)).hexdigest()[:16]
+        suffix = self.layer_id.removeprefix("layer:")
+        return {
+            "id": f"entity:{namespace}-{digest}",
+            "name": f"LayerD Region {suffix}",
+            "semantic_tags": ["region", "research-layer", "layerd-output"],
+            "source_layer": {
+                "producer_family": "layerd",
+                "bundle_artifact_id": self.bundle_artifact_id,
+                "run_identity": self.run_identity,
+                "layer_id": self.layer_id,
+                "layer_artifact_id": self.layer_artifact_id,
+                "order": {
+                    "index": self.order_index,
+                    "semantics": "background-then-top-to-bottom-extraction",
+                },
+            },
+        }
+
+
+@dataclass(frozen=True)
+class ImportRasterLayerEvidenceChange:
+    """Core-owned primitive for verified raster decomposition evidence."""
+
+    layers: tuple[RasterLayerEvidence, ...]
+    references: tuple[dict[str, Any], ...]
+    namespace: str
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if not self.layers:
+            raise DocumentError("Raster layer evidence requires at least one layer")
+        if any(type(layer) is not RasterLayerEvidence for layer in self.layers):
+            raise DocumentError("Raster layer evidence accepts only typed layer records")
+        if re.fullmatch(r"[a-z0-9][a-z0-9_-]*", self.namespace) is None:
+            raise DocumentError("Raster layer evidence namespace is invalid")
+        entities = [layer.to_entity(self.namespace) for layer in self.layers]
+        entity_ids = {entity["id"] for entity in document["entities"]}
+        new_ids = [entity["id"] for entity in entities]
+        if len(new_ids) != len(set(new_ids)) or any(value in entity_ids for value in new_ids):
+            raise DocumentError("Raster layer evidence Entity IDs must be new and unique")
+        known_references = {reference["id"] for reference in document["references"]}
+        for reference in self.references:
+            if reference["id"] not in known_references:
+                document["references"].append(copy.deepcopy(reference))
+                known_references.add(reference["id"])
+        document["entities"].extend(entities)
+
+
+@dataclass(frozen=True)
 class AppendReferencesChange:
     references: tuple[dict[str, Any], ...]
-
-    def policy_intent(self) -> tuple[str, str, str | None]:
-        return "attach_analysis", "document", None
 
     def apply(self, document: dict[str, Any]) -> None:
         if not self.references:
@@ -152,9 +205,6 @@ class PromoteComponentsChange:
     components: tuple[PromotedComponent, ...]
     references: tuple[dict[str, Any], ...]
     namespace: str = "region"
-
-    def policy_intent(self) -> tuple[str, str, str | None]:
-        return "promote_components", "document", None
 
     def apply(self, document: dict[str, Any]) -> None:
         if not self.components:
@@ -240,11 +290,6 @@ class ReplaceSceneFragmentChange:
     render_entries: tuple[str, ...]
     styles: tuple[dict[str, Any], ...]
     references: tuple[dict[str, Any], ...] = ()
-
-    def policy_intents(self) -> tuple[tuple[str, str, str | None], ...]:
-        return (("reconcile_scene", "document", None),) + tuple(
-            ("reconcile_scene", entity_id, None) for entity_id in self.existing_entity_ids
-        )
 
     def apply(self, document: dict[str, Any]) -> None:
         scoped_entities = set(self.existing_entity_ids)
@@ -360,9 +405,6 @@ class SplitEntityChange:
     source_entity_id: str
     operation_id: str
     parts: tuple[SplitPart, ...]
-
-    def policy_intent(self) -> tuple[str, str, str | None]:
-        return "split_entity", self.source_entity_id, None
 
     def apply(self, document: dict[str, Any]) -> None:
         entities = document["entities"]

@@ -204,6 +204,12 @@ type registered in the Core Change Authority Registry, which records its policy
 semantics and any required Artifact verifier. An object does not gain mutation
 authority merely by implementing `apply()` or an Adapter-facing protocol.
 
+The Registry is the single authority table for Change type, policy-intent
+derivation, and optional Artifact semantic verification. Policy enforcement
+must not rediscover intent by reflecting methods on Change objects. A new
+Adapter-specific verified Change extends the Registry; it must not add a branch
+to `ProposalAcceptor`.
+
 `RevisionStore.commit()` is a trusted lower-level Core mechanism used after
 intent is already trusted. It is not an external acceptance API. Adapters,
 plugins, and other untrusted callers MUST submit Proposals through
