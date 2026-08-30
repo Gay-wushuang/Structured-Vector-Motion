@@ -34,7 +34,11 @@
     "constraints": {"type": "array", "items": {"$ref": "#/$defs/constraint"}},
     "evaluation_policies": {"type": "array", "items": {"type": "object"}},
     "edit_permissions": {"type": "array", "items": {"$ref": "#/$defs/editPermission"}},
-    "animation": {"$ref": "#/$defs/animation"}
+    "animation": {"$ref": "#/$defs/animation"},
+    "structural_relations": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/structuralRelation"}
+    }
   },
   "$defs": {
     "documentId": {"type": "string", "pattern": "^document:.+"},
@@ -70,7 +74,13 @@
             "type": {"const": "PromotedComponent"},
             "artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
             "candidate_id": {"type": "string", "pattern": "^candidate:component-[0-9]{4,}$"},
-            "component_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+            "component_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+            "bounds": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "items": {"type": "integer", "minimum": 0}
+            }
           }
         }
       }
@@ -184,6 +194,45 @@
         "content": {"type": "array", "items": {"type": "object"}},
         "construction_scheduling_hints": {"type": "array", "items": {"type": "object"}}
       }
+    },
+    "structuralRelation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "type", "subject", "artifact_id", "candidate_id", "component_digest"],
+          "properties": {
+            "id": {"type": "string", "pattern": "^relation:.+"},
+            "type": {"const": "derived-from"},
+            "subject": {"$ref": "#/$defs/entityId"},
+            "artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+            "candidate_id": {"type": "string", "pattern": "^candidate:component-[0-9]{4,}$"},
+            "component_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "type", "container", "contained", "evidence"],
+          "properties": {
+            "id": {"type": "string", "pattern": "^relation:.+"},
+            "type": {"const": "contains"},
+            "container": {"$ref": "#/$defs/entityId"},
+            "contained": {"$ref": "#/$defs/entityId"},
+            "evidence": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["artifact_id", "container_candidate_id", "contained_candidate_id", "basis"],
+              "properties": {
+                "artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+                "container_candidate_id": {"type": "string", "pattern": "^candidate:component-[0-9]{4,}$"},
+                "contained_candidate_id": {"type": "string", "pattern": "^candidate:component-[0-9]{4,}$"},
+                "basis": {"const": "strict-half-open-bounds@0.1"}
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

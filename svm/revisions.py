@@ -9,7 +9,8 @@ from typing import Any, Protocol
 from .document import validate_document
 from .evaluator import DocumentError, canonical_bytes
 
-COMPONENT_PROMOTION_IDENTITY = "svm-component-promotion@0.3"
+COMPONENT_PROMOTION_IDENTITY = "svm-component-promotion@0.4"
+STRUCTURAL_RELATIONS_IDENTITY = "svm-structural-relations@0.1"
 
 
 class Change(Protocol):
@@ -91,6 +92,7 @@ class PromotedComponent:
     artifact_id: str
     candidate_id: str
     component_digest: str
+    bounds: tuple[int, int, int, int]
 
     def to_entity(self, namespace: str) -> dict[str, Any]:
         if re.fullmatch(r"artifact:[0-9a-f]{64}", self.artifact_id) is None:
@@ -99,6 +101,14 @@ class PromotedComponent:
             raise DocumentError("Promoted component candidate ID is invalid")
         if re.fullmatch(r"sha256:[0-9a-f]{64}", self.component_digest) is None:
             raise DocumentError("Promoted component digest is invalid")
+        if (
+            not isinstance(self.bounds, tuple)
+            or len(self.bounds) != 4
+            or any(not isinstance(value, int) or isinstance(value, bool) for value in self.bounds)
+            or not (0 <= self.bounds[0] < self.bounds[2])
+            or not (0 <= self.bounds[1] < self.bounds[3])
+        ):
+            raise DocumentError("Promoted component bounds are invalid")
         return {
             "id": promoted_component_entity_id(namespace, self),
             "name": f"Region {self.candidate_id.rsplit('-', 1)[1]}",
@@ -108,6 +118,7 @@ class PromotedComponent:
                 "artifact_id": self.artifact_id,
                 "candidate_id": self.candidate_id,
                 "component_digest": self.component_digest,
+                "bounds": list(self.bounds),
             },
         }
 
@@ -171,7 +182,18 @@ class PromoteComponentsChange:
             entity_id in entity_ids for entity_id in new_ids
         ):
             raise DocumentError("Promoted component Entity IDs must be new and unique")
+        new_relations = _promotion_relations(document["entities"] + entities, entities)
         document["entities"].extend(entities)
+        relations = document.setdefault("structural_relations", [])
+        relation_ids = {relation["id"] for relation in relations}
+        for relation in new_relations:
+            if relation["id"] not in relation_ids:
+                relations.append(relation)
+                relation_ids.add(relation["id"])
+
+    def proposed_relations(self, document: dict[str, Any]) -> tuple[dict[str, Any], ...]:
+        entities = [component.to_entity(self.namespace) for component in self.components]
+        return tuple(_promotion_relations(document["entities"] + entities, entities))
 
 
 def promoted_component_entity_id(namespace: str, component: PromotedComponent) -> str:
@@ -188,6 +210,100 @@ def promoted_component_entity_id(namespace: str, component: PromotedComponent) -
         )
     ).hexdigest()[:16]
     return f"entity:{namespace}-{digest}"
+
+
+def _promotion_relations(
+    all_entities: list[dict[str, Any]], new_entities: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    relations = [_derived_from_relation(entity) for entity in new_entities]
+    promoted = [
+        entity
+        for entity in all_entities
+        if isinstance(entity.get("provenance"), dict)
+        and entity["provenance"].get("type") == "PromotedComponent"
+        and _provenance_bounds(entity["provenance"]) is not None
+    ]
+    new_ids = {entity["id"] for entity in new_entities}
+    contains: list[dict[str, Any]] = []
+    for container in promoted:
+        for contained in promoted:
+            if container["id"] == contained["id"]:
+                continue
+            container_provenance = container["provenance"]
+            contained_provenance = contained["provenance"]
+            if (
+                container_provenance["artifact_id"] != contained_provenance["artifact_id"]
+                or not _strictly_contains(
+                    _provenance_bounds(container_provenance),
+                    _provenance_bounds(contained_provenance),
+                )
+                or (container["id"] not in new_ids and contained["id"] not in new_ids)
+            ):
+                continue
+            contains.append(_contains_relation(container, contained))
+    relations.extend(sorted(contains, key=lambda relation: relation["id"]))
+    return relations
+
+
+def _derived_from_relation(entity: dict[str, Any]) -> dict[str, Any]:
+    provenance = entity["provenance"]
+    content = {
+        "type": "derived-from",
+        "subject": entity["id"],
+        "artifact_id": provenance["artifact_id"],
+        "candidate_id": provenance["candidate_id"],
+        "component_digest": provenance["component_digest"],
+    }
+    return {"id": _structural_relation_id(content), **content}
+
+
+def _contains_relation(container: dict[str, Any], contained: dict[str, Any]) -> dict[str, Any]:
+    container_provenance = container["provenance"]
+    contained_provenance = contained["provenance"]
+    content = {
+        "type": "contains",
+        "container": container["id"],
+        "contained": contained["id"],
+        "evidence": {
+            "artifact_id": container_provenance["artifact_id"],
+            "container_candidate_id": container_provenance["candidate_id"],
+            "contained_candidate_id": contained_provenance["candidate_id"],
+            "basis": "strict-half-open-bounds@0.1",
+        },
+    }
+    return {"id": _structural_relation_id(content), **content}
+
+
+def _structural_relation_id(content: dict[str, Any]) -> str:
+    digest = hashlib.sha256(
+        canonical_bytes({"identity": STRUCTURAL_RELATIONS_IDENTITY, **content})
+    ).hexdigest()[:16]
+    return f"relation:{content['type']}:{digest}"
+
+
+def _provenance_bounds(provenance: dict[str, Any]) -> tuple[int, int, int, int] | None:
+    bounds = provenance.get("bounds")
+    if (
+        not isinstance(bounds, list)
+        or len(bounds) != 4
+        or any(not isinstance(value, int) or isinstance(value, bool) for value in bounds)
+    ):
+        return None
+    return tuple(bounds)
+
+
+def _strictly_contains(
+    outer: tuple[int, int, int, int] | None,
+    inner: tuple[int, int, int, int] | None,
+) -> bool:
+    if outer is None or inner is None or outer == inner:
+        return False
+    return (
+        outer[0] <= inner[0]
+        and outer[1] <= inner[1]
+        and outer[2] >= inner[2]
+        and outer[3] >= inner[3]
+    )
 
 
 @dataclass(frozen=True)

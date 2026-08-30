@@ -1,0 +1,165 @@
+{
+  "animation": {
+    "construction_scheduling_hints": [],
+    "content": []
+  },
+  "constraints": [],
+  "construction": {
+    "operations": [],
+    "output_bindings": [],
+    "refinement_stages": [
+      "mass",
+      "contour",
+      "detail"
+    ]
+  },
+  "document_id": "document:svg-import-target",
+  "edit_permissions": [],
+  "entities": [
+    {
+      "id": "entity:region-b443b45ad94a8c37",
+      "name": "Region 0001",
+      "provenance": {
+        "artifact_id": "artifact:a43cbe93cf14db13bf5e8ed6c754b76662772809921194cec4974ea1f84438a4",
+        "bounds": [
+          2,
+          2,
+          22,
+          22
+        ],
+        "candidate_id": "candidate:component-0001",
+        "component_digest": "sha256:85d878f397b0f62745151b690942a9800531377269850a84fc979f4e5ce97850",
+        "type": "PromotedComponent"
+      },
+      "semantic_tags": [
+        "region",
+        "promoted-component"
+      ]
+    },
+    {
+      "id": "entity:region-6ad352df26aeeed9",
+      "name": "Region 0002",
+      "provenance": {
+        "artifact_id": "artifact:a43cbe93cf14db13bf5e8ed6c754b76662772809921194cec4974ea1f84438a4",
+        "bounds": [
+          9,
+          9,
+          15,
+          15
+        ],
+        "candidate_id": "candidate:component-0002",
+        "component_digest": "sha256:20a76787a6a6af6f77e57e01456661afe805227e64a9bc6eab7935047e24009d",
+        "type": "PromotedComponent"
+      },
+      "semantic_tags": [
+        "region",
+        "promoted-component"
+      ]
+    }
+  ],
+  "evaluation_policies": [],
+  "presentation": {
+    "render_stack": [],
+    "styles": []
+  },
+  "references": [
+    {
+      "content_hash": "sha256:f53fd9ccf0fd0d6e23fbfbc7e0296e9dcdc7d83f87b94a94532bda430e2d18f6",
+      "id": "artifact:f53fd9ccf0fd0d6e23fbfbc7e0296e9dcdc7d83f87b94a94532bda430e2d18f6",
+      "import_metadata": {
+        "artifact_kind": "ReferenceArtifact",
+        "provenance": {
+          "source_name": "007-contained-components-source.png"
+        }
+      },
+      "media_type": "image/png",
+      "uri": "artifact:f53fd9ccf0fd0d6e23fbfbc7e0296e9dcdc7d83f87b94a94532bda430e2d18f6"
+    },
+    {
+      "content_hash": "sha256:090085e187eed4d8c6323302d31ba549949201be1338ec8184ee8125a363933b",
+      "id": "artifact:090085e187eed4d8c6323302d31ba549949201be1338ec8184ee8125a363933b",
+      "import_metadata": {
+        "artifact_kind": "DerivedArtifact",
+        "provenance": {
+          "adapter_id": "adapter:opencv-analysis",
+          "adapter_version": "0.2",
+          "derived_type": "binary-mask",
+          "engine": "opencv-python-headless",
+          "engine_version": "4.14.0.94",
+          "parameters": {
+            "analysis_identity": "svm-opencv-components@0.2",
+            "connectivity": 8,
+            "foreground": "dark",
+            "grayscale_identity": "svm-png-gray8-samples@0.1",
+            "mask_identity": "svm-binary-mask-png@0.2",
+            "opencv_runtime_version": "4.14.0",
+            "threshold": 128
+          },
+          "source_artifact_id": "artifact:f53fd9ccf0fd0d6e23fbfbc7e0296e9dcdc7d83f87b94a94532bda430e2d18f6",
+          "source_content_hash": "sha256:f53fd9ccf0fd0d6e23fbfbc7e0296e9dcdc7d83f87b94a94532bda430e2d18f6"
+        }
+      },
+      "media_type": "image/png",
+      "uri": "artifact:090085e187eed4d8c6323302d31ba549949201be1338ec8184ee8125a363933b"
+    },
+    {
+      "content_hash": "sha256:a43cbe93cf14db13bf5e8ed6c754b76662772809921194cec4974ea1f84438a4",
+      "id": "artifact:a43cbe93cf14db13bf5e8ed6c754b76662772809921194cec4974ea1f84438a4",
+      "import_metadata": {
+        "artifact_kind": "DerivedArtifact",
+        "provenance": {
+          "adapter_id": "adapter:opencv-analysis",
+          "adapter_version": "0.2",
+          "derived_type": "component-analysis",
+          "engine": "opencv-python-headless",
+          "engine_version": "4.14.0.94",
+          "parameters": {
+            "analysis_identity": "svm-opencv-components@0.2",
+            "connectivity": 8,
+            "foreground": "dark",
+            "grayscale_identity": "svm-png-gray8-samples@0.1",
+            "mask_identity": "svm-binary-mask-png@0.2",
+            "opencv_runtime_version": "4.14.0",
+            "threshold": 128
+          },
+          "source_artifact_id": "artifact:f53fd9ccf0fd0d6e23fbfbc7e0296e9dcdc7d83f87b94a94532bda430e2d18f6",
+          "source_content_hash": "sha256:f53fd9ccf0fd0d6e23fbfbc7e0296e9dcdc7d83f87b94a94532bda430e2d18f6"
+        }
+      },
+      "media_type": "application/vnd.svm.component-analysis+json",
+      "uri": "artifact:a43cbe93cf14db13bf5e8ed6c754b76662772809921194cec4974ea1f84438a4"
+    }
+  ],
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "structural_relations": [
+    {
+      "artifact_id": "artifact:a43cbe93cf14db13bf5e8ed6c754b76662772809921194cec4974ea1f84438a4",
+      "candidate_id": "candidate:component-0001",
+      "component_digest": "sha256:85d878f397b0f62745151b690942a9800531377269850a84fc979f4e5ce97850",
+      "id": "relation:derived-from:083a212847009303",
+      "subject": "entity:region-b443b45ad94a8c37",
+      "type": "derived-from"
+    },
+    {
+      "artifact_id": "artifact:a43cbe93cf14db13bf5e8ed6c754b76662772809921194cec4974ea1f84438a4",
+      "candidate_id": "candidate:component-0002",
+      "component_digest": "sha256:20a76787a6a6af6f77e57e01456661afe805227e64a9bc6eab7935047e24009d",
+      "id": "relation:derived-from:4e98e0fedf48b709",
+      "subject": "entity:region-6ad352df26aeeed9",
+      "type": "derived-from"
+    },
+    {
+      "contained": "entity:region-6ad352df26aeeed9",
+      "container": "entity:region-b443b45ad94a8c37",
+      "evidence": {
+        "artifact_id": "artifact:a43cbe93cf14db13bf5e8ed6c754b76662772809921194cec4974ea1f84438a4",
+        "basis": "strict-half-open-bounds@0.1",
+        "contained_candidate_id": "candidate:component-0002",
+        "container_candidate_id": "candidate:component-0001"
+      },
+      "id": "relation:contains:8277138e687391d6",
+      "type": "contains"
+    }
+  ]
+}

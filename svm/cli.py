@@ -176,6 +176,7 @@ def command_inspect(args: argparse.Namespace) -> dict[str, Any]:
         "output_bindings": copy.deepcopy(document["construction"]["output_bindings"]),
         "render_stack": copy.deepcopy(document["presentation"]["render_stack"]),
         "styles": copy.deepcopy(document["presentation"].get("styles", [])),
+        "structural_relations": copy.deepcopy(document.get("structural_relations", [])),
     }
 
 
@@ -638,6 +639,16 @@ def command_promote_components(args: argparse.Namespace) -> dict[str, Any]:
                 "after_bounds": diff.after_bounds,
             }
             for diff in proposal.preview.entity_diffs
+        ],
+        "structural_relations": [
+            {
+                "relation_id": relation.relation_id,
+                "type": relation.relation_type,
+                "source": relation.source,
+                "target": relation.target,
+                "evidence_artifact_id": relation.evidence_artifact_id,
+            }
+            for relation in proposal.preview.structural_relations
         ],
     }
     if args.accept:

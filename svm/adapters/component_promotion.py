@@ -16,6 +16,7 @@ from ..proposals import (
     GeneratorProvenance,
     Proposal,
     ProposalPreview,
+    StructuralRelationPreview,
 )
 from ..revisions import (
     COMPONENT_PROMOTION_IDENTITY,
@@ -40,7 +41,7 @@ class ComponentPromotionError(ValueError):
 
 class ComponentPromotionAdapter:
     adapter_id = "adapter:component-promotion"
-    adapter_version = "0.3"
+    adapter_version = "0.4"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -90,6 +91,7 @@ class ComponentPromotionAdapter:
                 artifact_id=snapshot.artifact_id,
                 candidate_id=candidate["candidate_id"],
                 component_digest=candidate["component_digest"],
+                bounds=tuple(candidate["bounds"]),
             )
             entity_id = promoted_component_entity_id(namespace, component)
             if entity_id in existing_ids:
@@ -120,35 +122,38 @@ class ComponentPromotionAdapter:
             engine_version=PROMOTION_IDENTITY,
             parameters=parameters,
         )
+        change = PromoteComponentsChange(
+            components=tuple(components),
+            references=(reference,),
+            namespace=namespace,
+        )
+        proposed_relations = change.proposed_relations(request.document)
         digest = hashlib.sha256(
             canonical_bytes(
                 {
                     "base_revision_id": request.base_revision_id,
                     "generator": asdict(generator),
                     "entities": entities,
+                    "structural_relations": proposed_relations,
                     "reference": reference,
                 }
             )
         ).hexdigest()[:16]
+        relation_previews = tuple(_relation_preview(relation) for relation in proposed_relations)
         return Proposal(
             proposal_id=f"proposal:component-promotion:{digest}",
             base_revision_id=request.base_revision_id,
             generator=generator,
             transaction=Transaction(
                 transaction_id=f"transaction:component-promotion:{digest}",
-                changes=(
-                    PromoteComponentsChange(
-                        components=tuple(components),
-                        references=(reference,),
-                        namespace=namespace,
-                    ),
-                ),
+                changes=(change,),
                 message="Promote accepted component-analysis candidates to Entities",
             ),
             report=EvaluationReport(metrics={"promoted_components": float(len(entities))}),
             preview=ProposalPreview(
                 entity_diffs=tuple(previews),
                 proposed_render_stack=tuple(request.document["presentation"]["render_stack"]),
+                structural_relations=relation_previews,
             ),
             required_artifact_ids=(snapshot.artifact_id,),
             confidence=None,
@@ -376,3 +381,21 @@ def _select_candidates(
 
 def _positive_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def _relation_preview(relation: dict[str, Any]) -> StructuralRelationPreview:
+    if relation["type"] == "derived-from":
+        return StructuralRelationPreview(
+            relation_id=relation["id"],
+            relation_type=relation["type"],
+            source=relation["subject"],
+            target=f"{relation['artifact_id']}#{relation['candidate_id']}",
+            evidence_artifact_id=relation["artifact_id"],
+        )
+    return StructuralRelationPreview(
+        relation_id=relation["id"],
+        relation_type=relation["type"],
+        source=relation["container"],
+        target=relation["contained"],
+        evidence_artifact_id=relation["evidence"]["artifact_id"],
+    )

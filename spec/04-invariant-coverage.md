@@ -55,3 +55,8 @@ that an accepted Derived analysis Artifact can feed a later interpretation
 Adapter without reopening raster input, that preview is non-mutating, and that
 explicit acceptance atomically creates provenance-linked neutral Entities under
 artifact, schema, revision, and permission enforcement.
+
+`tests/test_structural_relations.py` implements Golden J. It covers canonical
+evidence-backed `derived-from` and strict-bounds `contains`, batch/incremental
+convergence, relation validation, and orthogonality from hierarchy, Render
+Stack, construction, and animation.

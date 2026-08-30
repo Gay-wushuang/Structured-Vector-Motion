@@ -89,9 +89,13 @@ class ComponentPromotionGoldenITest(unittest.TestCase):
             )
 
         self.assertEqual(self.store.get_document(self.store.head), self.document)
-        self.assertEqual(proposal.generator.engine_version, "svm-component-promotion@0.3")
+        self.assertEqual(proposal.generator.engine_version, "svm-component-promotion@0.4")
         self.assertIsNone(proposal.confidence)
         self.assertEqual(proposal.report.metrics, {"promoted_components": 2.0})
+        self.assertEqual(
+            [relation.relation_type for relation in proposal.preview.structural_relations],
+            ["derived-from", "derived-from"],
+        )
         self.assertEqual(
             [diff.after_bounds for diff in proposal.preview.entity_diffs],  # type: ignore[union-attr]
             [(2, 2, 5, 5), (21, 4, 26, 9)],
@@ -113,6 +117,10 @@ class ComponentPromotionGoldenITest(unittest.TestCase):
         self.assertEqual(accepted["construction"]["output_bindings"], [])
         self.assertEqual(accepted["presentation"]["styles"], [])
         self.assertEqual(accepted["presentation"]["render_stack"], [])
+        self.assertEqual(
+            [relation["type"] for relation in accepted["structural_relations"]],
+            ["derived-from", "derived-from"],
+        )
 
     def test_selection_and_identity_are_deterministic_and_fail_closed(self) -> None:
         first = ComponentPromotionAdapter().propose(self.request(), self.artifacts)
@@ -178,6 +186,7 @@ class ComponentPromotionGoldenITest(unittest.TestCase):
             artifact_id=self.analysis.artifact_id,  # type: ignore[attr-defined]
             candidate_id=CANDIDATES[0],
             component_digest="sha256:a5f53746c04e276c7f63092959c1ea9f3ef736db4479f8f331c05083abd74f8a",
+            bounds=(2, 2, 5, 5),
         )
         revision = self.store.commit(
             self.store.head,
@@ -210,6 +219,7 @@ class ComponentPromotionGoldenITest(unittest.TestCase):
                     artifact_id=self.analysis.artifact_id,  # type: ignore[attr-defined]
                     candidate_id="candidate:component-999999",
                     component_digest="sha256:" + "0" * 64,
+                    bounds=(0, 0, 1, 1),
                 ),
                 "absent from analysis",
             ),
@@ -218,8 +228,18 @@ class ComponentPromotionGoldenITest(unittest.TestCase):
                     artifact_id=self.analysis.artifact_id,  # type: ignore[attr-defined]
                     candidate_id=CANDIDATES[0],
                     component_digest="sha256:" + "0" * 64,
+                    bounds=(2, 2, 5, 5),
                 ),
                 "digest does not match",
+            ),
+            (
+                PromotedComponent(
+                    artifact_id=self.analysis.artifact_id,  # type: ignore[attr-defined]
+                    candidate_id=CANDIDATES[0],
+                    component_digest="sha256:a5f53746c04e276c7f63092959c1ea9f3ef736db4479f8f331c05083abd74f8a",
+                    bounds=(0, 0, 1, 1),
+                ),
+                "bounds do not match",
             ),
         ):
             with self.subTest(candidate=component.candidate_id, message=message):

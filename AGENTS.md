@@ -45,8 +45,9 @@ Read these files before changing core behavior:
 13. `spec/15-entity-reconciliation.md` — previewable re-trace identity matching.
 14. `spec/16-opencv-artifact-analysis.md` — deterministic raster analysis evidence.
 15. `spec/17-component-promotion.md` — explicit evidence-to-Entity promotion.
-16. `examples/001-head-basic.svm.json` — current example Document.
-17. `tests/test_golden_a.py` — executable expectations.
+16. `spec/18-structural-relations.md` — orthogonal evidence-backed relations.
+17. `examples/001-head-basic.svm.json` — current example Document.
+18. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -271,6 +272,9 @@ Next milestones:
 10. Component Promotion and Golden I consume only accepted component-analysis
     v0.2 evidence and explicitly create neutral, non-rendered Region Entities.
     They must never reopen the PNG, rerun OpenCV, or imply semantic recognition.
+11. Structural Relations and Golden J materialize canonical `derived-from` and
+    strict-bounds `contains` edges without changing Entity hierarchy, Render
+    Stack order, construction, or animation.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

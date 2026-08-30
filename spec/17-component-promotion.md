@@ -1,4 +1,4 @@
-# Component Promotion v0.3
+# Component Promotion v0.4
 
 ## Status
 
@@ -61,26 +61,29 @@ Each selected candidate creates one deterministic neutral Entity:
     "type": "PromotedComponent",
     "artifact_id": "artifact:<analysis hash>",
     "candidate_id": "candidate:component-0001",
-    "component_digest": "sha256:<pixel-set digest>"
+    "component_digest": "sha256:<pixel-set digest>",
+    "bounds": [2, 2, 5, 5]
   }
 }
 ```
 
 Promotion means only that a user accepted an evidence region as an independent,
 addressable semantic object. It does not claim `Hair`, `Face`, or any other
-recognized class. v0.3 creates no geometry Operation, output binding, Style, or
+recognized class. v0.4 creates no geometry Operation, output binding, Style, or
 Render Stack entry because component-analysis does not contain accepted vector
 geometry.
 
 Entity IDs are derived from the promotion identity, analysis Artifact ID,
-candidate ID, and component digest. An optional safe namespace changes the ID
-namespace but not the evidence provenance.
+candidate ID, and component digest. Bounds are copied only after the Proposal
+Acceptor verifies them against the canonical analysis candidate. An optional
+safe namespace changes the ID namespace but not the evidence provenance.
 
 ## Transaction and policy
 
-Component Promotion v0.3 supersedes v0.2 because Artifact-bound Change semantics
-are now enforced by the Proposal Acceptor and Entity IDs are Core-derived rather
-than caller-supplied. v0.2 had already narrowed admissible evidence, added
+Component Promotion v0.4 supersedes v0.3 because promoted evidence now records
+validated bounds and materializes independent Structural Relations. v0.3 made
+Artifact-bound Change semantics enforceable by the Proposal Acceptor and made
+Entity IDs Core-derived rather than caller-supplied. v0.2 had already narrowed admissible evidence, added
 descriptor-chain consistency, closed arbitrary semantic Entity injection, and
 expanded the candidate-ID grammar.
 

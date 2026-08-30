@@ -36,9 +36,11 @@ from .proposals import (
     ProposalPreview,
     ProposalProvider,
     StructuralCandidatePreview,
+    StructuralRelationPreview,
 )
 from .revisions import (
     COMPONENT_PROMOTION_IDENTITY,
+    STRUCTURAL_RELATIONS_IDENTITY,
     AppendReferencesChange,
     AppendSceneFragmentChange,
     PromoteComponentsChange,
@@ -76,6 +78,7 @@ __all__ = [
     "get_operation_registry",
     "RevisionStore",
     "COMPONENT_PROMOTION_IDENTITY",
+    "STRUCTURAL_RELATIONS_IDENTITY",
     "AppendSceneFragmentChange",
     "AppendReferencesChange",
     "PromoteComponentsChange",
@@ -104,4 +107,5 @@ __all__ = [
     "ProposalProvider",
     "ProposalPreview",
     "StructuralCandidatePreview",
+    "StructuralRelationPreview",
 ]

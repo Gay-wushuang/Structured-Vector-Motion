@@ -98,3 +98,13 @@ jobs:
           examples/derived/012-opencv-analysis/component-analysis.json
           --candidate candidate:component-0001
           --candidate candidate:component-0002
+
+      - name: Validate Golden J
+        run: svm validate examples/imported/015-structural-relations.svm.json
+
+      - name: Smoke-test Structural Relations preview
+        run: >
+          svm promote-components examples/imported/014-contained-analysis.svm.json
+          examples/derived/014-contained-analysis/component-analysis.json
+          --candidate candidate:component-0001
+          --candidate candidate:component-0002

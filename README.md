@@ -173,6 +173,13 @@ accepted canonical analysis JSON; it does not open the PNG, call OpenCV, create
 vector geometry, or claim real-world semantic classes. See Golden I and
 `spec/17-component-promotion.md`.
 
+Accepted Promotion also materializes an independent Structural Relations graph.
+Every Region gets an evidence-backed `derived-from` edge; candidates from the
+same analysis get `contains` only when their unequal half-open bounds are
+strictly nested. These edges do not modify `parent_id`, Render Stack order,
+construction, or animation. See Golden J and
+`spec/18-structural-relations.md`.
+
 ## Development
 
 Install the project and development tools in editable mode:

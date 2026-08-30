@@ -82,10 +82,20 @@ class StructuralCandidatePreview:
 
 
 @dataclass(frozen=True)
+class StructuralRelationPreview:
+    relation_id: str
+    relation_type: str
+    source: str
+    target: str
+    evidence_artifact_id: str
+
+
+@dataclass(frozen=True)
 class ProposalPreview:
     entity_diffs: tuple[EntityDiffPreview, ...] = ()
     proposed_render_stack: tuple[str, ...] = ()
     structural_candidates: tuple[StructuralCandidatePreview, ...] = ()
+    structural_relations: tuple[StructuralRelationPreview, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -228,7 +238,7 @@ class ProposalAcceptor:
                 raise ProposalArtifactError(
                     "Component promotion requires canonical component-analysis v0.2"
                 )
-            candidates: dict[str, str] = {}
+            candidates: dict[str, dict[str, Any]] = {}
             for candidate in payload["components"]:
                 if not isinstance(candidate, dict):
                     raise ProposalArtifactError("Component-analysis candidate is invalid")
@@ -238,7 +248,7 @@ class ProposalAcceptor:
                     raise ProposalArtifactError("Component-analysis candidate identity is invalid")
                 if candidate_id in candidates:
                     raise ProposalArtifactError("Component-analysis candidate IDs must be unique")
-                candidates[candidate_id] = component_digest
+                candidates[candidate_id] = candidate
             for component in change.components:
                 if type(component) is not PromotedComponent:
                     raise ProposalArtifactError(
@@ -248,13 +258,17 @@ class ProposalAcceptor:
                     raise ProposalArtifactError(
                         "Promoted component Artifact does not match resolved analysis"
                     )
-                expected_digest = candidates.get(component.candidate_id)
-                if expected_digest is None:
+                candidate = candidates.get(component.candidate_id)
+                if candidate is None:
                     raise ProposalArtifactError(
                         f"Promoted candidate {component.candidate_id} is absent from analysis"
                     )
-                if component.component_digest != expected_digest:
+                if component.component_digest != candidate["component_digest"]:
                     raise ProposalArtifactError(
                         f"Promoted candidate {component.candidate_id} digest "
                         "does not match analysis"
+                    )
+                if tuple(candidate.get("bounds", ())) != component.bounds:
+                    raise ProposalArtifactError(
+                        f"Promoted candidate {component.candidate_id} bounds do not match analysis"
                     )

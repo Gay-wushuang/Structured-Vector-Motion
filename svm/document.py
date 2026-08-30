@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
-from .evaluator import DocumentError, Evaluator
+from .evaluator import DocumentError, Evaluator, canonical_bytes
 from .policies import PolicyDefinitionError, validate_policy_definitions
 
 
@@ -58,6 +59,10 @@ def validate_document(document: dict[str, Any]) -> None:
                 raise DocumentError("Entity hierarchy must be acyclic")
             seen.add(current)
             current = parents[current]
+
+    _validate_structural_relations(
+        document.get("structural_relations", []), entities, known_entities, reference_ids
+    )
 
     bindings = document.get("construction", {}).get("output_bindings", [])
     binding_keys: set[tuple[str, str]] = set()
@@ -127,8 +132,12 @@ def _is_supported_color(value: str) -> bool:
 
 
 def _validate_entity_provenance(entity_id: str, provenance: Any, reference_ids: set[str]) -> None:
-    expected = {"type", "artifact_id", "candidate_id", "component_digest"}
-    if not isinstance(provenance, dict) or set(provenance) != expected:
+    required = {"type", "artifact_id", "candidate_id", "component_digest"}
+    if (
+        not isinstance(provenance, dict)
+        or not required <= set(provenance)
+        or set(provenance) - required not in (set(), {"bounds"})
+    ):
         raise DocumentError(f"Entity {entity_id} has invalid provenance fields")
     if provenance["type"] != "PromotedComponent":
         raise DocumentError(f"Entity {entity_id} has unsupported provenance type")
@@ -150,3 +159,135 @@ def _validate_entity_provenance(entity_id: str, provenance: Any, reference_ids: 
         or any(character not in "0123456789abcdef" for character in digest[7:])
     ):
         raise DocumentError(f"Entity {entity_id} has invalid provenance component digest")
+    if "bounds" in provenance and _bounds(provenance["bounds"]) is None:
+        raise DocumentError(f"Entity {entity_id} has invalid provenance bounds")
+
+
+def _validate_structural_relations(
+    relations: Any,
+    entities: list[dict[str, Any]],
+    known_entities: set[str],
+    reference_ids: set[str],
+) -> None:
+    if not isinstance(relations, list):
+        raise DocumentError("Structural relations must be an array")
+    entity_by_id = {entity["id"]: entity for entity in entities}
+    relation_ids: set[str] = set()
+    for relation in relations:
+        if not isinstance(relation, dict):
+            raise DocumentError("Structural relation must be an object")
+        relation_id = relation.get("id")
+        if not isinstance(relation_id, str) or not relation_id.startswith("relation:"):
+            raise DocumentError("Structural relation requires a relation: ID")
+        if relation_id in relation_ids:
+            raise DocumentError(f"Duplicate structural relation ID {relation_id}")
+        relation_ids.add(relation_id)
+        relation_type = relation.get("type")
+        if relation_type == "derived-from":
+            _validate_derived_from(relation, entity_by_id, known_entities, reference_ids)
+        elif relation_type == "contains":
+            _validate_contains(relation, entity_by_id, known_entities, reference_ids)
+        else:
+            raise DocumentError(f"Unsupported structural relation type {relation_type!r}")
+        content = {key: value for key, value in relation.items() if key != "id"}
+        expected_id = _structural_relation_id(content)
+        if relation_id != expected_id:
+            raise DocumentError(
+                f"Structural relation ID {relation_id} must equal canonical ID {expected_id}"
+            )
+
+
+def _validate_derived_from(
+    relation: dict[str, Any],
+    entity_by_id: dict[str, dict[str, Any]],
+    known_entities: set[str],
+    reference_ids: set[str],
+) -> None:
+    expected = {"id", "type", "subject", "artifact_id", "candidate_id", "component_digest"}
+    if set(relation) != expected or relation.get("subject") not in known_entities:
+        raise DocumentError("derived-from relation fields or subject are invalid")
+    if relation.get("artifact_id") not in reference_ids:
+        raise DocumentError("derived-from relation references a missing Artifact")
+    provenance = entity_by_id[relation["subject"]].get("provenance")
+    if not isinstance(provenance, dict) or any(
+        relation[field] != provenance.get(field)
+        for field in ("artifact_id", "candidate_id", "component_digest")
+    ):
+        raise DocumentError("derived-from relation does not match Entity provenance")
+
+
+def _validate_contains(
+    relation: dict[str, Any],
+    entity_by_id: dict[str, dict[str, Any]],
+    known_entities: set[str],
+    reference_ids: set[str],
+) -> None:
+    if set(relation) != {"id", "type", "container", "contained", "evidence"}:
+        raise DocumentError("contains relation fields are invalid")
+    container_id, contained_id = relation.get("container"), relation.get("contained")
+    if (
+        container_id not in known_entities
+        or contained_id not in known_entities
+        or container_id == contained_id
+    ):
+        raise DocumentError("contains relation Entity endpoints are invalid")
+    evidence = relation.get("evidence")
+    if not isinstance(evidence, dict) or set(evidence) != {
+        "artifact_id",
+        "container_candidate_id",
+        "contained_candidate_id",
+        "basis",
+    }:
+        raise DocumentError("contains relation evidence fields are invalid")
+    if evidence["artifact_id"] not in reference_ids:
+        raise DocumentError("contains relation references a missing Artifact")
+    if evidence["basis"] != "strict-half-open-bounds@0.1":
+        raise DocumentError("contains relation basis is unsupported")
+    container = entity_by_id[container_id].get("provenance")
+    contained = entity_by_id[contained_id].get("provenance")
+    if not isinstance(container, dict) or not isinstance(contained, dict):
+        raise DocumentError("contains relation requires promoted Entity provenance")
+    if (
+        container.get("artifact_id") != evidence["artifact_id"]
+        or contained.get("artifact_id") != evidence["artifact_id"]
+        or container.get("candidate_id") != evidence["container_candidate_id"]
+        or contained.get("candidate_id") != evidence["contained_candidate_id"]
+        or not _strictly_contains(
+            _bounds(container.get("bounds")), _bounds(contained.get("bounds"))
+        )
+    ):
+        raise DocumentError("contains relation is not supported by Entity evidence")
+
+
+def _bounds(value: Any) -> tuple[int, int, int, int] | None:
+    if (
+        not isinstance(value, list)
+        or len(value) != 4
+        or any(not isinstance(item, int) or isinstance(item, bool) for item in value)
+        or not (0 <= value[0] < value[2])
+        or not (0 <= value[1] < value[3])
+    ):
+        return None
+    return value[0], value[1], value[2], value[3]
+
+
+def _strictly_contains(
+    outer: tuple[int, int, int, int] | None,
+    inner: tuple[int, int, int, int] | None,
+) -> bool:
+    return (
+        outer is not None
+        and inner is not None
+        and outer != inner
+        and outer[0] <= inner[0]
+        and outer[1] <= inner[1]
+        and outer[2] >= inner[2]
+        and outer[3] >= inner[3]
+    )
+
+
+def _structural_relation_id(content: dict[str, Any]) -> str:
+    digest = hashlib.sha256(
+        canonical_bytes({"identity": "svm-structural-relations@0.1", **content})
+    ).hexdigest()[:16]
+    return f"relation:{content['type']}:{digest}"
