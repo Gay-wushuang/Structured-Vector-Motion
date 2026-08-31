@@ -159,7 +159,7 @@ def create_server(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Serve Editor Vertical Slice 02")
+    parser = argparse.ArgumentParser(description="Serve Editor Vertical Slice 03")
     parser.add_argument("--document", type=Path, default=DEFAULT_DOCUMENT)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=4175)

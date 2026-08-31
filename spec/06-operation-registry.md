@@ -13,6 +13,7 @@ The Registry is the single source of truth for:
 - required input names and Value types;
 - static or dynamically derived output names and Value types;
 - parameter validation;
+- explicitly animatable parameters;
 - quality sensitivity;
 - reference evaluation implementation.
 
@@ -28,9 +29,14 @@ OperationDefinition
 |- input signature
 |- output signature or output resolver
 |- parameter validator
+|- animatable_parameters
 |- quality_sensitive
 `- executor
 ```
+
+`animatable_parameters` is an explicit semantic allowlist. Numeric storage does
+not imply animation eligibility. Parameters absent from this declaration fail
+closed as Motion targets even when every sampled endpoint would be numeric.
 
 An input signature maps logical input names to Value types. An output signature
 maps logical output names to Value types. The v0.1 registry currently defines
@@ -111,18 +117,18 @@ from third-party package identity.
 
 ## 8. Registered v0.1 operations
 
-| Operation | Inputs | Outputs | Quality-sensitive |
-| --- | --- | --- | --- |
-| `BooleanGeometry` | `left`, `right` | `geometry` | no |
-| `CreateEllipse` | none | `geometry` | no |
-| `CreatePath` | none | `geometry` | no |
-| `CreateRectangle` | none | `geometry` | no |
-| `PathToPolygon` | `path` | `geometry` | no |
-| `Transform` | `geometry` | `geometry` | no |
-| `ConvertToPath` | `geometry` | `geometry` | no |
-| `RefineBezier` | `geometry` | `geometry` | yes |
-| `Clip` | `content`, `clip` | `geometry` | no |
-| `SplitEntity` | `geometry` | derived from parts | no |
+| Operation | Inputs | Outputs | Animatable parameters | Quality-sensitive |
+| --- | --- | --- | --- | --- |
+| `BooleanGeometry` | `left`, `right` | `geometry` | none | no |
+| `CreateEllipse` | none | `geometry` | `cx`, `cy`, `rx`, `ry` | no |
+| `CreatePath` | none | `geometry` | none | no |
+| `CreateRectangle` | none | `geometry` | `x`, `y`, `width`, `height` | no |
+| `PathToPolygon` | `path` | `geometry` | none | no |
+| `Transform` | `geometry` | `geometry` | none | no |
+| `ConvertToPath` | `geometry` | `geometry` | none | no |
+| `RefineBezier` | `geometry` | `geometry` | none | yes |
+| `Clip` | `content`, `clip` | `geometry` | none | no |
+| `SplitEntity` | `geometry` | derived from parts | none | no |
 
 `CreateEllipse` requires finite `cx`, `cy`, `rx`, and `ry`; both radii must be
 greater than zero. `CreateRectangle` requires finite `x`, `y`, `width`, and

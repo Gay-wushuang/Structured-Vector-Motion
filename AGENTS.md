@@ -89,6 +89,8 @@ Do not collapse these concepts:
   result.
 - Adapter proposes Document changes; Backend executes accepted definitions.
 - Animation is a Document definition; Frame is a sampled render result.
+- Numeric storage does not imply animatability; Motion targets must be declared
+  explicitly by the active Operation Definition.
 
 ## Core invariants for implementation
 

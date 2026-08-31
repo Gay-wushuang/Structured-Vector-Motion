@@ -84,6 +84,7 @@ class CreateTrackChange:
 
     def apply(self, document: dict[str, Any]) -> None:
         from .motion import MOTION_SEMANTICS_IDENTITY
+        from .operations import get_operation_registry
 
         if not isinstance(self.track_id, str) or not self.track_id.startswith("track:"):
             raise DocumentError("CreateTrackChange requires a track: ID")
@@ -103,6 +104,11 @@ class CreateTrackChange:
         if self.parameter not in parameters:
             raise DocumentError(
                 f"Cannot animate missing parameter {self.operation_id}.{self.parameter}"
+            )
+        registry = get_operation_registry(document["semantics_version"])
+        if self.parameter not in registry.animatable_parameters(operation):
+            raise DocumentError(
+                f"Operation parameter {self.operation_id}.{self.parameter} is not animatable"
             )
         if not isinstance(parameters[self.parameter], (int, float)) or isinstance(
             parameters[self.parameter], bool

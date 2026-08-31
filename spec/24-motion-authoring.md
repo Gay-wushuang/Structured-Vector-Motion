@@ -11,6 +11,9 @@ Motion semantics from an existing static Document.
 one numeric, linear Track with stable identity. It may also establish
 `svm-motion@0.1` and the Document timebase when the Document has no Tracks.
 Existing timebase and target uniqueness are fail-closed.
+The target must occur in the active Operation Definition's explicit
+`animatable_parameters`; being a finite numeric parameter is necessary but not
+sufficient.
 
 `AddKeyframeChange(track_id, keyframe_id, tick, value)` inserts one finite
 numeric Keyframe in tick order. Keyframe IDs and ticks must be unique within the
@@ -45,7 +48,7 @@ for stable-structure Keyframe value edits.
 The first UI path is intentionally narrow:
 
 ```text
-select an untracked numeric Rectangle parameter
+select an untracked parameter declared animatable by the Operation Registry
 -> Add Track + initial Keyframe at tick 0
 -> Add a second Keyframe at an explicit tick
 -> preview and edit its value

@@ -76,6 +76,10 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
         operation = evaluator.operations[operation_id]
         if parameter not in operation.get("parameters", {}):
             raise DocumentError(f"Track {track_id} targets missing parameter {parameter}")
+        if parameter not in evaluator.registry.animatable_parameters(operation):
+            raise DocumentError(
+                f"Track {track_id} targets non-animatable parameter {operation_id}.{parameter}"
+            )
         current = operation["parameters"][parameter]
         if not _finite_number(current):
             raise DocumentError(f"Track {track_id} target parameter is not numeric")

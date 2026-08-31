@@ -31,10 +31,13 @@ by tick. Editing a value does not rename the Keyframe or Track.
 
 ## 4. Animatable parameter
 
-The v0.1 target is an existing finite numeric parameter of an accepted
-Construction Operation. Animation samples an effective parameter value; it does
-not mutate Entity, Operation, Track, or Keyframe identity. Style, path control,
-constraints, hierarchy, and arbitrary Entity properties are deferred.
+The v0.1 target is an existing finite numeric parameter explicitly listed in
+the Operation Definition's `animatable_parameters`. Numeric representation
+alone never grants linear animation semantics. Both Track creation and Document
+validation consult this same Registry contract. Animation samples an effective
+parameter value; it does not mutate Entity, Operation, Track, or Keyframe
+identity. Style, path control, constraints, hierarchy, and arbitrary Entity
+properties are deferred.
 
 ## 5. Interpolation
 

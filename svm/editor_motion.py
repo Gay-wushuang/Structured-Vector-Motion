@@ -8,6 +8,7 @@ from typing import Any
 
 from .evaluator import DocumentError, Evaluator, Quality, canonical_bytes
 from .motion import MotionEvaluator, MotionRevisionDelta, canonical_motion_number
+from .operations import get_operation_registry
 from .proposals import GeneratorProvenance, Proposal, ProposalAcceptor
 from .renderers import SVGRenderer, SVGRenderOptions
 from .revisions import (
@@ -35,7 +36,7 @@ class DocumentEditorSession:
 
     def __init__(self, document: dict[str, Any]) -> None:
         self._validate_editor_subset(document)
-        self.store = RevisionStore.create(document, "Editor Vertical Slice 02 base")
+        self.store = RevisionStore.create(document, "Editor Vertical Slice 03 base")
         if self.store.head is None:
             raise DocumentError("Editor Revision Store did not create a head")
         self.base_revision_id = self.store.head
@@ -108,7 +109,7 @@ class DocumentEditorSession:
             base_revision_id=self.head,
             generator=GeneratorProvenance(
                 adapter_id=EDITOR_ACTOR,
-                adapter_version="0.2",
+                adapter_version="0.3",
                 engine="svm-core",
                 engine_version=EDITOR_IDENTITY,
             ),
@@ -450,7 +451,7 @@ class DocumentEditorSession:
         )
         if unsupported:
             raise DocumentError(
-                "Editor Vertical Slice 02 supports only CreateRectangle/CreateEllipse; "
+                "Editor Vertical Slice 03 supports only CreateRectangle/CreateEllipse; "
                 f"found {', '.join(unsupported)}"
             )
 
@@ -474,7 +475,7 @@ class DocumentEditorSession:
                     bounds.append((cx - rx, cy - ry, cx + rx, cy + ry))
                 else:
                     raise DocumentError(
-                        f"Editor Vertical Slice 02 cannot frame geometry {geometry['kind']!r}"
+                        f"Editor Vertical Slice 03 cannot frame geometry {geometry['kind']!r}"
                     )
         if not bounds:
             return (-1, -1, 2, 2)
@@ -489,6 +490,7 @@ class DocumentEditorSession:
 
     @staticmethod
     def _document_outline(document: dict[str, Any]) -> list[dict[str, Any]]:
+        registry = get_operation_registry(document["semantics_version"])
         operations = {
             operation["id"]: operation for operation in document["construction"]["operations"]
         }
@@ -521,6 +523,11 @@ class DocumentEditorSession:
                     ),
                     "binding": copy.deepcopy(binding),
                     "operation": copy.deepcopy(operation),
+                    "animatable_parameters": (
+                        sorted(registry.animatable_parameters(operation))
+                        if operation is not None
+                        else []
+                    ),
                     "style": copy.deepcopy(styles.get(entity["id"])),
                     "track_ids": operation_tracks,
                 }

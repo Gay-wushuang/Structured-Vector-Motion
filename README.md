@@ -262,7 +262,8 @@ Editor Vertical Slice 03 adds the first real authoring path. A static Rectangle
 parameter can become a numeric linear Track through an atomic
 `CreateTrackChange + AddKeyframeChange` Transaction, then receive further
 Keyframes as accepted child Revisions. See `spec/24-motion-authoring.md` and
-`tests/test_motion_authoring.py`.
+`tests/test_motion_authoring.py`. The active Operation Definition explicitly
+declares eligible parameters; numeric parameters are non-animatable by default.
 
 ## Anchored Regeneration
 

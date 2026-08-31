@@ -17,6 +17,8 @@ from svm.change_authority import resolve_transaction_intents
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "examples" / "018-anchored-regeneration.svm.json"
+HEAD = ROOT / "examples" / "001-head-basic.svm.json"
+MULTITRACK = ROOT / "examples" / "019-editor-multitrack.svm.json"
 TRACK = "track:unrelated-x"
 FIRST = "keyframe:unrelated-x-0000"
 LAST = "keyframe:unrelated-x-0024"
@@ -112,6 +114,130 @@ class MotionAuthoringTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(ProposalPolicyError, "denies editor:motion-timeline"):
             ProposalAcceptor().accept(store, proposal)
+        self.assertEqual(len(store.revisions), 1)
+
+    def test_numeric_parameter_without_animatable_declaration_is_rejected(self) -> None:
+        document = json.loads(HEAD.read_text(encoding="utf-8"))
+        store = RevisionStore.create(document)
+        assert store.head is not None
+        with self.assertRaisesRegex(ValueError, "is not animatable"):
+            store.commit(
+                store.head,
+                Transaction(
+                    "transaction:animate-refinement-tolerance",
+                    (
+                        CreateTrackChange(
+                            "track:head-tolerance", "op:head_refine", "tolerance", 24
+                        ),
+                        AddKeyframeChange(
+                            "track:head-tolerance", "keyframe:head-tolerance-0000", 0, 0.01
+                        ),
+                    ),
+                ),
+            )
+        self.assertEqual(len(store.revisions), 1)
+
+    def test_motion_validator_rejects_undeclared_numeric_target(self) -> None:
+        document = json.loads(HEAD.read_text(encoding="utf-8"))
+        document["animation"] = {
+            "semantics_version": "svm-motion@0.1",
+            "timebase": {"ticks_per_second": 24},
+            "content": [
+                {
+                    "id": "track:head-tolerance",
+                    "target": {"operation": "op:head_refine", "parameter": "tolerance"},
+                    "value_type": "number",
+                    "interpolation": "linear",
+                    "keyframes": [{"id": "keyframe:head-tolerance-0000", "tick": 0, "value": 0.01}],
+                }
+            ],
+            "construction_scheduling_hints": [],
+        }
+        with self.assertRaisesRegex(ValueError, "targets non-animatable parameter"):
+            RevisionStore.create(document)
+
+    def test_invalid_keyframe_endpoint_fails_without_revision(self) -> None:
+        first = self.store.commit(
+            self.base_revision_id,
+            Transaction(
+                "transaction:create-unrelated-width-track",
+                (
+                    CreateTrackChange("track:unrelated-width", "op:unrelated", "width", 24),
+                    AddKeyframeChange(
+                        "track:unrelated-width", "keyframe:unrelated-width-0000", 0, 0.2
+                    ),
+                ),
+            ),
+        )
+        revision_count = len(self.store.revisions)
+        with self.assertRaisesRegex(ValueError, "width and height must be greater than zero"):
+            self.store.commit(
+                first.revision_id,
+                Transaction(
+                    "transaction:invalid-width-endpoint",
+                    (
+                        AddKeyframeChange(
+                            "track:unrelated-width", "keyframe:unrelated-width-0024", 24, -20
+                        ),
+                    ),
+                ),
+            )
+        self.assertEqual(len(self.store.revisions), revision_count)
+
+    def test_add_keyframe_permission_is_enforced_independently(self) -> None:
+        first = self.store.commit(self.base_revision_id, self.create_transaction())
+        protected = self.store.get_document(first.revision_id)
+        protected["edit_permissions"].append(
+            {
+                "id": "permission:no-new-keyframes",
+                "actor": "editor:motion-timeline",
+                "effect": "deny",
+                "actions": ["add_keyframe"],
+                "targets": [TRACK],
+            }
+        )
+        store = RevisionStore.create(protected)
+        assert store.head is not None
+        proposal = Proposal(
+            "proposal:add-denied-keyframe",
+            store.head,
+            GeneratorProvenance(
+                "editor:motion-timeline", "0.3", "svm-core", "svm-document-editor@0.3"
+            ),
+            Transaction(
+                "transaction:add-denied-keyframe",
+                (AddKeyframeChange(TRACK, LAST, 24, 2),),
+            ),
+        )
+        with self.assertRaisesRegex(ProposalPolicyError, "denies editor:motion-timeline"):
+            ProposalAcceptor().accept(store, proposal)
+        self.assertEqual(len(store.revisions), 1)
+
+    def test_existing_timebase_conflict_fails_atomically(self) -> None:
+        document = json.loads(MULTITRACK.read_text(encoding="utf-8"))
+        store = RevisionStore.create(document)
+        assert store.head is not None
+        with self.assertRaisesRegex(ValueError, "timebase conflicts"):
+            store.commit(
+                store.head,
+                Transaction(
+                    "transaction:conflicting-timebase",
+                    (
+                        CreateTrackChange(
+                            "track:moving-rectangle-width",
+                            "op:moving-rectangle",
+                            "width",
+                            1000,
+                        ),
+                        AddKeyframeChange(
+                            "track:moving-rectangle-width",
+                            "keyframe:moving-width-0000",
+                            0,
+                            40,
+                        ),
+                    ),
+                ),
+            )
         self.assertEqual(len(store.revisions), 1)
 
 

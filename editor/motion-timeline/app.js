@@ -249,12 +249,15 @@ function renderAuthoringControls(operation) {
       .filter((track) => track.target.operation === operation?.id)
       .map((track) => track.target.parameter)
   );
-  const available = operation?.type === "CreateRectangle"
-    ? Object.entries(operation.parameters || {})
-      .filter(([name,value]) => typeof value === "number" && Number.isFinite(value) && !tracked.has(name))
-    : [];
+  const declared = new Set(
+    state.data.structure.find((entity) => entity.id === state.selectedEntityId)?.animatable_parameters || []
+  );
+  const available = Object.entries(operation?.parameters || {})
+    .filter(([name]) => declared.has(name) && !tracked.has(name));
   elements.authoring_editor.classList.toggle("hidden", available.length === 0);
-  elements.author_timebase.value = String(state.data.timebase?.ticks_per_second ?? 24);
+  const existingTimebase = state.data.timebase?.ticks_per_second;
+  elements.author_timebase.value = String(existingTimebase ?? 24);
+  elements.author_timebase.disabled = existingTimebase !== undefined;
   elements.author_parameter.replaceChildren(...available.map(([name]) => {
     const option = document.createElement("option");
     option.value = name;

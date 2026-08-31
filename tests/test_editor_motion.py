@@ -111,6 +111,11 @@ class RealMotionEditorVerticalSliceTest(unittest.TestCase):
         self.assertIsNone(state["timebase"])
         self.assertEqual(state["frame"]["tick"], 0)
         self.assertEqual(len(state["structure"]), 3)
+        self.assertEqual(state["structure"][0]["animatable_parameters"], ["cx", "cy", "rx", "ry"])
+        self.assertEqual(
+            state["structure"][2]["animatable_parameters"],
+            ["height", "width", "x", "y"],
+        )
         self.assertIn('data-svm-entity="entity:eye-frame"', state["frame"]["svg"])
         with self.assertRaisesRegex(ValueError, "no editable Motion Track"):
             session.preview("track:missing", "keyframe:missing", 1, 0)

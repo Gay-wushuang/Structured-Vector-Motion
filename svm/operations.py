@@ -184,6 +184,7 @@ class OperationDefinition:
     quality_sensitive: bool = False
     capability: str | None = None
     algorithm_identity: str | None = None
+    animatable_parameters: frozenset[str] = frozenset()
 
     def output_signature(self, operation: Mapping[str, Any]) -> Mapping[str, ValueType]:
         if callable(self.outputs):
@@ -192,7 +193,13 @@ class OperationDefinition:
 
     def validate(self, operation: Mapping[str, Any]) -> None:
         _require_exact_keys(operation.get("inputs", {}), set(self.inputs), "Input")
-        self.validate_parameters(operation.get("parameters", {}))
+        parameters = operation.get("parameters", {})
+        self.validate_parameters(parameters)
+        undeclared = self.animatable_parameters - set(parameters)
+        if undeclared:
+            raise OperationValidationError(
+                f"{self.type_name} animatable parameters are absent: {sorted(undeclared)}"
+            )
         outputs = self.output_signature(operation)
         if not outputs or any(not name for name in outputs):
             raise OperationValidationError(f"{self.type_name} must declare outputs")
@@ -238,6 +245,9 @@ class OperationRegistry:
 
     def output_signature(self, operation: Mapping[str, Any]) -> Mapping[str, ValueType]:
         return self.definition(operation["type"]).output_signature(operation)
+
+    def animatable_parameters(self, operation: Mapping[str, Any]) -> frozenset[str]:
+        return self.definition(operation["type"]).animatable_parameters
 
     def evaluate(
         self,
@@ -455,6 +465,7 @@ def _build_core_registry() -> OperationRegistry:
             {"geometry": geometry},
             _ellipse_parameters,
             _create_ellipse,
+            animatable_parameters=frozenset({"cx", "cy", "rx", "ry"}),
         ),
         OperationDefinition(
             "CreateRectangle",
@@ -462,6 +473,7 @@ def _build_core_registry() -> OperationRegistry:
             {"geometry": geometry},
             _rectangle_parameters,
             _create_rectangle,
+            animatable_parameters=frozenset({"x", "y", "width", "height"}),
         ),
         OperationDefinition(
             "CreatePath",

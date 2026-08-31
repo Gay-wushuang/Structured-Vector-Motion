@@ -62,7 +62,9 @@ select an untracked numeric parameter
 
 The initial Track and Keyframe share one Transaction because Motion v0.1 does
 not admit an accepted empty Track. The UI defaults new static animation to 24
-ticks/s and reuses an existing Document timebase when one is present.
+ticks/s and exposes an existing Document timebase as read-only. Authoring
+choices come from the Operation Registry's explicit `animatable_parameters`,
+not JavaScript numeric-type inference or Operation-name conditionals.
 
 The durable Shell has four long-lived regions:
 
