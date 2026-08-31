@@ -243,6 +243,13 @@ Operation parameters, Entities, Tracks, and Keyframes must exist. Motion impact
 uses `(set_keyframe_value, Track ID, Keyframe ID)`, allowing one Keyframe without
 implicitly authorizing every Keyframe on the Track.
 
+The first user-facing Golden O interaction study lives in
+`prototype/anchored-regeneration/`. It demonstrates a strict red-to-orange edit,
+locked geometry/face targets, exact Highlight and Shadow regeneration scope,
+deterministic A/B/C pending candidates, impact inspection, and acceptance into a
+visible child Revision. The prototype is browser-only Editor State and does not
+add UI fields to the SVM Document or invoke an AI model.
+
 ## Development
 
 Install the project and development tools in editable mode:

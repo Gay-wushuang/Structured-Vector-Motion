@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SVM · Anchored Regeneration Prototype</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">S</span>
+          <div>
+            <strong>Structured Vector Motion</strong>
+            <span>Anchored Regeneration · interaction prototype</span>
+          </div>
+        </div>
+        <div class="status-pill"><i></i><span id="revision-status">Revision R0 · Red eyes</span></div>
+      </header>
+
+      <section class="workspace">
+        <section class="canvas-panel panel">
+          <div class="panel-heading">
+            <div>
+              <span class="eyebrow">Canvas</span>
+              <h1>Eye study</h1>
+            </div>
+            <div class="zoom-control">100%</div>
+          </div>
+
+          <div class="canvas-stage">
+            <div class="anchor-label"><span>Anchor</span> entity:eyes</div>
+            <div id="main-eye" class="eye-host" aria-label="Eye preview"></div>
+            <div class="canvas-note">
+              <span class="lock-icon">⌁</span>
+              <div><strong>Geometry stable</strong><small>Entity and outline identity are retained</small></div>
+            </div>
+          </div>
+
+          <div class="branch-strip" aria-label="Revision branches">
+            <div class="branch-title"><span>Revision branches</span><small>Proposal ≠ Revision</small></div>
+            <div id="branch-graph" class="branch-graph"></div>
+          </div>
+        </section>
+
+        <aside class="control-panel panel">
+          <div class="panel-heading compact">
+            <div>
+              <span class="eyebrow">Properties</span>
+              <h2>Semantic edit</h2>
+            </div>
+            <button id="reset-button" class="icon-button" title="Reset prototype" aria-label="Reset prototype">↺</button>
+          </div>
+
+          <section class="control-section">
+            <div class="section-title"><span>Iris color</span><small>strict deterministic edit</small></div>
+            <div class="color-choice" role="group" aria-label="Iris color">
+              <button class="color-button selected" data-color="red">
+                <span class="swatch red"></span><span>Red</span><small>#D83B3B</small>
+              </button>
+              <span class="arrow">→</span>
+              <button class="color-button" data-color="orange">
+                <span class="swatch orange"></span><span>Orange</span><small>#F47A32</small>
+              </button>
+            </div>
+            <p id="strict-edit-copy" class="helper-copy">Choose Orange to commit the confirmed edit as Revision R1.</p>
+          </section>
+
+          <section class="control-section">
+            <div class="section-title"><span>Protection</span><small>must not change</small></div>
+            <label class="scope-row locked">
+              <input type="checkbox" checked disabled />
+              <span class="check-ui"></span>
+              <span><strong>Eye geometry</strong><small>op:eye-frame · all geometry parameters</small></span>
+              <em>Locked</em>
+            </label>
+            <label class="scope-row locked">
+              <input type="checkbox" checked disabled />
+              <span class="check-ui"></span>
+              <span><strong>Face structure</strong><small>entity:face · identity + geometry</small></span>
+              <em>Locked</em>
+            </label>
+          </section>
+
+          <section class="control-section">
+            <div class="section-title"><span>Regeneration scope</span><small>exact allowlist</small></div>
+            <label class="scope-row">
+              <input id="allow-highlight" type="checkbox" checked />
+              <span class="check-ui"></span>
+              <span><strong>Eye highlight</strong><small>allow cx · cy · radius</small></span>
+            </label>
+            <label class="scope-row">
+              <input id="allow-shadow" type="checkbox" />
+              <span class="check-ui"></span>
+              <span><strong>Eye shadow</strong><small>allow opacity · offset</small></span>
+            </label>
+          </section>
+
+          <button id="generate-button" class="primary-button" disabled>
+            <span>Generate candidates</span><small>deterministic fixture</small>
+          </button>
+
+          <div class="authority-note">
+            <span>✓</span>
+            <p><strong>Core verifies actual Change impacts.</strong> Candidate metadata cannot widen this scope.</p>
+          </div>
+        </aside>
+      </section>
+
+      <section id="candidate-section" class="candidate-panel panel hidden">
+        <div class="candidate-heading">
+          <div>
+            <span class="eyebrow">Pending proposals</span>
+            <h2>Choose a future</h2>
+          </div>
+          <p>All candidates start from <strong>R1</strong>. Nothing enters history until you accept it.</p>
+        </div>
+        <div id="candidate-grid" class="candidate-grid"></div>
+        <div class="candidate-footer">
+          <div id="impact-summary" class="impact-summary"></div>
+          <button id="accept-button" class="accept-button" disabled>Accept selected candidate</button>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
