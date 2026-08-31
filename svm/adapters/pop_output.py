@@ -241,6 +241,7 @@ class POPOutputAdapter:
             "generation_config_identity",
             "producer",
             "generation_context",
+            "annotations",
             "canvas",
             "primitives",
             "raw_tokens",
@@ -255,7 +256,6 @@ class POPOutputAdapter:
             "prefix_content_hash",
             "prefix_length",
             "target_steps",
-            "user_intent",
         }:
             raise POPOutputError("POP generation context fields are invalid")
         if generation_context["kind"] != "operation_prefix":
@@ -265,7 +265,10 @@ class POPOutputAdapter:
             or generation_context["prefix_content_hash"] != prefix.content_hash
         ):
             raise POPOutputError("POP generation context prefix identity is inconsistent")
-        if not isinstance(generation_context["user_intent"], str):
+        annotations = payload["annotations"]
+        if not isinstance(annotations, dict) or set(annotations) != {"user_intent"}:
+            raise POPOutputError("POP annotation fields are invalid")
+        if not isinstance(annotations["user_intent"], str):
             raise POPOutputError("POP optional user intent must be text")
         producer = payload["producer"]
         if not isinstance(producer, dict) or set(producer) != {
@@ -581,8 +584,8 @@ class POPTokenExporter:
                 "prefix_content_hash": prefix.content_hash,
                 "prefix_length": prefix_length,
                 "target_steps": target_steps,
-                "user_intent": user_intent,
             },
+            "annotations": {"user_intent": user_intent},
             "producer": producer,
             "canvas": canvas,
             "raw_tokens": tokens,

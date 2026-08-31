@@ -31,9 +31,10 @@ svm-pop-output-adapter@0.2
 ```
 
 POP is an operation-prefix continuation model, not prompt-to-image. The
-`generation_context` therefore binds an exact prefix Artifact ID and content
-hash, prefix length, and target step count. Optional `user_intent` is annotation
-only and MUST NOT be represented as model input.
+`generation_context` therefore contains only an exact prefix Artifact ID and
+content hash, prefix length, and target step count. Optional `user_intent` lives
+under the separate top-level `annotations` record and MUST NOT be represented as
+model input.
 
 The recorded producer includes the exact upstream repository and Git commit,
 model ID, checkpoint SHA-256, seed, decoding configuration,
@@ -64,6 +65,11 @@ concrete execution result, and deliberately excludes `raw_tokens`. Two
 environmentally nondeterministic executions may therefore share this identity
 while producing different output Artifacts. The output Artifact ID and content
 hash identify the concrete recorded token result.
+
+Annotations are also deliberately excluded. Changing `user_intent`, a future
+experiment name, or an author note changes the complete Artifact bytes but not
+the generation configuration identity. Only fields capable of changing upstream
+model execution may participate in `generation_config_identity`.
 
 Accepting `field-aware-sampling` provenance proves only that the Artifact makes
 a valid, internally consistent provenance assertion. It is not proof that the

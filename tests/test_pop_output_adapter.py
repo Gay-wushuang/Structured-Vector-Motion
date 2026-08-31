@@ -135,7 +135,7 @@ class POPOutputGoldenPTest(unittest.TestCase):
             checkpoint_hash=producer["checkpoint_hash"],
             seed=producer["seed"],
             decoding=producer["decoding"],
-            user_intent=payload["generation_context"]["user_intent"],
+            user_intent=payload["annotations"]["user_intent"],
         )
         self.assertEqual(prefix.content, canonical_bytes(json.loads(PREFIX.read_text())))
         self.assertEqual(output.content, canonical_bytes(json.loads(OUTPUT.read_text())))
@@ -182,6 +182,14 @@ class POPOutputGoldenPTest(unittest.TestCase):
             pop_generation_config_identity(different_output),
         )
         self.assertNotEqual(canonical_bytes(first), canonical_bytes(different_output))
+
+        different_annotation = copy.deepcopy(first)
+        different_annotation["annotations"]["user_intent"] = "testing"
+        self.assertEqual(
+            pop_generation_config_identity(first),
+            pop_generation_config_identity(different_annotation),
+        )
+        self.assertNotEqual(canonical_bytes(first), canonical_bytes(different_annotation))
 
     def test_accepted_document_loads_and_renders_without_pop_artifacts(self) -> None:
         proposal = POPOutputAdapter().propose(self.request(), self.artifacts)
