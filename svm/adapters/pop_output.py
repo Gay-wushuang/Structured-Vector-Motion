@@ -34,6 +34,8 @@ TOKEN_LAYOUT_IDENTITY = "pop/geometrize_256_v1"
 QUANTIZATION_IDENTITY = "pop/geometrize-256-quantization@0.1"
 DECODER_IDENTITY = "pop/decode-tokens-to-render-data@d5489b0"
 RENDERER_IDENTITY = "pop/matplotlib-half-alpha@d5489b0"
+GREEDY_POLICY_IDENTITY = "pop/argmax-lowest-token@0.1"
+FIELD_AWARE_POLICY_IDENTITY = "pop/gpt-sampling-config@d5489b0"
 UPSTREAM_REPOSITORY = "https://github.com/wonderfulearth/primitive-operation-painter"
 MAX_PRIMITIVES = 512
 
@@ -136,7 +138,7 @@ class POPOutputAdapter:
     """Normalize one immutable Primitive Operation Painter output snapshot."""
 
     adapter_id = "adapter:pop-output"
-    adapter_version = "0.1"
+    adapter_version = "0.2"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactResolver) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -306,12 +308,7 @@ class POPOutputAdapter:
                 "POP token, quantization, decoder, or renderer identity is invalid"
             )
         decoding = producer["decoding"]
-        if not isinstance(decoding, dict) or set(decoding) != {"strategy", "max_steps"}:
-            raise POPOutputError("POP decoding fields are invalid")
-        if decoding["strategy"] != "greedy":
-            raise POPOutputError("Golden P supports only deterministic greedy decoding")
-        if type(decoding["max_steps"]) is not int or not 1 <= decoding["max_steps"] <= 512:
-            raise POPOutputError("POP max_steps must be an integer from 1 to 512")
+        _validate_decoding(decoding)
         canvas = payload["canvas"]
         if not isinstance(canvas, dict) or set(canvas) != {"width", "height", "background_rgb"}:
             raise POPOutputError("POP canvas fields are invalid")
@@ -327,8 +324,8 @@ class POPOutputAdapter:
             raise POPOutputError("POP prefix_length must be positive")
         if type(target_steps) is not int or not prefix_length <= target_steps <= 512:
             raise POPOutputError("POP target_steps is invalid")
-        if target_steps != decoding["max_steps"]:
-            raise POPOutputError("POP target_steps must equal the recorded decoding max_steps")
+        if target_steps != decoding["target_steps"]:
+            raise POPOutputError("POP target_steps must equal its decoding target_steps")
         if len(prefix_tokens) != prefix_length * TOKENS_PER_STEP:
             raise POPOutputError("POP prefix token count is inconsistent")
         if len(raw_tokens) != target_steps * TOKENS_PER_STEP:
@@ -341,8 +338,8 @@ class POPOutputAdapter:
         primitives = payload["primitives"]
         if not isinstance(primitives, list) or not 1 <= len(primitives) <= MAX_PRIMITIVES:
             raise POPOutputError("POP output must contain between 1 and 512 primitives")
-        if len(primitives) > decoding["max_steps"]:
-            raise POPOutputError("POP primitive count exceeds recorded max_steps")
+        if len(primitives) >= decoding["target_steps"]:
+            raise POPOutputError("POP primitive count exceeds its recorded target_steps")
         for index, primitive in enumerate(primitives):
             if not isinstance(primitive, dict) or set(primitive) != {
                 "index",
@@ -544,6 +541,9 @@ class POPTokenExporter:
         target_steps = len(tokens) // TOKENS_PER_STEP
         if type(prefix_length) is not int or not 1 <= prefix_length <= target_steps:
             raise POPOutputError("POP prefix_length is invalid")
+        _validate_decoding(decoding)
+        if decoding["target_steps"] != target_steps:
+            raise POPOutputError("POP decoding target_steps does not match the raw continuation")
         canvas, primitives = _decode_tokens(tokens)
         prefix_tokens = tokens[: prefix_length * TOKENS_PER_STEP]
         prefix = artifacts.import_bytes(
@@ -671,6 +671,34 @@ def _decode_tokens(tokens: list[int]) -> tuple[dict[str, Any], list[dict[str, An
             }
         )
     return {"width": 256, "height": 256, "background_rgb": background["rgb"]}, primitives
+
+
+def _validate_decoding(value: Any) -> None:
+    if not isinstance(value, dict) or set(value) != {
+        "strategy",
+        "target_steps",
+        "sampling_policy_identity",
+        "configuration",
+    }:
+        raise POPOutputError("POP decoding fields are invalid")
+    target_steps = value["target_steps"]
+    if type(target_steps) is not int or not 1 <= target_steps <= 512:
+        raise POPOutputError("POP decoding target_steps must be an integer from 1 to 512")
+    strategy = value["strategy"]
+    policy = value["sampling_policy_identity"]
+    configuration = value["configuration"]
+    profiles = {
+        "greedy": (GREEDY_POLICY_IDENTITY, {"tie_break": "lowest-token-id"}),
+        "field-aware-sampling": (
+            FIELD_AWARE_POLICY_IDENTITY,
+            {"schedule": "upstream-default"},
+        ),
+    }
+    if strategy not in profiles:
+        raise POPOutputError("POP decoding strategy is unsupported")
+    expected_policy, expected_configuration = profiles[strategy]
+    if policy != expected_policy or configuration != expected_configuration:
+        raise POPOutputError("POP decoding policy or configuration is inconsistent")
 
 
 def _finite_number(value: Any, label: str) -> int | float:

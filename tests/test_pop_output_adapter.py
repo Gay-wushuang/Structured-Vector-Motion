@@ -78,6 +78,7 @@ class POPOutputGoldenPTest(unittest.TestCase):
         self.assertEqual(self.store.get_document(self.store.head), self.document)
         self.assertEqual(len(self.store.revisions), 1)
         self.assertEqual(first.generator.parameters["identity"], "svm-pop-output-adapter@0.2")
+        self.assertEqual(first.generator.adapter_version, "0.2")
 
         dry_run = ProposalAcceptor().validate(self.store, first, self.artifacts)
         self.assertEqual(len(self.store.revisions), 1)
@@ -137,6 +138,39 @@ class POPOutputGoldenPTest(unittest.TestCase):
         )
         self.assertEqual(prefix.content, canonical_bytes(json.loads(PREFIX.read_text())))
         self.assertEqual(output.content, canonical_bytes(json.loads(OUTPUT.read_text())))
+
+    def test_official_field_aware_sampling_is_recorded_before_the_artifact_boundary(self) -> None:
+        payload = json.loads(OUTPUT.read_text(encoding="utf-8"))
+        producer = payload["producer"]
+        sampled_artifacts = ArtifactStore()
+        prefix, output = POPTokenExporter().export(
+            sampled_artifacts,
+            payload["raw_tokens"],
+            prefix_length=payload["generation_context"]["prefix_length"],
+            commit=producer["commit"],
+            model_id=producer["model_id"],
+            checkpoint_hash=producer["checkpoint_hash"],
+            seed=11,
+            decoding={
+                "strategy": "field-aware-sampling",
+                "target_steps": 4,
+                "sampling_policy_identity": "pop/gpt-sampling-config@d5489b0",
+                "configuration": {"schedule": "upstream-default"},
+            },
+        )
+        request = AdapterRequest(
+            base_revision_id=self.store.head,
+            document=self.store.get_document(self.store.head),
+            scope=("document",),
+            artifact_ids=(prefix.artifact_id, output.artifact_id),
+            options={"namespace": "sampled-pop"},
+        )
+        proposal = POPOutputAdapter().propose(request, sampled_artifacts)
+        self.assertEqual(
+            proposal.generator.parameters["decoding"]["strategy"],
+            "field-aware-sampling",
+        )
+        self.assertEqual(len(self.store.revisions), 1)
 
     def test_accepted_document_loads_and_renders_without_pop_artifacts(self) -> None:
         proposal = POPOutputAdapter().propose(self.request(), self.artifacts)

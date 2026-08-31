@@ -40,13 +40,35 @@ model ID, checkpoint SHA-256, seed, decoding configuration,
 `pop/geometrize_256_v1` token layout,
 `pop/geometrize-256-quantization@0.1` quantization,
 `pop/decode-tokens-to-render-data@d5489b0` decoder, and
-`pop/matplotlib-half-alpha@d5489b0` renderer identity. Golden P permits only
-deterministic greedy decoding with an explicit maximum step count.
+`pop/matplotlib-half-alpha@d5489b0` renderer identity. Golden P defines two
+explicit generation profiles:
+
+```text
+greedy
+  policy = pop/argmax-lowest-token@0.1
+  configuration = {tie_break: lowest-token-id}
+
+field-aware-sampling
+  policy = pop/gpt-sampling-config@d5489b0
+  configuration = {schedule: upstream-default}
+```
+
+The second profile records the release's field-specific temperature/top-k
+schedule and seeded multinomial sampling. Generation may therefore be
+stochastic. Its seed and sampling-policy identity are provenance; Core and the
+Adapter never rerun sampling.
 
 The output retains the complete raw nine-token sequence. Decoded canonical
 geometry must equal an independent decoding of those tokens, and its leading
 tokens must equal the complete prefix Artifact. Thus neither model-input nor
 token-to-geometry semantics are implicit in Adapter code or prose provenance.
+Determinism is required only after the immutable output Artifact boundary:
+
+```text
+possibly stochastic POP run
+-> immutable raw-token Artifact
+-> deterministic Adapter / Proposal / acceptance
+```
 
 ## Accepted output subset
 
@@ -60,7 +82,7 @@ index, x, y, angle_degrees, width, height, shape_type, RGB
 
 `index` is the contiguous generation/draw order. `x` and `y` are the primitive
 center in canvas coordinates. Positive angles use the accepted affine Transform
-semantics. v0.1 accepts only `ellipse` and `rotated_rectangle`, matching the
+semantics. v0.2 accepts only `ellipse` and `rotated_rectangle`, matching the
 recorded POP capability; it does not invent paths, Boolean operations,
 duplication, semantic labels, hierarchy, or animation.
 
