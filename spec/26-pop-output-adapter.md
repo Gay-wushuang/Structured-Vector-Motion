@@ -25,7 +25,7 @@ schema is `svm-pop-output-0.2`. The operation-prefix Artifact uses
 `svm-pop-token-prefix-0.1`. Run, output, and consumer identities are independent:
 
 ```text
-svm-pop-run@0.2
+svm-pop-generation-config@0.1
 svm-pop-output@0.2
 svm-pop-output-adapter@0.2
 ```
@@ -57,6 +57,18 @@ The second profile records the release's field-specific temperature/top-k
 schedule and seeded multinomial sampling. Generation may therefore be
 stochastic. Its seed and sampling-policy identity are provenance; Core and the
 Adapter never rerun sampling.
+
+`generation_config_identity` hashes the prefix identity, producer, seed,
+sampling policy, and canvas. It identifies a generation configuration, not a
+concrete execution result, and deliberately excludes `raw_tokens`. Two
+environmentally nondeterministic executions may therefore share this identity
+while producing different output Artifacts. The output Artifact ID and content
+hash identify the concrete recorded token result.
+
+Accepting `field-aware-sampling` provenance proves only that the Artifact makes
+a valid, internally consistent provenance assertion. It is not proof that the
+upstream checkpoint was re-executed with that policy. End-to-end execution
+truth belongs to a separately tested POPRunner boundary.
 
 The output retains the complete raw nine-token sequence. Decoded canonical
 geometry must equal an independent decoding of those tokens, and its leading

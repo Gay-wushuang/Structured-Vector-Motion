@@ -28,7 +28,7 @@ PREFIX_MEDIA_TYPE = "application/vnd.svm.pop-token-prefix+json"
 OUTPUT_SCHEMA = "svm-pop-output-0.2"
 PREFIX_SCHEMA = "svm-pop-token-prefix-0.1"
 OUTPUT_IDENTITY = "svm-pop-output@0.2"
-RUN_IDENTITY = "svm-pop-run@0.2"
+GENERATION_CONFIG_IDENTITY = "svm-pop-generation-config@0.1"
 ADAPTER_IDENTITY = "svm-pop-output-adapter@0.2"
 TOKEN_LAYOUT_IDENTITY = "pop/geometrize_256_v1"
 QUANTIZATION_IDENTITY = "pop/geometrize-256-quantization@0.1"
@@ -67,11 +67,11 @@ class POPOutputError(ValueError):
     pass
 
 
-def pop_run_identity(payload: dict[str, Any]) -> str:
+def pop_generation_config_identity(payload: dict[str, Any]) -> str:
     digest = hashlib.sha256(
         canonical_bytes(
             {
-                "identity": RUN_IDENTITY,
+                "identity": GENERATION_CONFIG_IDENTITY,
                 "generation_context": payload["generation_context"],
                 "producer": payload["producer"],
                 "canvas": payload["canvas"],
@@ -175,7 +175,7 @@ class POPOutputAdapter:
             parameters={
                 "identity": ADAPTER_IDENTITY,
                 "output_identity": OUTPUT_IDENTITY,
-                "run_identity": payload["run_identity"],
+                "generation_config_identity": payload["generation_config_identity"],
                 "generation_context": payload["generation_context"],
                 "output_artifact_id": snapshot.artifact_id,
                 "namespace": namespace,
@@ -238,7 +238,7 @@ class POPOutputAdapter:
     ) -> None:
         if set(payload) != {
             "schema_version",
-            "run_identity",
+            "generation_config_identity",
             "producer",
             "generation_context",
             "canvas",
@@ -366,14 +366,14 @@ class POPOutputAdapter:
                 raise POPOutputError("POP primitive center must lie inside the canvas")
             if primitive_width > width * 2 or primitive_height > height * 2:
                 raise POPOutputError("POP primitive dimensions exceed the supported canvas bound")
-        expected_run = pop_run_identity(payload)
-        if payload["run_identity"] != expected_run:
-            raise POPOutputError("POP run identity is invalid")
+        expected_config = pop_generation_config_identity(payload)
+        if payload["generation_config_identity"] != expected_config:
+            raise POPOutputError("POP generation configuration identity is invalid")
         provenance = snapshot.provenance
         if (
             provenance.get("derived_type") != "pop-ordered-primitives"
             or provenance.get("output_identity") != OUTPUT_IDENTITY
-            or provenance.get("run_identity") != expected_run
+            or provenance.get("generation_config_identity") != expected_config
             or provenance.get("repository") != producer["repository"]
             or provenance.get("commit") != producer["commit"]
             or provenance.get("model_id") != producer["model_id"]
@@ -588,7 +588,7 @@ class POPTokenExporter:
             "raw_tokens": tokens,
             "primitives": primitives,
         }
-        payload["run_identity"] = pop_run_identity(payload)
+        payload["generation_config_identity"] = pop_generation_config_identity(payload)
         output = artifacts.import_bytes(
             canonical_bytes(payload),
             media_type=OUTPUT_MEDIA_TYPE,
@@ -596,7 +596,7 @@ class POPTokenExporter:
             provenance={
                 "derived_type": "pop-ordered-primitives",
                 "output_identity": OUTPUT_IDENTITY,
-                "run_identity": payload["run_identity"],
+                "generation_config_identity": payload["generation_config_identity"],
                 "prefix_artifact_id": prefix.artifact_id,
                 **producer,
             },

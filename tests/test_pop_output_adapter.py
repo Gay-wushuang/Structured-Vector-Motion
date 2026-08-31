@@ -17,6 +17,7 @@ from svm import (
     build_evaluated_scene,
 )
 from svm.adapters import POPOutputAdapter, POPOutputError, POPTokenExporter
+from svm.adapters.pop_output import pop_generation_config_identity
 from svm.evaluator import canonical_bytes
 from svm.renderers import SVGRenderer, SVGRenderOptions
 
@@ -53,7 +54,7 @@ class POPOutputGoldenPTest(unittest.TestCase):
             provenance={
                 "derived_type": "pop-ordered-primitives",
                 "output_identity": "svm-pop-output@0.2",
-                "run_identity": payload["run_identity"],
+                "generation_config_identity": payload["generation_config_identity"],
                 "prefix_artifact_id": self.prefix.artifact_id,
                 **producer,
             },
@@ -139,7 +140,7 @@ class POPOutputGoldenPTest(unittest.TestCase):
         self.assertEqual(prefix.content, canonical_bytes(json.loads(PREFIX.read_text())))
         self.assertEqual(output.content, canonical_bytes(json.loads(OUTPUT.read_text())))
 
-    def test_official_field_aware_sampling_is_recorded_before_the_artifact_boundary(self) -> None:
+    def test_declared_field_aware_sampling_provenance_is_accepted(self) -> None:
         payload = json.loads(OUTPUT.read_text(encoding="utf-8"))
         producer = payload["producer"]
         sampled_artifacts = ArtifactStore()
@@ -171,6 +172,16 @@ class POPOutputGoldenPTest(unittest.TestCase):
             "field-aware-sampling",
         )
         self.assertEqual(len(self.store.revisions), 1)
+
+    def test_generation_config_identity_is_distinct_from_output_identity(self) -> None:
+        first = json.loads(OUTPUT.read_text(encoding="utf-8"))
+        different_output = copy.deepcopy(first)
+        different_output["raw_tokens"][-1] -= 1
+        self.assertEqual(
+            pop_generation_config_identity(first),
+            pop_generation_config_identity(different_output),
+        )
+        self.assertNotEqual(canonical_bytes(first), canonical_bytes(different_output))
 
     def test_accepted_document_loads_and_renders_without_pop_artifacts(self) -> None:
         proposal = POPOutputAdapter().propose(self.request(), self.artifacts)
