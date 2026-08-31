@@ -17,7 +17,8 @@ python -m http.server 4174 --directory prototype/motion-timeline
   new Revision while preserving Track, Keyframe, Operation, and Entity identity.
 - The cache strip exposes the Golden N invalidation result: ticks `0` and `1000`
   remain reusable; `250`, `500`, and `750` are invalidated and lazily evaluated.
-- Undo restores the immutable R0 snapshot.
+- `Restore R0` returns to the immutable fixture baseline. It deliberately does
+  not claim to model a future stepwise Undo/Redo stack.
 
 This is an interaction fixture, not a second Motion runtime or a replacement
 for Core acceptance. The values and invalidation interval deliberately mirror
@@ -33,4 +34,4 @@ for Core acceptance. The values and invalidation interval deliberately mirror
 | preview | commit | R1 created; Track and Keyframe identity unchanged |
 | R1 | inspect cache | ticks 0/1000 reused; 250/500/750 invalidated |
 | invalid tick | scrub to tick | that Frame becomes reevaluated lazily |
-| R1 | undo | exact R0 motion restored |
+| R1 | restore R0 | exact R0 motion restored |

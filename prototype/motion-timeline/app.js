@@ -1,3 +1,5 @@
+const ticksPerSecond = 1000;
+const durationTicks = 1000;
 const frameTicks = [0, 250, 500, 750, 1000];
 const state = {
   committedRevision: "R0",
@@ -15,6 +17,7 @@ const elements = {
   tickReadout: document.querySelector("#tick-readout"),
   valueReadout: document.querySelector("#value-readout"),
   inputLabel: document.querySelector("#input-value-label"),
+  previewHelper: document.querySelector("#preview-helper"),
   valueInput: document.querySelector("#keyframe-value"),
   previewPanel: document.querySelector("#change-preview"),
   previewValue: document.querySelector("#preview-value"),
@@ -47,7 +50,12 @@ function formatNumber(value) {
 }
 
 function formatTime(tick) {
-  return `00:00.${String(tick).padStart(3, "0")}`;
+  const wholeSeconds = Math.floor(tick / ticksPerSecond);
+  const minutes = Math.floor(wholeSeconds / 60);
+  const seconds = wholeSeconds % 60;
+  const subticks = tick % ticksPerSecond;
+  const subtickDigits = String(ticksPerSecond - 1).length;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(subticks).padStart(subtickDigits, "0")}`;
 }
 
 function valueToCurveY(value) {
@@ -96,6 +104,9 @@ function renderInspector() {
   elements.inputLabel.textContent = formatNumber(value);
   elements.previewValue.textContent = formatNumber(value);
   elements.previewPanel.classList.toggle("hidden", state.previewMiddleValue === null);
+  elements.previewHelper.textContent = state.previewMiddleValue === null
+    ? "Drag the middle diamond or this control. Preview only; changes are not saved yet."
+    : `Preview only. ${state.committedRevision} remains committed until you commit this change.`;
   elements.commit.disabled = state.previewMiddleValue === null;
   elements.undo.disabled = state.committedRevision === "R0";
   elements.revisionStatus.textContent = `Committed ${state.committedRevision} · middle value ${formatNumber(state.committedMiddleValue)}`;
@@ -131,33 +142,34 @@ function commitPreview() {
   render();
 }
 
-function undo() {
+function restoreR0() {
   state.committedRevision = "R0";
   state.committedMiddleValue = 300;
   state.previewMiddleValue = null;
   state.cache = new Map(frameTicks.map((tick) => [tick, "clean"]));
-  showToast("Undo restored R0 and the original sampled motion.");
+  showToast("Restored R0 and the original sampled motion.");
   render();
 }
 
 function reset() {
   stopPlayback();
   state.currentTick = 500;
-  undo();
+  restoreR0();
 }
 
 let animationFrame = null;
 let playbackStart = null;
 function play() {
   if (state.playing) return;
+  if (state.currentTick >= durationTicks) state.currentTick = 0;
   state.playing = true;
   playbackStart = performance.now() - state.currentTick;
   const step = (now) => {
     if (!state.playing) return;
-    state.currentTick = Math.min(1000, Math.round(now - playbackStart));
+    state.currentTick = Math.min(durationTicks, Math.round(now - playbackStart));
     renderCanvas();
     renderCache();
-    if (state.currentTick >= 1000) {
+    if (state.currentTick >= durationTicks) {
       state.playing = false;
       return;
     }
@@ -188,7 +200,7 @@ elements.middleKeyframe.addEventListener("pointercancel", () => { dragStart = nu
 elements.valueInput.addEventListener("input", (event) => previewValue(event.target.value));
 elements.playhead.addEventListener("input", (event) => { state.currentTick = Number(event.target.value); renderCanvas(); renderCache(); });
 elements.commit.addEventListener("click", commitPreview);
-elements.undo.addEventListener("click", undo);
+elements.undo.addEventListener("click", restoreR0);
 elements.reset.addEventListener("click", reset);
 elements.play.addEventListener("click", play);
 elements.stop.addEventListener("click", stopPlayback);

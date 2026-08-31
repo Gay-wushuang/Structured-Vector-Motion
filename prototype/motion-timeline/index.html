@@ -55,10 +55,10 @@
             <div class="identity-block"><span>Track</span><code>track:moving-rectangle-x</code><span>Keyframe</span><code>keyframe:moving-x-0500</code></div>
             <label class="value-control" for="keyframe-value"><span>Value</span><strong id="input-value-label">300</strong></label>
             <input id="keyframe-value" type="range" min="180" max="420" step="1" value="300" />
-            <p class="helper">Drag the middle diamond or this control. The Canvas previews immediately; the Document remains R0 until commit.</p>
+            <p id="preview-helper" class="helper">Drag the middle diamond or this control. Preview only; changes are not saved yet.</p>
             <div id="change-preview" class="change-preview hidden"><span>PREVIEW · NOT SAVED</span><code>300 → <b id="preview-value">300</b></code></div>
             <button id="commit-button" class="primary-button" disabled>Commit keyframe change<span>SetKeyframeValueChange → Revision</span></button>
-            <button id="undo-button" class="secondary-button" disabled>Undo to R0</button>
+            <button id="undo-button" class="secondary-button" disabled>Restore R0</button>
           </div>
         </aside>
       </section>
