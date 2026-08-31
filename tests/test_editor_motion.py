@@ -83,6 +83,20 @@ class RealMotionEditorVerticalSliceTest(unittest.TestCase):
             self.session.preview(float("nan"), 500)
         self.assertEqual(len(self.session.store.revisions), revision_count)
 
+    def test_editor_projection_preserves_untrusted_names_as_data(self) -> None:
+        document = json.loads(GOLDEN.read_text(encoding="utf-8"))
+        untrusted_name = "<img src=x onerror=\"fetch('/api/commit')\">"
+        document["entities"][0]["name"] = untrusted_name
+        state = MotionEditorSession(document).state(0)
+        self.assertEqual(state["structure"][0]["name"], untrusted_name)
+
+    def test_shell_uses_dom_text_nodes_for_document_projection(self) -> None:
+        script = (ROOT / "editor" / "motion-timeline" / "app.js").read_text(encoding="utf-8")
+        self.assertNotIn("innerHTML", script)
+        self.assertNotIn("insertAdjacentHTML", script)
+        self.assertIn("textContent", script)
+        self.assertIn("replaceChildren", script)
+
 
 if __name__ == "__main__":
     unittest.main()

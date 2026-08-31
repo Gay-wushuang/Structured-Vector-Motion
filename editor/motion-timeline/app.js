@@ -48,17 +48,49 @@ function selectedKeyframe() {
 function curveY(value) { return 166 - ((value - 100) / 400) * 130; }
 function cssY(value) { return 36 + (curveY(value) / 190) * 166; }
 
+function textElement(tag, text, className = "") {
+  const element = document.createElement(tag);
+  element.textContent = String(text);
+  if (className) element.className = className;
+  return element;
+}
+
+function renderCoreSvg(svgText) {
+  const parsed = new DOMParser().parseFromString(svgText, "image/svg+xml");
+  const root = parsed.documentElement;
+  if (root.localName !== "svg" || parsed.querySelector("parsererror, script, foreignObject")) {
+    throw new Error("Core Renderer returned an unsafe or invalid SVG Frame.");
+  }
+  for (const element of [root, ...root.querySelectorAll("*")]) {
+    for (const attribute of element.attributes) {
+      if (attribute.name.toLowerCase().startsWith("on")) {
+        throw new Error("Core Renderer returned an unsafe SVG event attribute.");
+      }
+    }
+  }
+  elements.svg_host.replaceChildren(document.importNode(root, true));
+}
+
 function renderCurve() {
   const keyframes = state.data.track.keyframes;
   const values = keyframes.map((keyframe) => keyframe.id === state.data.target.keyframe_id && state.previewValue !== null ? state.previewValue : keyframe.value);
   elements.curve_path.setAttribute("d", `M0 ${curveY(values[0])} L500 ${curveY(values[1])} L1000 ${curveY(values[2])}`);
-  elements.keyframes.innerHTML = keyframes.map((keyframe, index) => {
+  elements.keyframes.replaceChildren();
+  keyframes.forEach((keyframe, index) => {
     const x = index === 0 ? "15px" : index === keyframes.length - 1 ? "calc(100% - 15px)" : `${(keyframe.tick / 1000) * 100}%`;
     const value = values[index];
     const fixed = keyframe.id === state.data.target.keyframe_id ? "selected" : "fixed";
-    return `<button class="keyframe ${fixed}" data-keyframe="${keyframe.id}" style="left:${x};top:${cssY(value)}px" aria-label="${keyframe.id}, value ${value}"><i></i><span>${value}</span></button>`;
-  }).join("");
-  const middle = document.querySelector(`.keyframe[data-keyframe="${state.data.target.keyframe_id}"]`);
+    const button = document.createElement("button");
+    button.className = `keyframe ${fixed}`;
+    button.dataset.keyframe = keyframe.id;
+    button.style.left = x;
+    button.style.top = `${cssY(value)}px`;
+    button.setAttribute("aria-label", `${keyframe.id}, value ${value}`);
+    button.append(document.createElement("i"), textElement("span", value));
+    elements.keyframes.append(button);
+  });
+  const middle = [...elements.keyframes.querySelectorAll(".keyframe")].find((item) => item.dataset.keyframe === state.data.target.keyframe_id);
+  if (!middle) throw new Error("Selected Keyframe is missing from the Editor projection.");
   let drag = null;
   middle.addEventListener("pointerdown", (event) => { drag={y:event.clientY,value:Number(elements.keyframe_value.value)}; middle.setPointerCapture(event.pointerId); });
   middle.addEventListener("pointermove", (event) => { if (drag) elements.keyframe_value.value=String(Math.max(180,Math.min(420,Math.round(drag.value+(drag.y-event.clientY)*2)))); if (drag) schedulePreview(elements.keyframe_value.value); });
@@ -75,7 +107,7 @@ function render() {
   elements.structure_document_id.textContent = data.document_id;
   elements.canvas_badge.className = `state-badge ${data.preview.active ? "preview" : "committed"}`;
   elements.canvas_badge.textContent = data.preview.active ? `Preview · ${data.revision.label} unchanged` : `Committed · ${data.revision.label}`;
-  elements.svg_host.innerHTML = data.frame.svg;
+  renderCoreSvg(data.frame.svg);
   elements.tick_readout.textContent = data.frame.tick;
   elements.value_readout.textContent = data.frame.sampled_value;
   renderStructure();
@@ -93,26 +125,59 @@ function render() {
   elements.track_semantics.textContent = `${data.track.interpolation} · ${data.track.value_type}`;
   elements.playhead.disabled = false;
   elements.playhead.value = String(data.frame.tick);
-  elements.cache_cells.innerHTML = data.cache.map((cell) => `<span class="cache-cell ${cell.status}">${cell.tick} · ${cell.status}</span>`).join("");
+  elements.cache_cells.replaceChildren(...data.cache.map((cell) => textElement("span", `${cell.tick} · ${cell.status}`, `cache-cell ${cell.status}`)));
   elements.delta_copy.textContent = data.temporal_deltas.length ? data.temporal_deltas.map((delta) => `${delta.start_tick}…${delta.end_tick} invalidated by ${delta.keyframe_id}`).join(" · ") : "Initial cache primed from Golden M";
   renderCurve();
 }
 
 function renderStructure() {
   elements.entity_count.textContent = String(state.data.structure.length);
-  elements.entity_list.innerHTML = [...state.data.structure].sort((a,b) => a.render_index-b.render_index).map((entity) => `<button class="entity-row${entity.id===state.selectedEntityId?" selected":""}" data-entity="${entity.id}" role="option" aria-selected="${entity.id===state.selectedEntityId}"><span class="entity-icon">□</span><span class="entity-copy"><strong>${entity.name}</strong><code>${entity.id}</code></span>${entity.track_ids.length?'<span class="entity-track">TRACK</span>':""}</button>`).join("");
+  if (!state.data.structure.some((entity) => entity.id === state.selectedEntityId)) {
+    state.selectedEntityId = state.data.structure[0]?.id ?? null;
+  }
+  const renderOrder = (entity) => entity.render_index === null ? Number.POSITIVE_INFINITY : entity.render_index;
+  const rows = [...state.data.structure].sort((a,b) => renderOrder(a)-renderOrder(b)).map((entity) => {
+    const button = document.createElement("button");
+    button.className = `entity-row${entity.id===state.selectedEntityId?" selected":""}`;
+    button.dataset.entity = entity.id;
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", String(entity.id===state.selectedEntityId));
+    const copy = document.createElement("span");
+    copy.className = "entity-copy";
+    copy.append(textElement("strong", entity.name), textElement("code", entity.id));
+    button.append(textElement("span", "□", "entity-icon"), copy);
+    if (entity.track_ids.length) button.append(textElement("span", "TRACK", "entity-track"));
+    return button;
+  });
+  elements.entity_list.replaceChildren(...rows);
   document.querySelectorAll(".entity-row").forEach((row) => row.addEventListener("click", () => { state.selectedEntityId=row.dataset.entity; renderStructure(); renderInspector(); highlightSelectedEntity(); }));
 }
 
 function renderInspector() {
-  const entity = state.data.structure.find((item) => item.id===state.selectedEntityId) || state.data.structure[0];
+  const entity = state.data.structure.find((item) => item.id===state.selectedEntityId);
+  if (!entity) {
+    elements.inspector_title.textContent = "No selection";
+    elements.entity_id.textContent = "—";
+    elements.operation_id.textContent = "—";
+    elements.binding_slot.textContent = "—";
+    elements.parameter_list.replaceChildren();
+    elements.motion_editor.classList.add("hidden");
+    highlightSelectedEntity();
+    return;
+  }
   const operation = entity.operation;
   elements.inspector_title.textContent = entity.name;
   elements.entity_id.textContent = entity.id;
   elements.operation_id.textContent = operation?.id || "—";
   elements.binding_slot.textContent = entity.binding?.slot || "—";
   const animatedParameter = entity.track_ids.includes(state.data.track.id) ? state.data.track.target.parameter : null;
-  elements.parameter_list.innerHTML = Object.entries(operation?.parameters || {}).map(([name,value]) => `<div class="parameter${name===animatedParameter?" animated":""}"><span>${name}${name===animatedParameter?" · track":""}</span><strong>${value}</strong></div>`).join("");
+  const parameters = Object.entries(operation?.parameters || {}).map(([name,value]) => {
+    const row = document.createElement("div");
+    row.className = `parameter${name===animatedParameter?" animated":""}`;
+    row.append(textElement("span", `${name}${name===animatedParameter?" · track":""}`), textElement("strong", value));
+    return row;
+  });
+  elements.parameter_list.replaceChildren(...parameters);
   const isMotionTarget = Boolean(animatedParameter);
   elements.motion_editor.classList.toggle("hidden",!isMotionTarget);
   elements.track_id.textContent = isMotionTarget ? state.data.track.id : "—";

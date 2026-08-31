@@ -48,3 +48,13 @@ The durable Shell has four long-lived regions:
 
 Selection and panel layout are disposable Editor State. No Shell field is added
 to the SVM Document interchange model.
+
+## Untrusted Document boundary
+
+All Document and API projection fields are inserted as DOM text nodes. Entity
+names, IDs, Operation data, parameters, and Keyframes are never parsed as HTML.
+The Core-rendered SVG is parsed as XML and rejected if it contains scripts,
+`foreignObject`, event-handler attributes, or a non-SVG root. Non-rendered
+Entities sort after Render Stack members instead of being treated as render
+index zero. If a newly loaded projection no longer contains the selected Entity,
+selection moves to the first available Entity or becomes empty.
