@@ -1,0 +1,37 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:golden-o-anchored-regeneration",
+  "references": [],
+  "entities": [
+    {"id": "entity:eye-frame", "name": "Eye Frame"},
+    {"id": "entity:eye-highlight", "name": "Eye Highlight"},
+    {"id": "entity:unrelated", "name": "Unrelated Mark"}
+  ],
+  "construction": {
+    "operations": [
+      {"id": "op:eye-frame", "type": "CreateEllipse", "inputs": {}, "parameters": {"cx": 0, "cy": 0, "rx": 0.4, "ry": 0.25}},
+      {"id": "op:eye-highlight", "type": "CreateEllipse", "inputs": {}, "parameters": {"cx": 0.12, "cy": -0.05, "rx": 0.08, "ry": 0.05}},
+      {"id": "op:unrelated", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": 1, "y": 0, "width": 0.2, "height": 0.2}}
+    ],
+    "output_bindings": [
+      {"entity": "entity:eye-frame", "property": "geometry", "slot": "op:eye-frame.geometry"},
+      {"entity": "entity:eye-highlight", "property": "geometry", "slot": "op:eye-highlight.geometry"},
+      {"entity": "entity:unrelated", "property": "geometry", "slot": "op:unrelated.geometry"}
+    ],
+    "refinement_stages": ["mass", "detail"]
+  },
+  "presentation": {
+    "render_stack": ["entity:eye-frame", "entity:eye-highlight", "entity:unrelated"],
+    "styles": [
+      {"entity": "entity:eye-frame", "fill": "#FF8C00", "stroke": "#4A1F00", "stroke_width": 0.01, "opacity": 1},
+      {"entity": "entity:eye-highlight", "fill": "#FFFFFF", "stroke": "none", "stroke_width": 0, "opacity": 1},
+      {"entity": "entity:unrelated", "fill": "#808080", "stroke": "none", "stroke_width": 0, "opacity": 1}
+    ]
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {"content": [], "construction_scheduling_hints": []},
+  "structural_relations": []
+}

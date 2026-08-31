@@ -107,9 +107,7 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
 def enforce_transaction_policies(document: dict[str, Any], actor: str, transaction: Any) -> None:
     if not document.get("constraints") and not document.get("edit_permissions"):
         return
-    intents = tuple(
-        intent for change in transaction.changes for intent in _intents_for_change(change)
-    )
+    intents = _transaction_intents(transaction)
 
     for constraint in document.get("constraints", []):
         if _reconciliation_changes_constraint(document, transaction, constraint):
@@ -141,15 +139,13 @@ def enforce_transaction_policies(document: dict[str, Any], actor: str, transacti
                 )
 
 
-def _intents_for_change(change: Any) -> tuple[ChangeIntent, ...]:
-    from .change_authority import change_authority
+def _transaction_intents(transaction: Any) -> tuple[ChangeIntent, ...]:
+    from .change_authority import resolve_transaction_intents
 
-    authority = change_authority(change)
-    if authority is None:
-        raise PolicyEnforcementError(
-            f"Cannot enforce policies for unsupported Change {type(change).__name__}"
-        )
-    return tuple(ChangeIntent(*intent) for intent in authority.intent_resolver(change))
+    try:
+        return tuple(ChangeIntent(*intent) for intent in resolve_transaction_intents(transaction))
+    except ValueError as exc:
+        raise PolicyEnforcementError(str(exc)) from exc
 
 
 def _reconciliation_changes_constraint(

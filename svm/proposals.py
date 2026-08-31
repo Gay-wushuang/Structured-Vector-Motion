@@ -4,6 +4,11 @@ import copy
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from .anchored_regeneration import (
+    AnchoredRegenerationContract,
+    AnchoredRegenerationError,
+    validate_anchored_proposal,
+)
 from .artifacts import ArtifactError, ArtifactResolver, ArtifactSnapshot
 from .change_authority import change_authority
 from .evaluator import Quality
@@ -150,13 +155,47 @@ class ProposalAcceptor:
         proposal: Proposal,
         artifacts: ArtifactResolver | None = None,
     ) -> Revision:
-        if store.head != proposal.base_revision_id:
+        return self._accept(store, proposal, artifacts, require_head=True)
+
+    def accept_anchored(
+        self,
+        store: RevisionStore,
+        proposal: Proposal,
+        contract: AnchoredRegenerationContract,
+        artifacts: ArtifactResolver | None = None,
+    ) -> Revision:
+        """Accept a scoped Proposal as a child of its immutable Anchor base."""
+        return self._accept(
+            store,
+            proposal,
+            artifacts,
+            require_head=False,
+            anchored_contract=contract,
+        )
+
+    def _accept(
+        self,
+        store: RevisionStore,
+        proposal: Proposal,
+        artifacts: ArtifactResolver | None,
+        *,
+        require_head: bool,
+        anchored_contract: AnchoredRegenerationContract | None = None,
+    ) -> Revision:
+        if proposal.base_revision_id not in store.revisions:
+            raise ProposalConflictError(f"Missing Proposal base {proposal.base_revision_id}")
+        if require_head and store.head != proposal.base_revision_id:
             raise ProposalConflictError(
                 f"Proposal base {proposal.base_revision_id} does not match head {store.head}"
             )
         if proposal.report.constraint_violations:
             raise ProposalPolicyError("Proposal has unresolved constraint violations")
         self._verify_trusted_change_types(proposal)
+        if anchored_contract is not None:
+            try:
+                validate_anchored_proposal(anchored_contract, proposal)
+            except AnchoredRegenerationError as exc:
+                raise ProposalPolicyError(str(exc)) from exc
         resolved_artifacts = self._verify_artifacts(proposal, artifacts)
         self._verify_artifact_bound_changes(proposal, resolved_artifacts)
         document = store.get_document(proposal.base_revision_id)

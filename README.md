@@ -226,6 +226,18 @@ Frames and shared immutable Values, invalidates only the changed interpolation
 domain, and leaves the prior Revision independently evaluable and recoverable by
 Undo. See `spec/22-motion-revisions.md` and `tests/test_motion_revision.py`.
 
+## Anchored Regeneration
+
+Golden O treats a Proposal as a candidate future rather than accepted history.
+An `AnchoredRegenerationContract` binds candidates to one immutable base
+Revision, protects exact ChangeAuthority targets, and allowlists exact downstream
+impacts. Core computes impact from the executable registered Changes instead of
+trusting generator metadata. Multiple accepted candidates can therefore become
+sibling Revision children without mutating their common base or each other. See
+`spec/23-anchored-regeneration.md`,
+`examples/018-anchored-regeneration.svm.json`, and
+`tests/test_anchored_regeneration.py`.
+
 ## Development
 
 Install the project and development tools in editable mode:

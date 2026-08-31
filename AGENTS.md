@@ -50,8 +50,9 @@ Read these files before changing core behavior:
 18. `spec/20-layerd-output-adapter.md` — raster layer evidence research boundary.
 19. `spec/21-motion-semantics.md` — deterministic content-animation semantics.
 20. `spec/22-motion-revisions.md` — persistent Keyframe editing and revision transition.
-21. `examples/001-head-basic.svm.json` — current example Document.
-22. `tests/test_golden_a.py` — executable expectations.
+21. `spec/23-anchored-regeneration.md` — scoped Proposal branching from protected anchors.
+22. `examples/001-head-basic.svm.json` — current example Document.
+23. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -297,6 +298,10 @@ Next milestones:
 15. Motion × Revision and Golden N persist Keyframe values through a registered
     Change and atomic Revision, retain only unaffected Frame cache entries, keep
     old snapshots evaluable, and restore exact sampled content through Undo.
+16. Anchored Regeneration and Golden O derive exact Proposal impact from the
+    closed-world Change Authority Registry, enforce protection and exact scope,
+    and accept multiple candidates as sibling children of one immutable base
+    Revision. Proposal generators remain outside acceptance authority.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

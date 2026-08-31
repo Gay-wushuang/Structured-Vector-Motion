@@ -68,3 +68,13 @@ Stack, construction, and animation.
 `tests/test_motion.py` implements Golden M. It covers integer Timebase, stable
 Track/Keyframe identity, exact linear samples, temporal cache invalidation,
 cross-time static Value reuse, and checked-in deterministic SVG Frames.
+
+`tests/test_motion_revision.py` implements Golden N. It covers persistent
+Keyframe Change authority, atomic Revision creation, revision-local temporal
+invalidation, old-snapshot evaluation, shared immutable Values, and Undo.
+
+`tests/test_anchored_regeneration.py` implements Golden O. It covers exact
+ChangeAuthority-derived impact, protected and allowlisted targets, non-mutating
+pending Proposals, sibling Revision branches, policy composition, malicious
+wrapper rejection, atomic failure, identity preservation, and deterministic
+Revision content.

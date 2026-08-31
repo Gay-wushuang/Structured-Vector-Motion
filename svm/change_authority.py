@@ -135,3 +135,14 @@ CHANGE_AUTHORITIES = {
 
 def change_authority(change: Any) -> ChangeAuthority | None:
     return CHANGE_AUTHORITIES.get(type(change))
+
+
+def resolve_transaction_intents(transaction: Any) -> tuple[Intent, ...]:
+    """Derive actual impact only from registered executable Change semantics."""
+    intents: list[Intent] = []
+    for change in transaction.changes:
+        authority = change_authority(change)
+        if authority is None:
+            raise ValueError(f"Unregistered Change type {type(change).__name__}")
+        intents.extend(authority.intent_resolver(change))
+    return tuple(intents)

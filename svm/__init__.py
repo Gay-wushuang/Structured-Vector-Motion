@@ -1,5 +1,11 @@
 """Structured Vector Motion v0.1 reference core."""
 
+from .anchored_regeneration import (
+    AnchoredRegenerationContract,
+    AnchoredRegenerationError,
+    ImpactTarget,
+    validate_anchored_proposal,
+)
 from .artifacts import (
     ArtifactBlob,
     ArtifactDescriptor,
@@ -79,6 +85,10 @@ __all__ = [
     "ArtifactSnapshot",
     "ArtifactStore",
     "ArtifactWriter",
+    "AnchoredRegenerationContract",
+    "AnchoredRegenerationError",
+    "ImpactTarget",
+    "validate_anchored_proposal",
     "GeometryBackend",
     "GeometryBackendError",
     "EvaluationState",

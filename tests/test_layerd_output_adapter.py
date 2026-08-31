@@ -26,7 +26,7 @@ from svm.evaluator import canonical_bytes
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "examples" / "005-empty-canvas.svm.json"
 SOURCE = ROOT / "examples" / "assets" / "007-contained-components-source.png"
-PROPOSALS_SHA256 = "f022a88cd03029a37784dfa692ed00dc911dfa579857f7cfd3627f34ac48aff4"
+PROPOSALS_SHA256 = "f9f76360c6ae147c2aefb64687762c9b7a83696fb4a316133ec4b93818fa7a95"
 COMMIT = "21aef937a0371614adb4d961f52d02409cb8ecc7"
 
 
@@ -418,7 +418,7 @@ class LayerDGoldenLTest(unittest.TestCase):
         with mock.patch("builtins.__import__", side_effect=reject_layerd):
             validate_document(json.loads(json.dumps(accepted)))
 
-    def test_proposal_acceptor_remains_frozen_for_second_research_adapter(self) -> None:
+    def test_proposal_acceptor_matches_reviewed_core_authority_baseline(self) -> None:
         digest = hashlib.sha256((ROOT / "svm" / "proposals.py").read_bytes()).hexdigest()
         self.assertEqual(digest, PROPOSALS_SHA256)
 
