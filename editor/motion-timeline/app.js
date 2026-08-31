@@ -1,6 +1,7 @@
-const state = { data: null, tick: 500, previewValue: null, playing: false, request: 0 };
+const state = { data: null, tick: 500, previewValue: null, selectedEntityId: "entity:moving-rectangle", playing: false, request: 0 };
 const elements = Object.fromEntries([
   "revision-id","revision-label","document-id","canvas-badge","svg-host","tick-readout","value-readout",
+  "entity-count","structure-document-id","entity-list","inspector-title","entity-id","binding-slot","parameter-list","motion-editor",
   "track-id","keyframe-id","operation-id","keyframe-value","edit-value","preview-copy","change-record",
   "commit-button","checkout-button","play-button","stop-button","timecode","timebase","track-title",
   "track-semantics","curve-path","keyframes","playhead","cache-cells","delta-copy","toast",
@@ -71,14 +72,14 @@ function render() {
   elements.revision_id.textContent = data.revision.id;
   elements.revision_label.textContent = data.revision.label;
   elements.document_id.textContent = data.document_id;
+  elements.structure_document_id.textContent = data.document_id;
   elements.canvas_badge.className = `state-badge ${data.preview.active ? "preview" : "committed"}`;
   elements.canvas_badge.textContent = data.preview.active ? `Preview · ${data.revision.label} unchanged` : `Committed · ${data.revision.label}`;
   elements.svg_host.innerHTML = data.frame.svg;
   elements.tick_readout.textContent = data.frame.tick;
   elements.value_readout.textContent = data.frame.sampled_value;
-  elements.track_id.textContent = data.track.id;
-  elements.keyframe_id.textContent = data.target.keyframe_id;
-  elements.operation_id.textContent = `${data.track.target.operation}.${data.track.target.parameter}`;
+  renderStructure();
+  renderInspector();
   elements.keyframe_value.disabled = false;
   elements.keyframe_value.value = String(data.preview.active ? data.preview.value : selected.value);
   elements.edit_value.textContent = elements.keyframe_value.value;
@@ -95,6 +96,32 @@ function render() {
   elements.cache_cells.innerHTML = data.cache.map((cell) => `<span class="cache-cell ${cell.status}">${cell.tick} · ${cell.status}</span>`).join("");
   elements.delta_copy.textContent = data.temporal_deltas.length ? data.temporal_deltas.map((delta) => `${delta.start_tick}…${delta.end_tick} invalidated by ${delta.keyframe_id}`).join(" · ") : "Initial cache primed from Golden M";
   renderCurve();
+}
+
+function renderStructure() {
+  elements.entity_count.textContent = String(state.data.structure.length);
+  elements.entity_list.innerHTML = [...state.data.structure].sort((a,b) => a.render_index-b.render_index).map((entity) => `<button class="entity-row${entity.id===state.selectedEntityId?" selected":""}" data-entity="${entity.id}" role="option" aria-selected="${entity.id===state.selectedEntityId}"><span class="entity-icon">□</span><span class="entity-copy"><strong>${entity.name}</strong><code>${entity.id}</code></span>${entity.track_ids.length?'<span class="entity-track">TRACK</span>':""}</button>`).join("");
+  document.querySelectorAll(".entity-row").forEach((row) => row.addEventListener("click", () => { state.selectedEntityId=row.dataset.entity; renderStructure(); renderInspector(); highlightSelectedEntity(); }));
+}
+
+function renderInspector() {
+  const entity = state.data.structure.find((item) => item.id===state.selectedEntityId) || state.data.structure[0];
+  const operation = entity.operation;
+  elements.inspector_title.textContent = entity.name;
+  elements.entity_id.textContent = entity.id;
+  elements.operation_id.textContent = operation?.id || "—";
+  elements.binding_slot.textContent = entity.binding?.slot || "—";
+  const animatedParameter = entity.track_ids.includes(state.data.track.id) ? state.data.track.target.parameter : null;
+  elements.parameter_list.innerHTML = Object.entries(operation?.parameters || {}).map(([name,value]) => `<div class="parameter${name===animatedParameter?" animated":""}"><span>${name}${name===animatedParameter?" · track":""}</span><strong>${value}</strong></div>`).join("");
+  const isMotionTarget = Boolean(animatedParameter);
+  elements.motion_editor.classList.toggle("hidden",!isMotionTarget);
+  elements.track_id.textContent = isMotionTarget ? state.data.track.id : "—";
+  elements.keyframe_id.textContent = isMotionTarget ? state.data.target.keyframe_id : "—";
+  highlightSelectedEntity();
+}
+
+function highlightSelectedEntity() {
+  elements.svg_host.querySelectorAll("[data-svm-entity]").forEach((group) => group.classList.toggle("editor-selected",group.getAttribute("data-svm-entity")===state.selectedEntityId));
 }
 
 let previewTimer;

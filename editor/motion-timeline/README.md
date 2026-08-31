@@ -1,4 +1,4 @@
-# Editor Vertical Slice 01 — Real Motion Editing
+# Editor Shell v0.1 — Real Motion Editing
 
 This is the first SVM Editor surface backed by the real Python Core rather than
 a browser-side simulation.
@@ -36,3 +36,15 @@ Checkout uses the real parent Revision snapshot. The Frame cache labels are
 derived from actual retained and evaluated `MotionEvaluator.frame_cache` keys.
 This slice intentionally supports only the one three-Keyframe Track in
 `examples/017-motion-rectangle.svm.json`.
+
+The durable Shell has four long-lived regions:
+
+- Project Toolbar identifies the loaded Document and real Revision hash.
+- Structure lists real Entities in Render Stack order without treating that
+  order as semantic hierarchy.
+- Canvas renders the real SVG Frame and uses Editor-only selection highlighting.
+- Inspector reads the selected Entity's accepted binding, Operation parameters,
+  and Track association; Timeline retains the real Motion vertical slice.
+
+Selection and panel layout are disposable Editor State. No Shell field is added
+to the SVM Document interchange model.

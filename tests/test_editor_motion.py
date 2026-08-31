@@ -21,6 +21,15 @@ class RealMotionEditorVerticalSliceTest(unittest.TestCase):
         self.assertEqual(state["frame"]["sampled_value"], 200)
         self.assertIn('data-svm-document="document:golden-m-motion"', state["frame"]["svg"])
         self.assertIn('data-svm-entity="entity:moving-rectangle"', state["frame"]["svg"])
+        self.assertEqual(
+            [entity["id"] for entity in state["structure"]],
+            ["entity:moving-rectangle", "entity:static-rectangle"],
+        )
+        moving = state["structure"][0]
+        self.assertEqual(moving["operation"]["id"], "op:moving-rectangle")
+        self.assertEqual(moving["operation"]["parameters"]["x"], 100)
+        self.assertEqual(moving["track_ids"], ["track:moving-rectangle-x"])
+        self.assertEqual(state["structure"][1]["track_ids"], [])
 
     def test_preview_uses_real_transition_without_creating_revision(self) -> None:
         base_revision = self.session.head

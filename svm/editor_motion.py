@@ -158,6 +158,7 @@ class MotionEditorSession:
                 "value": self._preview_value,
             },
             "timebase": {"ticks_per_second": runtime.ticks_per_second},
+            "structure": self._document_outline(runtime.document),
             "track": copy.deepcopy(track),
             "target": copy.deepcopy(self.target.__dict__),
             "frame": {
@@ -225,3 +226,43 @@ class MotionEditorSession:
     def _prime_reference_frames(motion: MotionEvaluator) -> None:
         for tick in REFERENCE_TICKS:
             motion.evaluate(tick, Quality.FINAL)
+
+    @staticmethod
+    def _document_outline(document: dict[str, Any]) -> list[dict[str, Any]]:
+        operations = {
+            operation["id"]: operation for operation in document["construction"]["operations"]
+        }
+        bindings = {
+            binding["entity"]: binding
+            for binding in document["construction"]["output_bindings"]
+            if binding["property"] == "geometry"
+        }
+        styles = {style["entity"]: style for style in document["presentation"].get("styles", [])}
+        render_stack = document["presentation"]["render_stack"]
+        tracks = document["animation"]["content"]
+        outline: list[dict[str, Any]] = []
+        for entity in document["entities"]:
+            binding = bindings.get(entity["id"])
+            operation = None
+            if binding is not None:
+                operation_id = binding["slot"].rsplit(".", 1)[0]
+                operation = operations.get(operation_id)
+            operation_tracks = (
+                [track["id"] for track in tracks if track["target"]["operation"] == operation["id"]]
+                if operation is not None
+                else []
+            )
+            outline.append(
+                {
+                    "id": entity["id"],
+                    "name": entity["name"],
+                    "render_index": (
+                        render_stack.index(entity["id"]) if entity["id"] in render_stack else None
+                    ),
+                    "binding": copy.deepcopy(binding),
+                    "operation": copy.deepcopy(operation),
+                    "style": copy.deepcopy(styles.get(entity["id"])),
+                    "track_ids": operation_tracks,
+                }
+            )
+        return outline
