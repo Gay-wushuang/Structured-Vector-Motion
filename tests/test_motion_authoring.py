@@ -45,7 +45,7 @@ class MotionAuthoringTest(unittest.TestCase):
         revision = self.store.commit(self.base_revision_id, self.create_transaction())
         authored = self.store.get_document(revision.revision_id)
         animation = authored["animation"]
-        self.assertEqual(animation["semantics_version"], "svm-motion@0.1")
+        self.assertEqual(animation["semantics_version"], "svm-motion@0.2")
         self.assertEqual(animation["timebase"], {"ticks_per_second": 24})
         self.assertEqual(animation["content"][0]["id"], TRACK)
         self.assertEqual(animation["content"][0]["keyframes"][0]["id"], FIRST)
@@ -140,7 +140,7 @@ class MotionAuthoringTest(unittest.TestCase):
     def test_motion_validator_rejects_undeclared_numeric_target(self) -> None:
         document = json.loads(HEAD.read_text(encoding="utf-8"))
         document["animation"] = {
-            "semantics_version": "svm-motion@0.1",
+            "semantics_version": "svm-motion@0.2",
             "timebase": {"ticks_per_second": 24},
             "content": [
                 {
@@ -155,6 +155,114 @@ class MotionAuthoringTest(unittest.TestCase):
         }
         with self.assertRaisesRegex(ValueError, "targets non-animatable parameter"):
             RevisionStore.create(document)
+
+    def test_legacy_v01_numeric_target_remains_valid_under_its_recorded_identity(self) -> None:
+        document = json.loads(HEAD.read_text(encoding="utf-8"))
+        document["animation"] = {
+            "semantics_version": "svm-motion@0.1",
+            "timebase": {"ticks_per_second": 24},
+            "content": [
+                {
+                    "id": "track:head-tolerance",
+                    "target": {"operation": "op:head_refine", "parameter": "tolerance"},
+                    "value_type": "number",
+                    "interpolation": "linear",
+                    "keyframes": [
+                        {"id": "keyframe:head-tolerance-0000", "tick": 0, "value": 0.01},
+                        {"id": "keyframe:head-tolerance-0024", "tick": 24, "value": 0.02},
+                    ],
+                }
+            ],
+            "construction_scheduling_hints": [],
+        }
+        store = RevisionStore.create(document)
+        assert store.head is not None
+        sampled = MotionEvaluator(store.get_document(store.head)).sample_document(12)
+        operation = next(
+            item for item in sampled["construction"]["operations"] if item["id"] == "op:head_refine"
+        )
+        self.assertEqual(operation["parameters"]["tolerance"], 0.015)
+
+    def test_authoring_migrates_compatible_v01_tracks_to_v02_explicitly(self) -> None:
+        document = json.loads(MULTITRACK.read_text(encoding="utf-8"))
+        store = RevisionStore.create(document)
+        assert store.head is not None
+        revision = store.commit(
+            store.head,
+            Transaction(
+                "transaction:add-v02-width-track",
+                (
+                    CreateTrackChange(
+                        "track:moving-rectangle-width",
+                        "op:moving-rectangle",
+                        "width",
+                        24,
+                    ),
+                    AddKeyframeChange(
+                        "track:moving-rectangle-width",
+                        "keyframe:moving-width-0000",
+                        0,
+                        40,
+                    ),
+                ),
+            ),
+        )
+        self.assertEqual(
+            store.get_document(revision.revision_id)["animation"]["semantics_version"],
+            "svm-motion@0.2",
+        )
+
+    def test_authoring_rejects_incompatible_v01_migration_atomically(self) -> None:
+        document = json.loads(HEAD.read_text(encoding="utf-8"))
+        document["animation"] = {
+            "semantics_version": "svm-motion@0.1",
+            "timebase": {"ticks_per_second": 24},
+            "content": [
+                {
+                    "id": "track:head-tolerance",
+                    "target": {"operation": "op:head_refine", "parameter": "tolerance"},
+                    "value_type": "number",
+                    "interpolation": "linear",
+                    "keyframes": [
+                        {"id": "keyframe:head-tolerance-0000", "tick": 0, "value": 0.01},
+                        {"id": "keyframe:head-tolerance-0024", "tick": 24, "value": 0.02},
+                    ],
+                }
+            ],
+            "construction_scheduling_hints": [],
+        }
+        store = RevisionStore.create(document)
+        assert store.head is not None
+        base_revision_id = store.head
+
+        with self.assertRaisesRegex(ValueError, "targets non-animatable parameter"):
+            store.commit(
+                base_revision_id,
+                Transaction(
+                    "transaction:incompatible-v02-migration",
+                    (
+                        CreateTrackChange(
+                            "track:head-rx",
+                            "op:head_base",
+                            "rx",
+                            24,
+                        ),
+                        AddKeyframeChange(
+                            "track:head-rx",
+                            "keyframe:head-rx-0000",
+                            0,
+                            220,
+                        ),
+                    ),
+                ),
+            )
+
+        self.assertEqual(store.head, base_revision_id)
+        self.assertEqual(len(store.revisions), 1)
+        self.assertEqual(
+            store.get_document(base_revision_id)["animation"]["semantics_version"],
+            "svm-motion@0.1",
+        )
 
     def test_invalid_keyframe_endpoint_fails_without_revision(self) -> None:
         first = self.store.commit(

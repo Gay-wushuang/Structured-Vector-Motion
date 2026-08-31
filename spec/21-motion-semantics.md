@@ -1,4 +1,4 @@
-# Motion Semantics v0.1
+# Motion Semantics v0.1 and v0.2
 
 ## Status
 
@@ -7,10 +7,10 @@ is motion rather than construction or external evidence integration.
 
 ## 1. Timebase
 
-Every Document with content Tracks records
-`animation.semantics_version = svm-motion@0.1`. Validation fails closed for a
-missing or unknown Motion identity. This versions temporal meaning independently
-from Construction semantics without adding time to static evaluation keys.
+Every Document with content Tracks records an explicit Motion semantics
+identity. Validation fails closed for a missing or unknown identity. This
+versions temporal meaning independently from Construction semantics without
+adding time to static evaluation keys.
 
 Content animation uses non-negative integer ticks and an explicit positive
 `ticks_per_second`. Recorded semantics never depend on wall-clock time, display
@@ -31,13 +31,19 @@ by tick. Editing a value does not rename the Keyframe or Track.
 
 ## 4. Animatable parameter
 
-The v0.1 target is an existing finite numeric parameter explicitly listed in
-the Operation Definition's `animatable_parameters`. Numeric representation
-alone never grants linear animation semantics. Both Track creation and Document
-validation consult this same Registry contract. Animation samples an effective
-parameter value; it does not mutate Entity, Operation, Track, or Keyframe
-identity. Style, path control, constraints, hierarchy, and arbitrary Entity
-properties are deferred.
+Motion v0.1 accepts any existing finite numeric Operation parameter. This legacy
+rule is retained so a recorded `svm-motion@0.1` Document never changes validity
+when a newer Runtime is installed.
+
+Motion v0.2 additionally requires the target to be explicitly listed in the
+Operation Definition's `animatable_parameters`. Numeric representation alone
+never grants linear animation semantics. Both Track creation and v0.2 Document
+validation consult this same Registry contract. New Editor authoring produces
+v0.2.
+
+Both identities sample an effective parameter value; neither mutates Entity,
+Operation, Track, or Keyframe identity. Style, path control, constraints,
+hierarchy, and arbitrary Entity properties are deferred.
 
 ## 5. Interpolation
 
@@ -76,7 +82,8 @@ by Motion v0.1.
 
 ## Golden M
 
-Golden M animates `op:moving-rectangle.x` at 1000 ticks/second:
+Golden M remains the legacy v0.1 fixture and animates
+`op:moving-rectangle.x` at 1000 ticks/second:
 
 ```text
 tick 0    (0.0 s) -> 100

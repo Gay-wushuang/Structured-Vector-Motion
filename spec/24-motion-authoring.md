@@ -1,4 +1,4 @@
-# Motion Authoring v0.1
+# Motion Authoring v0.2
 
 ## Status
 
@@ -9,17 +9,24 @@ Motion semantics from an existing static Document.
 
 `CreateTrackChange(track_id, operation_id, parameter, ticks_per_second)` creates
 one numeric, linear Track with stable identity. It may also establish
-`svm-motion@0.1` and the Document timebase when the Document has no Tracks.
+`svm-motion@0.2` and the Document timebase when the Document has no Tracks.
 Existing timebase and target uniqueness are fail-closed.
 The target must occur in the active Operation Definition's explicit
 `animatable_parameters`; being a finite numeric parameter is necessary but not
 sufficient.
 
+When authoring into a compatible v0.1 Document, `CreateTrackChange` records an
+explicit migration to v0.2 in the successor Revision. Final Transaction
+validation rechecks every existing Track under v0.2; an incompatible legacy
+numeric-only target prevents migration atomically. Reading and editing values
+in the original v0.1 Revision remains supported.
+
 `AddKeyframeChange(track_id, keyframe_id, tick, value)` inserts one finite
 numeric Keyframe in tick order. Keyframe IDs and ticks must be unique within the
 Track.
 
-Motion v0.1 requires every accepted Track to contain at least one Keyframe.
+Both supported Motion identities require every accepted Track to contain at
+least one Keyframe.
 Therefore initial authoring is one atomic Transaction:
 
 ```text

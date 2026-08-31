@@ -213,7 +213,7 @@
         "additionalProperties": false,
         "required": ["content", "construction_scheduling_hints"],
         "properties": {
-          "semantics_version": {"const": "svm-motion@0.1"},
+          "semantics_version": {"enum": ["svm-motion@0.1", "svm-motion@0.2"]},
           "timebase": {
             "type": "object",
             "additionalProperties": false,

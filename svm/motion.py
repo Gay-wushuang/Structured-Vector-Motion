@@ -11,7 +11,9 @@ from .evaluator import DocumentError, Evaluator, ImmutableValue, Quality
 from .operations import OperationValidationError
 from .scene import EvaluatedScene, build_evaluated_scene
 
-MOTION_SEMANTICS_IDENTITY = "svm-motion@0.1"
+MOTION_SEMANTICS_V1_IDENTITY = "svm-motion@0.1"
+MOTION_SEMANTICS_IDENTITY = "svm-motion@0.2"
+SUPPORTED_MOTION_SEMANTICS = frozenset({MOTION_SEMANTICS_V1_IDENTITY, MOTION_SEMANTICS_IDENTITY})
 
 
 @dataclass(frozen=True)
@@ -45,13 +47,14 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
     timebase = animation.get("timebase")
     if not tracks:
         semantics_version = animation.get("semantics_version")
-        if semantics_version is not None and semantics_version != MOTION_SEMANTICS_IDENTITY:
+        if semantics_version is not None and semantics_version not in SUPPORTED_MOTION_SEMANTICS:
             raise DocumentError(f"Unsupported Motion semantics {semantics_version!r}")
         if timebase is not None:
             _ticks_per_second(timebase)
         return
-    if animation.get("semantics_version") != MOTION_SEMANTICS_IDENTITY:
-        raise DocumentError(f"Animated content requires {MOTION_SEMANTICS_IDENTITY} semantics")
+    semantics_version = animation.get("semantics_version")
+    if semantics_version not in SUPPORTED_MOTION_SEMANTICS:
+        raise DocumentError(f"Unsupported Motion semantics {semantics_version!r}")
     _ticks_per_second(timebase)
     track_ids: set[str] = set()
     targets: set[tuple[str, str]] = set()
@@ -76,7 +79,10 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
         operation = evaluator.operations[operation_id]
         if parameter not in operation.get("parameters", {}):
             raise DocumentError(f"Track {track_id} targets missing parameter {parameter}")
-        if parameter not in evaluator.registry.animatable_parameters(operation):
+        if (
+            semantics_version == MOTION_SEMANTICS_IDENTITY
+            and parameter not in evaluator.registry.animatable_parameters(operation)
+        ):
             raise DocumentError(
                 f"Track {track_id} targets non-animatable parameter {operation_id}.{parameter}"
             )

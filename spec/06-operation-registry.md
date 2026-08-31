@@ -35,8 +35,9 @@ OperationDefinition
 ```
 
 `animatable_parameters` is an explicit semantic allowlist. Numeric storage does
-not imply animation eligibility. Parameters absent from this declaration fail
-closed as Motion targets even when every sampled endpoint would be numeric.
+not imply animation eligibility under Motion v0.2. Parameters absent from this
+declaration fail closed as v0.2 Motion targets even when every sampled endpoint
+would be numeric. Motion v0.1 retains its recorded legacy numeric-target rule.
 
 An input signature maps logical input names to Value types. An output signature
 maps logical output names to Value types. The v0.1 registry currently defines

@@ -32,7 +32,7 @@ class MotionEditTarget:
 
 
 class DocumentEditorSession:
-    """Inspect a simple accepted Document and edit any existing Motion v0.1 Keyframe."""
+    """Inspect a simple accepted Document and edit supported Motion Keyframes."""
 
     def __init__(self, document: dict[str, Any]) -> None:
         self._validate_editor_subset(document)

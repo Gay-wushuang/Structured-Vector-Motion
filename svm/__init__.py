@@ -22,6 +22,7 @@ from .backends import GeometryBackend, GeometryBackendError
 from .evaluator import EvaluationState, Evaluator, Quality
 from .motion import (
     MOTION_SEMANTICS_IDENTITY,
+    MOTION_SEMANTICS_V1_IDENTITY,
     MotionEvaluator,
     MotionFrame,
     MotionRevisionDelta,
@@ -104,6 +105,7 @@ __all__ = [
     "ValueType",
     "get_operation_registry",
     "MOTION_SEMANTICS_IDENTITY",
+    "MOTION_SEMANTICS_V1_IDENTITY",
     "MotionEvaluator",
     "MotionFrame",
     "MotionRevisionDelta",

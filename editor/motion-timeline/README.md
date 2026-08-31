@@ -42,7 +42,7 @@ Commit
 Checkout uses the real parent Revision snapshot. The Frame cache labels are
 derived from actual retained and evaluated `MotionEvaluator.frame_cache` keys.
 This slice supports `CreateRectangle`, `CreateEllipse`, and existing Motion v0.1
-numeric Tracks. Static Documents render through the real Evaluator and show
+or v0.2 numeric Tracks. Static Documents render through the real Evaluator and show
 `No Motion`; animated Documents render through `MotionEvaluator`. Unsupported
 Operation types fail closed instead of being approximated by the Editor.
 The Timeline lists every Track in the Document, including multiple Tracks that
@@ -60,11 +60,13 @@ select an untracked numeric parameter
 -> deterministic linear playback
 ```
 
-The initial Track and Keyframe share one Transaction because Motion v0.1 does
-not admit an accepted empty Track. The UI defaults new static animation to 24
-ticks/s and exposes an existing Document timebase as read-only. Authoring
-choices come from the Operation Registry's explicit `animatable_parameters`,
-not JavaScript numeric-type inference or Operation-name conditionals.
+The initial Track and Keyframe share one Transaction because accepted Motion
+Documents do not admit an empty Track. New authoring records Motion v0.2; a
+compatible v0.1 Document migrates explicitly in the successor Revision. The UI
+defaults new static animation to 24 ticks/s and exposes an existing Document
+timebase as read-only. Authoring choices come from the Operation Registry's
+explicit `animatable_parameters`, not JavaScript numeric-type inference or
+Operation-name conditionals.
 
 The durable Shell has four long-lived regions:
 

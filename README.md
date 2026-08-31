@@ -251,7 +251,7 @@ The implementation lives in `svm/editor_motion.py`, `svm/editor_server.py`, and
 Canvas, Inspector, and Timeline regions. Entity selection remains disposable
 Editor State while bindings, parameters, Render Stack order, and Track links
 are read from the real Document. The current fail-closed compatibility subset is
-`CreateRectangle`, `CreateEllipse`, and existing Motion v0.1 numeric Tracks.
+`CreateRectangle`, `CreateEllipse`, and existing Motion v0.1/v0.2 numeric Tracks.
 The Timeline exposes all Tracks, including multiple parameters on one Operation;
 `examples/019-editor-multitrack.svm.json` covers independent `x`/`y` editing at
 24 ticks/s. Local mutation endpoints require the exact bound Host, same-origin
@@ -264,6 +264,10 @@ parameter can become a numeric linear Track through an atomic
 Keyframes as accepted child Revisions. See `spec/24-motion-authoring.md` and
 `tests/test_motion_authoring.py`. The active Operation Definition explicitly
 declares eligible parameters; numeric parameters are non-animatable by default.
+This stricter contract is recorded as `svm-motion@0.2`; legacy
+`svm-motion@0.1` Documents retain their original finite-numeric target rule.
+Compatible v0.1 authoring migrates in the new Revision; incompatible legacy
+targets make that migration fail atomically.
 
 ## Anchored Regeneration
 
