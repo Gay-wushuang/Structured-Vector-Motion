@@ -19,6 +19,16 @@ The intended interaction is:
 4. inspect a candidate and its actual impact summary;
 5. accept it as a child Revision whose parent remains R1.
 
+The UI distinguishes three states explicitly:
+
+- `baseRevision`: the immutable R1 anchor used by every candidate;
+- `committedRevision`: the accepted Revision currently recorded as current;
+- `previewCandidate`: an optional, unsaved Proposal shown on Canvas.
+
+Selecting a candidate marks Canvas as `PREVIEW · NOT SAVED` without changing the
+committed Revision. Changing regeneration scope clears stale preview state and
+returns Canvas to the R1 Anchor Base before producing replacement candidates.
+
 The prototype keeps Canvas state, selection, checkboxes, candidate previews,
 and the illustrative branch graph entirely in browser memory. None of those are
 portable SVM Document fields. The real authority semantics remain in

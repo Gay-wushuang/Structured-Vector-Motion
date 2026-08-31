@@ -1,8 +1,11 @@
 const state = {
   color: "red",
-  strictRevision: false,
+  baseRevision: null,
+  committedRevision: "R0",
+  committedCandidate: null,
+  previewCandidate: null,
+  canvasMode: "committed",
   candidates: [],
-  selectedCandidate: null,
   acceptedBranches: [],
 };
 
@@ -17,6 +20,8 @@ const candidateRecipes = [
 const elements = {
   mainEye: document.querySelector("#main-eye"),
   status: document.querySelector("#revision-status"),
+  previewStatus: document.querySelector("#preview-status"),
+  canvasState: document.querySelector("#canvas-state"),
   strictCopy: document.querySelector("#strict-edit-copy"),
   generate: document.querySelector("#generate-button"),
   reset: document.querySelector("#reset-button"),
@@ -72,27 +77,35 @@ function applyStrictColor(color) {
     button.classList.toggle("selected", button.dataset.color === color);
   });
   if (color === "orange") {
-    state.strictRevision = true;
-    elements.status.textContent = "Revision R1 · Orange eyes";
+    state.baseRevision = "R1";
+    state.committedRevision = "R1";
+    state.committedCandidate = null;
+    state.previewCandidate = null;
+    state.canvasMode = "base";
+    elements.status.textContent = "Committed R1 · Orange eyes";
     elements.strictCopy.textContent = "Committed: Iris fill changed. Eye and Face geometry stayed identical.";
     elements.generate.disabled = false;
     showToast("Strict edit committed as R1. Regeneration has not started yet.");
   } else {
-    state.strictRevision = false;
+    state.baseRevision = null;
+    state.committedRevision = "R0";
+    state.committedCandidate = null;
+    state.previewCandidate = null;
+    state.canvasMode = "committed";
     state.candidates = [];
-    state.selectedCandidate = null;
     state.acceptedBranches = [];
-    elements.status.textContent = "Revision R0 · Red eyes";
+    elements.status.textContent = "Committed R0 · Red eyes";
     elements.strictCopy.textContent = "Choose Orange to commit the confirmed edit as Revision R1.";
     elements.generate.disabled = true;
     elements.candidateSection.classList.add("hidden");
   }
   renderMainEye({ color });
+  renderViewState();
   renderBranches();
 }
 
 function generateCandidates() {
-  if (!state.strictRevision) return;
+  if (!state.baseRevision) return;
   const allowHighlight = elements.allowHighlight.checked;
   const allowShadow = elements.allowShadow.checked;
   if (!allowHighlight && !allowShadow) {
@@ -109,8 +122,11 @@ function generateCandidates() {
     ],
     shadowEnabled: allowShadow,
   }));
-  state.selectedCandidate = null;
+  state.previewCandidate = null;
+  state.canvasMode = "base";
   elements.accept.disabled = true;
+  renderMainEye({ color: "orange" });
+  renderViewState();
   renderCandidates();
   renderBranches();
   elements.candidateSection.classList.remove("hidden");
@@ -131,19 +147,21 @@ function renderCandidates() {
 }
 
 function selectCandidate(candidateId) {
-  state.selectedCandidate = state.candidates.find((candidate) => candidate.id === candidateId) || null;
+  state.previewCandidate = state.candidates.find((candidate) => candidate.id === candidateId) || null;
+  state.canvasMode = state.previewCandidate ? "preview" : "base";
   document.querySelectorAll(".candidate-card").forEach((card) => {
     card.classList.toggle("selected", card.dataset.candidate === candidateId);
   });
-  elements.accept.disabled = !state.selectedCandidate;
-  if (state.selectedCandidate) {
-    renderMainEye({ color: "orange", highlight: state.selectedCandidate.highlight, shadow: state.selectedCandidate.shadow, shadowEnabled: state.selectedCandidate.shadowEnabled });
+  elements.accept.disabled = !state.previewCandidate;
+  if (state.previewCandidate) {
+    renderMainEye({ color: "orange", highlight: state.previewCandidate.highlight, shadow: state.previewCandidate.shadow, shadowEnabled: state.previewCandidate.shadowEnabled });
   }
+  renderViewState();
   renderImpactSummary();
 }
 
 function renderImpactSummary() {
-  const impacts = state.selectedCandidate?.impacts || [];
+  const impacts = state.previewCandidate?.impacts || [];
   elements.impactSummary.innerHTML = [
     '<span class="impact-chip protected">protected · eye geometry</span>',
     '<span class="impact-chip protected">protected · face</span>',
@@ -152,20 +170,45 @@ function renderImpactSummary() {
 }
 
 function acceptCandidate() {
-  if (!state.selectedCandidate) return;
+  if (!state.previewCandidate) return;
   const revisionId = `R${state.acceptedBranches.length + 2}`;
-  state.acceptedBranches.push({ revisionId, candidate: state.selectedCandidate });
-  elements.status.textContent = `Revision ${revisionId} · Candidate ${state.selectedCandidate.id} accepted`;
-  showToast(`Candidate ${state.selectedCandidate.id} accepted as ${revisionId}, parent = R1.`);
+  const acceptedCandidate = state.previewCandidate;
+  state.acceptedBranches.push({ revisionId, candidate: acceptedCandidate });
+  state.committedRevision = revisionId;
+  state.committedCandidate = acceptedCandidate;
+  state.previewCandidate = null;
+  state.canvasMode = "committed";
+  elements.status.textContent = `Committed ${revisionId} · Candidate ${acceptedCandidate.id}`;
+  elements.accept.disabled = true;
+  document.querySelectorAll(".candidate-card").forEach((card) => card.classList.remove("selected"));
+  showToast(`Candidate ${acceptedCandidate.id} accepted as ${revisionId}, parent = R1.`);
+  renderViewState();
+  renderImpactSummary();
   renderBranches();
+}
+
+function renderViewState() {
+  elements.canvasState.className = `canvas-state ${state.canvasMode}`;
+  if (state.canvasMode === "preview" && state.previewCandidate) {
+    elements.canvasState.textContent = `Preview · Proposal ${state.previewCandidate.id} · Not saved`;
+    elements.previewStatus.textContent = `Previewing Proposal ${state.previewCandidate.id} · Not saved`;
+    elements.previewStatus.classList.remove("hidden");
+    return;
+  }
+  elements.previewStatus.classList.add("hidden");
+  if (state.canvasMode === "base") {
+    elements.canvasState.textContent = `Anchor base · ${state.baseRevision}`;
+  } else {
+    elements.canvasState.textContent = `Committed · ${state.committedRevision}`;
+  }
 }
 
 function renderBranches() {
   const pending = state.candidates.length ? '<div class="branch-child">A / B / C · pending Proposals</div>' : "";
-  const accepted = state.acceptedBranches.map((branch) => `<div class="branch-child accepted">${branch.revisionId} · Candidate ${branch.candidate.id} · parent R1</div>`).join("");
+  const accepted = state.acceptedBranches.map((branch) => `<div class="branch-child accepted${state.committedRevision === branch.revisionId ? " current" : ""}">${branch.revisionId} · Candidate ${branch.candidate.id} · parent R1${state.committedRevision === branch.revisionId ? " · CURRENT" : ""}</div>`).join("");
   elements.branchGraph.innerHTML = `
-    <div class="revision-node"><strong>R0</strong><small>red eyes</small></div>
-    ${state.strictRevision ? '<div class="revision-node current"><strong>R1</strong><small>orange · anchor base</small></div>' : '<div class="revision-node pending"><strong>R1</strong><small>choose orange</small></div>'}
+    <div class="revision-node${state.committedRevision === "R0" ? " current" : ""}"><strong>R0</strong><small>red eyes${state.committedRevision === "R0" ? " · CURRENT" : ""}</small></div>
+    ${state.baseRevision ? `<div class="revision-node anchor-base${state.committedRevision === "R1" ? " current" : ""}"><strong>R1</strong><small>orange eyes${state.committedRevision === "R1" ? " · CURRENT" : ""}</small></div>` : '<div class="revision-node pending"><strong>R1</strong><small>choose orange</small></div>'}
     ${(pending || accepted) ? `<div class="branch-children">${pending}${accepted}</div>` : ""}
   `;
 }
@@ -176,6 +219,7 @@ function reset() {
   elements.allowHighlight.checked = true;
   elements.allowShadow.checked = false;
   renderMainEye({ color: "red" });
+  renderViewState();
   showToast("Prototype reset to R0.");
 }
 
@@ -201,4 +245,5 @@ elements.allowShadow.addEventListener("change", () => {
 });
 
 renderMainEye({ color: "red" });
+renderViewState();
 renderBranches();

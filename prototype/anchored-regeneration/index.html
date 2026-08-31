@@ -16,7 +16,10 @@
             <span>Anchored Regeneration · interaction prototype</span>
           </div>
         </div>
-        <div class="status-pill"><i></i><span id="revision-status">Revision R0 · Red eyes</span></div>
+        <div class="status-cluster">
+          <div class="status-pill"><i></i><span id="revision-status">Committed R0 · Red eyes</span></div>
+          <div id="preview-status" class="preview-status hidden">No preview</div>
+        </div>
       </header>
 
       <section class="workspace">
@@ -31,6 +34,7 @@
 
           <div class="canvas-stage">
             <div class="anchor-label"><span>Anchor</span> entity:eyes</div>
+            <div id="canvas-state" class="canvas-state committed">Committed · R0</div>
             <div id="main-eye" class="eye-host" aria-label="Eye preview"></div>
             <div class="canvas-note">
               <span class="lock-icon">⌁</span>
