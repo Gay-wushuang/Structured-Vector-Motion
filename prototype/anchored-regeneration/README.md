@@ -28,6 +28,23 @@ The UI distinguishes three states explicitly:
 Selecting a candidate marks Canvas as `PREVIEW · NOT SAVED` without changing the
 committed Revision. Changing regeneration scope clears stale preview state and
 returns Canvas to the R1 Anchor Base before producing replacement candidates.
+An empty scope additionally clears the entire pending candidate set, hides the
+candidate panel, removes pending A/B/C from the branch graph, and disables
+acceptance.
+
+## State transition table
+
+These transitions are the prototype's minimum UI-state contract:
+
+| From | Event | Required result |
+| --- | --- | --- |
+| R0 | choose Orange | committed R1; Canvas shows Anchor Base R1 |
+| R1 | generate candidates | A/B/C pending; no preview selected |
+| R1 | select A | preview A; committed remains R1 |
+| preview A | accept A | committed R2; preview cleared |
+| R2 | select B | preview B; committed remains R2 |
+| preview B | change non-empty scope | preview cleared; replacement candidates; Canvas shows Anchor Base R1 |
+| preview B | make scope empty | preview and candidates cleared; Canvas shows Anchor Base R1; Accept disabled |
 
 The prototype keeps Canvas state, selection, checkboxes, candidate previews,
 and the illustrative branch graph entirely in browser memory. None of those are

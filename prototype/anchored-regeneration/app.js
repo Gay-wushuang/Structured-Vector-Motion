@@ -109,6 +109,16 @@ function generateCandidates() {
   const allowHighlight = elements.allowHighlight.checked;
   const allowShadow = elements.allowShadow.checked;
   if (!allowHighlight && !allowShadow) {
+    state.candidates = [];
+    state.previewCandidate = null;
+    state.canvasMode = "base";
+    elements.accept.disabled = true;
+    elements.candidateGrid.innerHTML = "";
+    elements.candidateSection.classList.add("hidden");
+    renderMainEye({ color: "orange" });
+    renderViewState();
+    renderImpactSummary();
+    renderBranches();
     showToast("No downstream target is allowed. Enable Highlight or Eye Shadow first.");
     return;
   }
