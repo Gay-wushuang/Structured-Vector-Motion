@@ -1,4 +1,4 @@
-# Editor Vertical Slice 02 — Generic Document Inspection
+# Editor Vertical Slice 03 — Motion Authoring
 
 This is the first SVM Editor surface backed by the real Python Core rather than
 a browser-side simulation.
@@ -49,6 +49,21 @@ The Timeline lists every Track in the Document, including multiple Tracks that
 target one Operation. Selecting a Track changes only disposable Editor State;
 preview and commit still name the exact Track and Keyframe.
 
+Vertical Slice 03 also authors Motion into an existing static Rectangle:
+
+```text
+select an untracked numeric parameter
+-> CreateTrackChange + AddKeyframeChange @ tick 0
+-> ProposalAcceptor -> Revision R1
+-> AddKeyframeChange @ an explicit tick
+-> ProposalAcceptor -> Revision R2
+-> deterministic linear playback
+```
+
+The initial Track and Keyframe share one Transaction because Motion v0.1 does
+not admit an accepted empty Track. The UI defaults new static animation to 24
+ticks/s and reuses an existing Document timebase when one is present.
+
 The durable Shell has four long-lived regions:
 
 - Project Toolbar identifies the loaded Document and real Revision hash.
@@ -81,7 +96,9 @@ requires the exact bound `Host`, an absent or exact same-origin `Origin`,
 `Content-Type: application/json`, and `X-SVM-Editor-Request: 1`. The custom
 header forces cross-origin browser scripts through a CORS preflight, which this
 server does not authorize. Read-only state access does not confer mutation
-authority.
+authority. The public constant is a CSRF/preflight marker, not a secret local
+capability; a production threat model that includes hostile local processes
+must replace it with a random per-session capability.
 
 `examples/019-editor-multitrack.svm.json` is the interaction fixture for two
 Tracks targeting `x` and `y` on one Entity with a non-decimal 24 ticks/s

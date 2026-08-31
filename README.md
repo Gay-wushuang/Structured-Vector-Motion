@@ -255,7 +255,14 @@ are read from the real Document. The current fail-closed compatibility subset is
 The Timeline exposes all Tracks, including multiple parameters on one Operation;
 `examples/019-editor-multitrack.svm.json` covers independent `x`/`y` editing at
 24 ticks/s. Local mutation endpoints require the exact bound Host, same-origin
-or absent Origin, JSON media type, and an Editor-only request header.
+or absent Origin, JSON media type, and an Editor preflight-marker header. The
+public marker is browser cross-site protection, not a secret local capability.
+
+Editor Vertical Slice 03 adds the first real authoring path. A static Rectangle
+parameter can become a numeric linear Track through an atomic
+`CreateTrackChange + AddKeyframeChange` Transaction, then receive further
+Keyframes as accepted child Revisions. See `spec/24-motion-authoring.md` and
+`tests/test_motion_authoring.py`.
 
 ## Anchored Regeneration
 

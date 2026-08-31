@@ -31,6 +31,8 @@ The v0.1 intents are:
 | --- | --- | --- | --- |
 | `SetOperationParameterChange` | `set_parameter` | Operation ID | parameter name |
 | `SetKeyframeValueChange` | `set_keyframe_value` | Track ID | Keyframe ID |
+| `CreateTrackChange` | `create_track` | Operation ID | parameter name |
+| `AddKeyframeChange` | `add_keyframe` | Track ID | new Keyframe ID |
 | `SplitEntityChange` | `split_entity` | source Entity ID | none |
 | `AppendSceneFragmentChange` | `import_scene` | `document` | none |
 | `ReplaceSceneFragmentChange` | `reconcile_scene` | `document` and each scoped Entity ID | none |

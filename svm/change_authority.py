@@ -8,8 +8,10 @@ from typing import Any
 from .artifacts import ArtifactSnapshot
 from .evaluator import canonical_bytes
 from .revisions import (
+    AddKeyframeChange,
     AppendReferencesChange,
     AppendSceneFragmentChange,
+    CreateTrackChange,
     ImportLayeredSceneChange,
     ImportRasterLayerEvidenceChange,
     PromoteComponentsChange,
@@ -104,6 +106,14 @@ def _set_keyframe_value(change: Any) -> tuple[Intent, ...]:
     return (("set_keyframe_value", change.track_id, change.keyframe_id),)
 
 
+def _create_track(change: Any) -> tuple[Intent, ...]:
+    return (("create_track", change.operation_id, change.parameter),)
+
+
+def _add_keyframe(change: Any) -> tuple[Intent, ...]:
+    return (("add_keyframe", change.track_id, change.keyframe_id),)
+
+
 def _replace_scene(change: Any) -> tuple[Intent, ...]:
     return (("reconcile_scene", "document", None),) + tuple(
         ("reconcile_scene", entity_id, None) for entity_id in change.existing_entity_ids
@@ -121,6 +131,8 @@ CHANGE_AUTHORITIES = {
         ChangeAuthority(
             SetKeyframeValueChange, frozenset({"set_keyframe_value"}), _set_keyframe_value
         ),
+        ChangeAuthority(CreateTrackChange, frozenset({"create_track"}), _create_track),
+        ChangeAuthority(AddKeyframeChange, frozenset({"add_keyframe"}), _add_keyframe),
         ChangeAuthority(
             AppendSceneFragmentChange, frozenset({"import_scene"}), _single("import_scene")
         ),

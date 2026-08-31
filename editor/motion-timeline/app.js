@@ -16,6 +16,8 @@ const elements = Object.fromEntries([
   "commit-button","checkout-button","play-button","stop-button","timecode","timebase","track-title",
   "track-semantics","track-meta-name","track-meta-target","curve-path","keyframes","playhead","ruler","timeline-empty","cache-cells","delta-copy","toast",
   "project-name","project-path","canvas-title","track-list",
+  "authoring-editor","author-parameter","author-timebase","add-track-button",
+  "new-keyframe-tick","new-keyframe-value","add-keyframe-button",
 ].map((id) => [id.replaceAll("-", "_"), document.querySelector(`#${id}`)]));
 
 function textElement(tag, text, className = "") {
@@ -197,6 +199,7 @@ function renderInspector() {
     elements.binding_slot.textContent = "—";
     elements.parameter_list.replaceChildren();
     elements.motion_editor.classList.add("hidden");
+    elements.authoring_editor.classList.add("hidden");
     return;
   }
   const operation = entity.operation;
@@ -213,6 +216,7 @@ function renderInspector() {
     return row;
   });
   elements.parameter_list.replaceChildren(...parameters);
+  renderAuthoringControls(operation);
   const isMotionTarget = Boolean(animatedParameter && selectedKeyframe());
   elements.motion_editor.classList.toggle("hidden",!isMotionTarget);
   if (!isMotionTarget) return;
@@ -231,6 +235,33 @@ function renderInspector() {
   elements.preview_copy.textContent = matchesPreview ? `Preview only. ${state.data.revision.label} remains committed in the real RevisionStore.` : "Move the selected Keyframe to create an isolated Core preview.";
   elements.change_record.classList.toggle("hidden", !matchesPreview);
   elements.commit_button.disabled = !matchesPreview;
+  const lastTick = Math.max(...track.keyframes.map((item) => item.tick));
+  const suggestedTick = lastTick + state.data.timebase.ticks_per_second;
+  if (track.keyframes.some((item) => item.tick === Number(elements.new_keyframe_tick.value))) {
+    elements.new_keyframe_tick.value = String(suggestedTick);
+  }
+  elements.new_keyframe_value.value = String(keyframe.value);
+}
+
+function renderAuthoringControls(operation) {
+  const tracked = new Set(
+    state.data.tracks
+      .filter((track) => track.target.operation === operation?.id)
+      .map((track) => track.target.parameter)
+  );
+  const available = operation?.type === "CreateRectangle"
+    ? Object.entries(operation.parameters || {})
+      .filter(([name,value]) => typeof value === "number" && Number.isFinite(value) && !tracked.has(name))
+    : [];
+  elements.authoring_editor.classList.toggle("hidden", available.length === 0);
+  elements.author_timebase.value = String(state.data.timebase?.ticks_per_second ?? 24);
+  elements.author_parameter.replaceChildren(...available.map(([name]) => {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    return option;
+  }));
+  elements.add_track_button.disabled = available.length === 0;
 }
 
 function renderTimeline() {
@@ -344,6 +375,35 @@ elements.commit_button.addEventListener("click",async()=>{
   try{state.data=await api("/api/commit",{track_id:track.id,keyframe_id:keyframe.id,value:Number(elements.keyframe_value.value),tick:state.tick});state.previewValue=null;render();showToast(`Committed ${state.data.revision.label} through ProposalAcceptor.`);}catch(error){showError(error);}
 });
 elements.checkout_button.addEventListener("click",async()=>{try{state.data=await api("/api/checkout-parent",{tick:state.tick});state.previewValue=null;render();showToast(`Checked out parent ${state.data.revision.label}.`);}catch(error){showError(error);}});
+elements.add_track_button.addEventListener("click",async()=>{
+  const entity=state.data.structure.find((item)=>item.id===state.selectedEntityId);
+  if(!entity?.operation)return;
+  try {
+    state.data=await api("/api/create-track",{
+      operation_id:entity.operation.id,
+      parameter:elements.author_parameter.value,
+      ticks_per_second:Number(elements.author_timebase.value),
+      tick:0,
+    });
+    const created=state.data.tracks.find((track)=>track.target.operation===entity.operation.id&&track.target.parameter===elements.author_parameter.value);
+    state.selectedTrackId=created?.id??null;
+    state.selectedKeyframeId=created?.keyframes[0]?.id??null;
+    state.tick=0;
+    render();
+    showToast(`Created ${state.selectedTrackId} in ${state.data.revision.label}.`);
+  } catch(error) {showError(error);}
+});
+elements.add_keyframe_button.addEventListener("click",async()=>{
+  const track=activeTrack();if(!track)return;
+  const tick=Number(elements.new_keyframe_tick.value);
+  try {
+    state.data=await api("/api/add-keyframe",{track_id:track.id,tick,value:Number(elements.new_keyframe_value.value)});
+    state.tick=tick;
+    state.selectedKeyframeId=state.data.tracks.find((item)=>item.id===track.id)?.keyframes.find((item)=>item.tick===tick)?.id??null;
+    render();
+    showToast(`Added Keyframe at tick ${tick} in ${state.data.revision.label}.`);
+  } catch(error) {showError(error);}
+});
 
 let animationFrame=null,playbackStart=null,lastRequested=-1;
 elements.play_button.addEventListener("click",()=>{

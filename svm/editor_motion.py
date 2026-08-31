@@ -10,10 +10,16 @@ from .evaluator import DocumentError, Evaluator, Quality, canonical_bytes
 from .motion import MotionEvaluator, MotionRevisionDelta, canonical_motion_number
 from .proposals import GeneratorProvenance, Proposal, ProposalAcceptor
 from .renderers import SVGRenderer, SVGRenderOptions
-from .revisions import RevisionStore, SetKeyframeValueChange, Transaction
+from .revisions import (
+    AddKeyframeChange,
+    CreateTrackChange,
+    RevisionStore,
+    SetKeyframeValueChange,
+    Transaction,
+)
 from .scene import EvaluatedScene, build_evaluated_scene
 
-EDITOR_IDENTITY = "svm-document-editor@0.2"
+EDITOR_IDENTITY = "svm-document-editor@0.3"
 EDITOR_ACTOR = "editor:motion-timeline"
 SUPPORTED_OPERATION_TYPES = frozenset({"CreateRectangle", "CreateEllipse"})
 
@@ -118,13 +124,102 @@ class DocumentEditorSession:
         return self.state(tick)
 
     def checkout_parent(self, tick: int) -> dict[str, Any]:
-        motion = self._require_motion()
         revision = self.store.revisions[self.head]
         if not revision.parent_ids:
             raise DocumentError("Initial Editor Revision has no parent")
         document = self.store.checkout(revision.parent_ids[0])
-        self.motion, self._transition_deltas = motion.transition_to_revision(document)
         self.clear_preview()
+        self._transition_deltas = ()
+        self._load_runtime(document)
+        return self.state(tick)
+
+    def create_track(
+        self,
+        operation_id: str,
+        parameter: str,
+        ticks_per_second: int,
+        tick: int = 0,
+    ) -> dict[str, Any]:
+        if tick != 0:
+            raise DocumentError("Editor Vertical Slice 03 creates the initial Keyframe at tick 0")
+        operation = next(
+            (
+                item
+                for item in self.document["construction"]["operations"]
+                if item["id"] == operation_id
+            ),
+            None,
+        )
+        if operation is None or parameter not in operation.get("parameters", {}):
+            raise DocumentError(f"Missing authoring target {operation_id}.{parameter}")
+        value = canonical_motion_number(operation["parameters"][parameter])
+        identity = self._authoring_identity(operation_id, parameter)
+        track_id = f"track:editor-{identity}"
+        keyframe_id = self._keyframe_identity(track_id, tick)
+        changes = (
+            CreateTrackChange(track_id, operation_id, parameter, ticks_per_second),
+            AddKeyframeChange(track_id, keyframe_id, tick, value),
+        )
+        return self._commit_structural_authoring(
+            changes,
+            tick,
+            "create-track",
+            {
+                "operation_id": operation_id,
+                "parameter": parameter,
+                "ticks_per_second": ticks_per_second,
+                "track_id": track_id,
+                "keyframe_id": keyframe_id,
+                "tick": tick,
+                "value": value,
+            },
+        )
+
+    def add_keyframe(self, track_id: str, tick: int, value: int | float) -> dict[str, Any]:
+        self._track(self.document, track_id)
+        keyframe_id = self._keyframe_identity(track_id, tick)
+        return self._commit_structural_authoring(
+            (AddKeyframeChange(track_id, keyframe_id, tick, value),),
+            tick,
+            "add-keyframe",
+            {"track_id": track_id, "keyframe_id": keyframe_id, "value": value},
+        )
+
+    def _commit_structural_authoring(
+        self,
+        changes: tuple[CreateTrackChange | AddKeyframeChange, ...],
+        tick: int,
+        prefix: str,
+        identity_payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        payload = {
+            "identity": EDITOR_IDENTITY,
+            "base_revision_id": self.head,
+            **identity_payload,
+        }
+        digest = hashlib.sha256(canonical_bytes(payload)).hexdigest()
+        transaction = Transaction(
+            f"transaction:motion-editor:{prefix}:{digest}",
+            changes,
+            "Author Motion from Editor",
+        )
+        proposal = Proposal(
+            f"proposal:motion-editor:{digest}",
+            self.head,
+            GeneratorProvenance(
+                EDITOR_ACTOR,
+                "0.3",
+                "svm-core",
+                EDITOR_IDENTITY,
+            ),
+            transaction,
+            notes="Explicit local Editor Motion authoring",
+        )
+        revision = ProposalAcceptor().accept(self.store, proposal)
+        self._revision_labels[revision.revision_id] = f"R{len(self._revision_labels)}"
+        self.clear_preview()
+        self._transition_deltas = ()
+        self._load_runtime(self.store.get_document(revision.revision_id))
         return self.state(tick)
 
     def _load_runtime(self, document: dict[str, Any]) -> None:
@@ -276,6 +371,26 @@ class DocumentEditorSession:
             changes=(SetKeyframeValueChange(target.track_id, target.keyframe_id, value),),
             message="Set Motion Keyframe from Editor",
         )
+
+    def _authoring_identity(self, operation_id: str, parameter: str) -> str:
+        digest = hashlib.sha256(
+            canonical_bytes(
+                {
+                    "identity": EDITOR_IDENTITY,
+                    "document_id": self.document["document_id"],
+                    "operation_id": operation_id,
+                    "parameter": parameter,
+                }
+            )
+        ).hexdigest()
+        return digest[:16]
+
+    @staticmethod
+    def _keyframe_identity(track_id: str, tick: int) -> str:
+        digest = hashlib.sha256(
+            canonical_bytes({"identity": EDITOR_IDENTITY, "track_id": track_id, "tick": tick})
+        ).hexdigest()
+        return f"keyframe:editor-{digest[:16]}"
 
     def _require_motion(self) -> MotionEvaluator:
         if self.motion is None:

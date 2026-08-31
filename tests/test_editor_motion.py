@@ -115,6 +115,33 @@ class RealMotionEditorVerticalSliceTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no editable Motion Track"):
             session.preview("track:missing", "keyframe:missing", 1, 0)
 
+    def test_static_rectangle_can_author_a_real_motion_track_and_keyframes(self) -> None:
+        document = json.loads(STATIC.read_text(encoding="utf-8"))
+        session = DocumentEditorSession(document)
+        base_revision = session.head
+        tracked = session.create_track("op:unrelated", "x", 24)
+        self.assertEqual(tracked["revision"]["label"], "R1")
+        self.assertEqual(tracked["timebase"], {"ticks_per_second": 24})
+        self.assertEqual(len(tracked["tracks"]), 1)
+        track = tracked["tracks"][0]
+        self.assertEqual(track["target"], {"operation": "op:unrelated", "parameter": "x"})
+        self.assertEqual(track["keyframes"][0]["tick"], 0)
+        self.assertEqual(track["keyframes"][0]["value"], 1)
+        self.assertEqual(session.store.get_document(base_revision)["animation"]["content"], [])
+
+        authored = session.add_keyframe(track["id"], 24, 2)
+        self.assertEqual(authored["revision"]["label"], "R2")
+        self.assertEqual([item["tick"] for item in authored["tracks"][0]["keyframes"]], [0, 24])
+        middle = session.state(12)
+        self.assertEqual(middle["frame"]["effective_parameters"]["op:unrelated"]["x"], 1.5)
+
+        parent = session.checkout_parent(12)
+        self.assertEqual(parent["revision"]["label"], "R1")
+        self.assertEqual(len(parent["tracks"][0]["keyframes"]), 1)
+        restored = session.checkout_parent(0)
+        self.assertEqual(restored["revision"]["label"], "R0")
+        self.assertEqual(restored["tracks"], [])
+
     def test_unsupported_operation_subset_fails_closed(self) -> None:
         document = json.loads((ROOT / "examples" / "001-head-basic.svm.json").read_text())
         with self.assertRaisesRegex(ValueError, "supports only CreateRectangle/CreateEllipse"):

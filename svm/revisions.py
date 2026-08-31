@@ -74,6 +74,103 @@ class SetKeyframeValueChange:
 
 
 @dataclass(frozen=True)
+class CreateTrackChange:
+    """Create one empty numeric linear Track inside an atomic authoring Transaction."""
+
+    track_id: str
+    operation_id: str
+    parameter: str
+    ticks_per_second: int
+
+    def apply(self, document: dict[str, Any]) -> None:
+        from .motion import MOTION_SEMANTICS_IDENTITY
+
+        if not isinstance(self.track_id, str) or not self.track_id.startswith("track:"):
+            raise DocumentError("CreateTrackChange requires a track: ID")
+        if (
+            not isinstance(self.ticks_per_second, int)
+            or isinstance(self.ticks_per_second, bool)
+            or self.ticks_per_second <= 0
+        ):
+            raise DocumentError("CreateTrackChange requires a positive integer timebase")
+        operations = {
+            operation["id"]: operation for operation in document["construction"]["operations"]
+        }
+        operation = operations.get(self.operation_id)
+        if operation is None:
+            raise DocumentError(f"Cannot animate missing Operation {self.operation_id}")
+        parameters = operation.get("parameters", {})
+        if self.parameter not in parameters:
+            raise DocumentError(
+                f"Cannot animate missing parameter {self.operation_id}.{self.parameter}"
+            )
+        if not isinstance(parameters[self.parameter], (int, float)) or isinstance(
+            parameters[self.parameter], bool
+        ):
+            raise DocumentError("CreateTrackChange requires a numeric target parameter")
+        animation = document["animation"]
+        tracks = animation["content"]
+        if any(track.get("id") == self.track_id for track in tracks):
+            raise DocumentError(f"Animation Track already exists: {self.track_id}")
+        if any(
+            track.get("target") == {"operation": self.operation_id, "parameter": self.parameter}
+            for track in tracks
+        ):
+            raise DocumentError(
+                f"Animation Track already targets {self.operation_id}.{self.parameter}"
+            )
+        timebase = animation.get("timebase")
+        if timebase is not None and timebase.get("ticks_per_second") != self.ticks_per_second:
+            raise DocumentError("CreateTrackChange timebase conflicts with the Document")
+        animation["semantics_version"] = MOTION_SEMANTICS_IDENTITY
+        animation["timebase"] = {"ticks_per_second": self.ticks_per_second}
+        tracks.append(
+            {
+                "id": self.track_id,
+                "target": {"operation": self.operation_id, "parameter": self.parameter},
+                "value_type": "number",
+                "interpolation": "linear",
+                "keyframes": [],
+            }
+        )
+
+
+@dataclass(frozen=True)
+class AddKeyframeChange:
+    """Insert one stable numeric Keyframe into an existing or transaction-created Track."""
+
+    track_id: str
+    keyframe_id: str
+    tick: int
+    value: int | float
+
+    def apply(self, document: dict[str, Any]) -> None:
+        from .motion import canonical_motion_number
+
+        tracks = document.get("animation", {}).get("content", [])
+        track = next((item for item in tracks if item.get("id") == self.track_id), None)
+        if track is None:
+            raise DocumentError(f"Cannot add Keyframe to missing Track {self.track_id}")
+        if not isinstance(self.keyframe_id, str) or not self.keyframe_id.startswith("keyframe:"):
+            raise DocumentError("AddKeyframeChange requires a keyframe: ID")
+        if not isinstance(self.tick, int) or isinstance(self.tick, bool) or self.tick < 0:
+            raise DocumentError("AddKeyframeChange requires a non-negative integer tick")
+        keyframes = track.get("keyframes", [])
+        if any(item.get("id") == self.keyframe_id for item in keyframes):
+            raise DocumentError(f"Keyframe already exists: {self.keyframe_id}")
+        if any(item.get("tick") == self.tick for item in keyframes):
+            raise DocumentError(f"Track {self.track_id} already has a Keyframe at {self.tick}")
+        keyframes.append(
+            {
+                "id": self.keyframe_id,
+                "tick": self.tick,
+                "value": canonical_motion_number(self.value),
+            }
+        )
+        keyframes.sort(key=lambda item: item["tick"])
+
+
+@dataclass(frozen=True)
 class AppendSceneFragmentChange:
     entities: tuple[dict[str, Any], ...]
     operations: tuple[dict[str, Any], ...]

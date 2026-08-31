@@ -73,6 +73,8 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
                     "attach_analysis",
                     "promote_components",
                     "set_keyframe_value",
+                    "create_track",
+                    "add_keyframe",
                 }
                 for action in actions
             )

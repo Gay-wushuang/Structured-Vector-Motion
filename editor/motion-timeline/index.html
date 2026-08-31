@@ -9,7 +9,7 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <div class="brand"><span class="brand-mark">S</span><div><strong>Structured Vector Motion</strong><span>Editor Vertical Slice 02 · Generic Document Inspection</span></div></div>
+        <div class="brand"><span class="brand-mark">S</span><div><strong>Structured Vector Motion</strong><span>Editor Vertical Slice 03 · Motion Authoring</span></div></div>
         <div class="project-context"><span>Document</span><strong id="project-name">Loading SVM Document</strong><code id="project-path">server-selected .svm</code></div>
         <div class="core-status"><i></i><span>LIVE CORE</span><code id="revision-id">loading…</code></div>
       </header>
@@ -36,6 +36,13 @@
             <div class="identity-list"><span>Entity</span><code id="entity-id">—</code><span>Operation</span><code id="operation-id">—</code><span>Binding</span><code id="binding-slot">—</code></div>
             <div class="parameter-heading"><span>Document parameters</span><small>accepted definition</small></div>
             <div id="parameter-list" class="parameter-list"></div>
+            <section id="authoring-editor" class="motion-editor hidden">
+              <div class="motion-heading"><span>Create Motion Track</span><code>linear · number</code></div>
+              <label class="author-field" for="author-parameter"><span>Rectangle parameter</span><select id="author-parameter"></select></label>
+              <label class="author-field" for="author-timebase"><span>Timebase</span><input id="author-timebase" type="number" min="1" step="1" value="24" /></label>
+              <p class="helper">Track creation atomically includes its required initial Keyframe at tick 0.</p>
+              <button id="add-track-button" class="primary-button">Add Track + Keyframe @ 0<span>CreateTrackChange + AddKeyframeChange</span></button>
+            </section>
             <section id="motion-editor" class="motion-editor">
               <div class="motion-heading"><span>Animated parameter</span><code id="track-id">—</code></div>
               <div class="keyframe-reference"><span>Keyframe</span><code id="keyframe-id">—</code></div>
@@ -44,6 +51,12 @@
               <p id="preview-copy" class="helper">Move the middle Keyframe to create an isolated Core preview.</p>
               <div id="change-record" class="change-record hidden"><span>PREVIEW · NO REVISION</span><code>SetKeyframeValueChange</code></div>
               <button id="commit-button" class="primary-button" disabled>Commit real Revision<span>ProposalAcceptor → RevisionStore</span></button>
+              <div class="add-keyframe-editor">
+                <div class="motion-heading"><span>Add Keyframe</span><code>accepted Revision</code></div>
+                <label class="author-field" for="new-keyframe-tick"><span>Tick</span><input id="new-keyframe-tick" type="number" min="0" step="1" value="24" /></label>
+                <label class="author-field" for="new-keyframe-value"><span>Value</span><input id="new-keyframe-value" type="number" step="any" value="0" /></label>
+                <button id="add-keyframe-button" class="secondary-button">Add Keyframe Revision</button>
+              </div>
             </section>
             <button id="checkout-button" class="secondary-button" disabled>Checkout parent Revision</button>
           </div>

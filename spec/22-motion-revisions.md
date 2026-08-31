@@ -7,8 +7,8 @@ Transaction and Revision model without adding interpolation types.
 
 ## Persistent Keyframe edit
 
-`SetKeyframeValueChange(track_id, keyframe_id, value)` is the sole v0.1
-persistent Motion edit primitive. It changes exactly one finite numeric value.
+`SetKeyframeValueChange(track_id, keyframe_id, value)` is the v0.1 persistent
+Motion value-edit primitive. It changes exactly one finite numeric value.
 Track, Keyframe, Operation, and Entity identities remain stable. Missing
 identities, invalid target values, and canonically equivalent no-ops fail before
 a Revision is created.
@@ -27,6 +27,8 @@ Keyframe parameter additionally supports narrower Anchored Regeneration scope.
 
 Editors and Adapters must use Proposal acceptance where the input is untrusted;
 `RevisionStore.commit()` remains a trusted lower-level Core mechanism.
+Structural Motion creation is specified separately in
+`spec/24-motion-authoring.md`.
 
 ## Revision transition
 

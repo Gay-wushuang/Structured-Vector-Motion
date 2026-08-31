@@ -10,6 +10,7 @@ from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from .editor_motion import DocumentEditorSession
+from .proposals import ProposalArtifactError, ProposalConflictError, ProposalPolicyError
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DOCUMENT = REPOSITORY_ROOT / "examples" / "017-motion-rectangle.svm.json"
@@ -48,6 +49,15 @@ class MotionEditorHandler(SimpleHTTPRequestHandler):
             ),
             "/api/checkout-parent": lambda payload: self.session.checkout_parent(payload["tick"]),
             "/api/clear-preview": lambda payload: self._clear_preview(payload["tick"]),
+            "/api/create-track": lambda payload: self.session.create_track(
+                payload["operation_id"],
+                payload["parameter"],
+                payload["ticks_per_second"],
+                payload.get("tick", 0),
+            ),
+            "/api/add-keyframe": lambda payload: self.session.add_keyframe(
+                payload["track_id"], payload["tick"], payload["value"]
+            ),
         }
         action = actions.get(parsed.path)
         if action is None:
@@ -95,6 +105,15 @@ class MotionEditorHandler(SimpleHTTPRequestHandler):
         try:
             with self.session_lock:
                 result = action()
+        except ProposalConflictError as exc:
+            self._json({"error": str(exc)}, HTTPStatus.CONFLICT)
+            return
+        except ProposalPolicyError as exc:
+            self._json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+            return
+        except ProposalArtifactError as exc:
+            self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
         except (KeyError, TypeError, ValueError) as exc:
             self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
             return

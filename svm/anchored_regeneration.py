@@ -113,7 +113,7 @@ def _validate_target(
     tracks: dict[Any, dict[str, Any]],
     collection_name: str,
 ) -> None:
-    if impact.action == "set_parameter":
+    if impact.action in {"set_parameter", "create_track"}:
         operation = operations.get(impact.target)
         if operation is None:
             raise AnchoredRegenerationError(
@@ -135,6 +135,16 @@ def _validate_target(
         if impact.parameter not in keyframe_ids:
             raise AnchoredRegenerationError(
                 f"Missing Keyframe target {impact.parameter!r} in {collection_name}"
+            )
+        return
+    if impact.action == "add_keyframe":
+        if impact.target not in tracks:
+            raise AnchoredRegenerationError(
+                f"Missing Track target {impact.target!r} in {collection_name}"
+            )
+        if not isinstance(impact.parameter, str) or not impact.parameter.startswith("keyframe:"):
+            raise AnchoredRegenerationError(
+                f"Invalid new Keyframe target {impact.parameter!r} in {collection_name}"
             )
         return
     if impact.parameter is not None:
