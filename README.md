@@ -226,15 +226,23 @@ Frames and shared immutable Values, invalidates only the changed interpolation
 domain, and leaves the prior Revision independently evaluable and recoverable by
 Undo. See `spec/22-motion-revisions.md` and `tests/test_motion_revision.py`.
 
-Editor Vertical Slice 01, now housed in Editor Shell v0.1, turns this closed
-Core behavior into the first real software path. `svm-motion-editor` loads Golden M, samples through the actual
-`MotionEvaluator`, renders the actual `EvaluatedScene` with `SVGRenderer`,
-previews an isolated `Transaction.apply()` snapshot, and commits untrusted UI
-intent through `ProposalAcceptor` into `RevisionStore`. Parent checkout restores
-the prior accepted Document and Canvas. Run it with:
+Editor Vertical Slice 02 turns this closed Core behavior into a small generic
+Document inspector. `svm-motion-editor` opens a server-selected simple SVM
+Document, derives Structure and Inspector projections from it, renders static
+Documents through `Evaluator` and animated Documents through `MotionEvaluator`,
+and displays `No Motion` when no content Track exists. Motion edits preview an
+isolated `Transaction.apply()` snapshot and commit untrusted UI intent through
+`ProposalAcceptor` into `RevisionStore`. Parent checkout restores the prior
+accepted Document and Canvas. Run the default Motion example with:
 
 ```powershell
 svm-motion-editor --port 4175
+```
+
+Or inspect a compatible static Document:
+
+```powershell
+svm-motion-editor --document examples/018-anchored-regeneration.svm.json --port 4175
 ```
 
 The implementation lives in `svm/editor_motion.py`, `svm/editor_server.py`, and
@@ -242,7 +250,8 @@ The implementation lives in `svm/editor_motion.py`, `svm/editor_server.py`, and
 `tests/test_editor_motion.py`. The durable Shell adds Project, Structure,
 Canvas, Inspector, and Timeline regions. Entity selection remains disposable
 Editor State while bindings, parameters, Render Stack order, and Track links
-are read from the real Document.
+are read from the real Document. The current fail-closed compatibility subset is
+`CreateRectangle`, `CreateEllipse`, and existing Motion v0.1 numeric Tracks.
 
 ## Anchored Regeneration
 

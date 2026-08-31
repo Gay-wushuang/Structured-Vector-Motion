@@ -6,15 +6,16 @@ from dataclasses import dataclass
 from fractions import Fraction
 from typing import Any
 
-from .evaluator import DocumentError, Quality, canonical_bytes
+from .evaluator import DocumentError, Evaluator, Quality, canonical_bytes
 from .motion import MotionEvaluator, MotionRevisionDelta, canonical_motion_number
 from .proposals import GeneratorProvenance, Proposal, ProposalAcceptor
 from .renderers import SVGRenderer, SVGRenderOptions
 from .revisions import RevisionStore, SetKeyframeValueChange, Transaction
+from .scene import EvaluatedScene, build_evaluated_scene
 
-EDITOR_IDENTITY = "svm-real-motion-editor@0.1"
+EDITOR_IDENTITY = "svm-document-editor@0.2"
 EDITOR_ACTOR = "editor:motion-timeline"
-REFERENCE_TICKS = (0, 250, 500, 750, 1000)
+SUPPORTED_OPERATION_TYPES = frozenset({"CreateRectangle", "CreateEllipse"})
 
 
 @dataclass(frozen=True)
@@ -23,25 +24,27 @@ class MotionEditTarget:
     keyframe_id: str
 
 
-class MotionEditorSession:
-    """One trusted local Editor session backed entirely by accepted SVM Core APIs."""
+class DocumentEditorSession:
+    """Inspect a simple accepted Document and edit any existing Motion v0.1 Keyframe."""
 
     def __init__(self, document: dict[str, Any]) -> None:
-        self.store = RevisionStore.create(document, "Editor Vertical Slice 01 base")
+        self._validate_editor_subset(document)
+        self.store = RevisionStore.create(document, "Editor Vertical Slice 02 base")
         if self.store.head is None:
             raise DocumentError("Editor Revision Store did not create a head")
         self.base_revision_id = self.store.head
-        self.motion = MotionEvaluator(self.store.get_document(self.store.head))
-        self.target = self._middle_target(self.motion.document)
         self._revision_labels = {self.store.head: "R0"}
+        self.motion: MotionEvaluator | None = None
+        self.static_evaluator: Evaluator | None = None
+        self.static_scene: EvaluatedScene | None = None
         self._preview_motion: MotionEvaluator | None = None
         self._preview_value: int | float | None = None
+        self._preview_target: MotionEditTarget | None = None
         self._preview_deltas: tuple[MotionRevisionDelta, ...] = ()
         self._transition_deltas: tuple[MotionRevisionDelta, ...] = ()
-        self._prime_reference_frames(self.motion)
-        self._renderer = SVGRenderer(
-            SVGRenderOptions(width=900, height=300, view_box=(0, 0, 600, 120))
-        )
+        self.reference_ticks: tuple[int, ...] = ()
+        self.view_box: tuple[float, float, float, float] = (-1, -1, 2, 2)
+        self._load_runtime(self.store.get_document(self.store.head))
 
     @property
     def head(self) -> str:
@@ -49,48 +52,65 @@ class MotionEditorSession:
             raise DocumentError("Editor Revision Store has no head")
         return self.store.head
 
-    def state(self, tick: int) -> dict[str, Any]:
-        runtime = self._preview_motion or self.motion
-        return self._serialize(runtime, tick, preview=self._preview_motion is not None)
+    @property
+    def document(self) -> dict[str, Any]:
+        if self.motion is not None:
+            return self.motion.document
+        if self.static_evaluator is None:
+            raise DocumentError("Editor runtime is unavailable")
+        return self.static_evaluator.document
 
-    def preview(self, value: int | float, tick: int) -> dict[str, Any]:
+    def state(self, tick: int) -> dict[str, Any]:
+        if self.motion is None:
+            return self._serialize_static()
+        runtime = self._preview_motion or self.motion
+        return self._serialize_motion(runtime, tick, preview=self._preview_motion is not None)
+
+    def preview(
+        self, track_id: str, keyframe_id: str, value: int | float, tick: int
+    ) -> dict[str, Any]:
+        motion = self._require_motion()
+        target = self._target(motion.document, track_id, keyframe_id)
         value = canonical_motion_number(value)
-        current = self._keyframe_value(self.motion.document, self.target)
+        current = self._keyframe_value(motion.document, target)
         if value == current:
             self.clear_preview()
             return self.state(tick)
-        transaction = self._transaction(self.head, value, prefix="preview")
+        transaction = self._transaction(self.head, target, value, prefix="preview")
         preview_document = transaction.apply(self.store.get_document(self.head))
-        self._preview_motion, self._preview_deltas = self.motion.transition_to_revision(
-            preview_document
-        )
+        self._preview_motion, self._preview_deltas = motion.transition_to_revision(preview_document)
+        self._preview_target = target
         self._preview_value = value
         return self.state(tick)
 
     def clear_preview(self) -> None:
         self._preview_motion = None
+        self._preview_target = None
         self._preview_value = None
         self._preview_deltas = ()
 
-    def commit(self, value: int | float, tick: int) -> dict[str, Any]:
+    def commit(
+        self, track_id: str, keyframe_id: str, value: int | float, tick: int
+    ) -> dict[str, Any]:
+        motion = self._require_motion()
+        target = self._target(motion.document, track_id, keyframe_id)
         value = canonical_motion_number(value)
-        transaction = self._transaction(self.head, value, prefix="commit")
+        transaction = self._transaction(self.head, target, value, prefix="commit")
         digest = transaction.transaction_id.rsplit(":", 1)[-1]
         proposal = Proposal(
             proposal_id=f"proposal:motion-editor:{digest}",
             base_revision_id=self.head,
             generator=GeneratorProvenance(
                 adapter_id=EDITOR_ACTOR,
-                adapter_version="0.1",
+                adapter_version="0.2",
                 engine="svm-core",
                 engine_version=EDITOR_IDENTITY,
             ),
             transaction=transaction,
             notes="Explicit local Editor Keyframe commit",
         )
-        previous_motion = self.motion
         revision = ProposalAcceptor().accept(self.store, proposal)
-        self.motion, self._transition_deltas = previous_motion.transition_to_revision(
+        self.motion, self._transition_deltas = motion.transition_to_revision(
             self.store.get_document(revision.revision_id)
         )
         self._revision_labels[revision.revision_id] = f"R{len(self._revision_labels)}"
@@ -98,39 +118,66 @@ class MotionEditorSession:
         return self.state(tick)
 
     def checkout_parent(self, tick: int) -> dict[str, Any]:
+        motion = self._require_motion()
         revision = self.store.revisions[self.head]
         if not revision.parent_ids:
             raise DocumentError("Initial Editor Revision has no parent")
-        previous_motion = self.motion
         document = self.store.checkout(revision.parent_ids[0])
-        self.motion, self._transition_deltas = previous_motion.transition_to_revision(document)
+        self.motion, self._transition_deltas = motion.transition_to_revision(document)
         self.clear_preview()
         return self.state(tick)
 
-    def _serialize(self, runtime: MotionEvaluator, tick: int, *, preview: bool) -> dict[str, Any]:
+    def _load_runtime(self, document: dict[str, Any]) -> None:
+        tracks = document.get("animation", {}).get("content", [])
+        if tracks:
+            self.motion = MotionEvaluator(document)
+            self.reference_ticks = self._reference_ticks(tracks)
+            scenes = []
+            for tick in self.reference_ticks:
+                scenes.append(self.motion.evaluate(tick, Quality.FINAL).scene)
+            self.view_box = self._scenes_view_box(scenes)
+            self.static_evaluator = None
+            self.static_scene = None
+            return
+        self.motion = None
+        self.reference_ticks = ()
+        self.static_evaluator = Evaluator(document)
+        self.static_scene = build_evaluated_scene(document, self.static_evaluator, Quality.FINAL)
+        self.view_box = self._scenes_view_box([self.static_scene])
+
+    def _serialize_static(self) -> dict[str, Any]:
+        if self.static_scene is None:
+            raise DocumentError("Static Editor scene is unavailable")
+        return self._base_payload(
+            document=self.document,
+            sampled_document=self.document,
+            scene=self.static_scene,
+            tick=0,
+            seconds=Fraction(0),
+            preview=False,
+            cache=[],
+            deltas=(),
+        )
+
+    def _serialize_motion(
+        self, runtime: MotionEvaluator, tick: int, *, preview: bool
+    ) -> dict[str, Any]:
         if not isinstance(tick, int) or isinstance(tick, bool) or tick < 0:
             raise DocumentError("Editor tick must be a non-negative integer")
         before = set(runtime.frame_cache)
         frame = runtime.evaluate(tick, Quality.FINAL)
+        sampled_document = runtime.sample_document(tick)
         after = set(runtime.frame_cache)
-        sampled = runtime.sample_document(tick)
-        track = self._track(runtime.document, self.target.track_id)
-        target = track["target"]
-        operation = next(
-            item
-            for item in sampled["construction"]["operations"]
-            if item["id"] == target["operation"]
-        )
         deltas = self._preview_deltas if preview else self._transition_deltas
         invalidated = {
             value
             for delta in deltas
-            for value in REFERENCE_TICKS
+            for value in self.reference_ticks
             if value >= delta.interval.start_tick
             and (delta.interval.end_tick is None or value <= delta.interval.end_tick)
         }
         cache = []
-        for value in REFERENCE_TICKS:
+        for value in self.reference_ticks:
             key = (value, Quality.FINAL)
             if key in before:
                 status = "reused"
@@ -141,11 +188,35 @@ class MotionEditorSession:
             else:
                 status = "clean"
             cache.append({"tick": value, "status": status})
+        return self._base_payload(
+            document=runtime.document,
+            sampled_document=sampled_document,
+            scene=frame.scene,
+            tick=tick,
+            seconds=frame.seconds,
+            preview=preview,
+            cache=cache,
+            deltas=deltas,
+        )
+
+    def _base_payload(
+        self,
+        *,
+        document: dict[str, Any],
+        sampled_document: dict[str, Any],
+        scene: EvaluatedScene,
+        tick: int,
+        seconds: Fraction,
+        preview: bool,
+        cache: list[dict[str, Any]],
+        deltas: tuple[MotionRevisionDelta, ...],
+    ) -> dict[str, Any]:
         revision = self.store.revisions[self.head]
-        seconds = Fraction(tick, runtime.ticks_per_second)
+        tracks = copy.deepcopy(document.get("animation", {}).get("content", []))
+        renderer = SVGRenderer(SVGRenderOptions(width=900, height=300, view_box=self.view_box))
         return {
             "editor_identity": EDITOR_IDENTITY,
-            "document_id": runtime.document["document_id"],
+            "document_id": document["document_id"],
             "revision": {
                 "id": self.head,
                 "label": self._revision_labels[self.head],
@@ -156,16 +227,21 @@ class MotionEditorSession:
                 "active": preview,
                 "base_revision_id": self.head,
                 "value": self._preview_value,
+                "target": copy.deepcopy(
+                    self._preview_target.__dict__ if self._preview_target is not None else None
+                ),
             },
-            "timebase": {"ticks_per_second": runtime.ticks_per_second},
-            "structure": self._document_outline(runtime.document),
-            "track": copy.deepcopy(track),
-            "target": copy.deepcopy(self.target.__dict__),
+            "timebase": copy.deepcopy(document.get("animation", {}).get("timebase")),
+            "structure": self._document_outline(document),
+            "tracks": tracks,
             "frame": {
                 "tick": tick,
                 "seconds": {"numerator": seconds.numerator, "denominator": seconds.denominator},
-                "sampled_value": operation["parameters"][target["parameter"]],
-                "svg": self._renderer.render(frame.scene),
+                "effective_parameters": {
+                    operation["id"]: copy.deepcopy(operation.get("parameters", {}))
+                    for operation in sampled_document["construction"]["operations"]
+                },
+                "svg": renderer.render(scene),
             },
             "temporal_deltas": [
                 {
@@ -180,38 +256,52 @@ class MotionEditorSession:
         }
 
     def _transaction(
-        self, base_revision_id: str, value: int | float, *, prefix: str
+        self,
+        base_revision_id: str,
+        target: MotionEditTarget,
+        value: int | float,
+        *,
+        prefix: str,
     ) -> Transaction:
         payload = {
             "identity": EDITOR_IDENTITY,
             "base_revision_id": base_revision_id,
-            "track_id": self.target.track_id,
-            "keyframe_id": self.target.keyframe_id,
+            "track_id": target.track_id,
+            "keyframe_id": target.keyframe_id,
             "value": value,
         }
         digest = hashlib.sha256(canonical_bytes(payload)).hexdigest()
         return Transaction(
             transaction_id=f"transaction:motion-editor:{prefix}:{digest}",
-            changes=(
-                SetKeyframeValueChange(
-                    track_id=self.target.track_id,
-                    keyframe_id=self.target.keyframe_id,
-                    value=value,
-                ),
-            ),
-            message="Set middle Motion Keyframe from Editor",
+            changes=(SetKeyframeValueChange(target.track_id, target.keyframe_id, value),),
+            message="Set Motion Keyframe from Editor",
         )
 
-    @staticmethod
-    def _middle_target(document: dict[str, Any]) -> MotionEditTarget:
-        tracks = document["animation"]["content"]
-        if len(tracks) != 1 or len(tracks[0]["keyframes"]) != 3:
-            raise DocumentError("Editor Vertical Slice 01 requires one three-Keyframe Track")
-        return MotionEditTarget(tracks[0]["id"], tracks[0]["keyframes"][1]["id"])
+    def _require_motion(self) -> MotionEvaluator:
+        if self.motion is None:
+            raise DocumentError("This Document has no editable Motion Track")
+        return self.motion
+
+    @classmethod
+    def _target(cls, document: dict[str, Any], track_id: str, keyframe_id: str) -> MotionEditTarget:
+        track = cls._track(document, track_id)
+        if not any(keyframe["id"] == keyframe_id for keyframe in track["keyframes"]):
+            raise DocumentError(f"Missing Keyframe {keyframe_id}")
+        return MotionEditTarget(track_id, keyframe_id)
 
     @staticmethod
     def _track(document: dict[str, Any], track_id: str) -> dict[str, Any]:
-        return next(track for track in document["animation"]["content"] if track["id"] == track_id)
+        track = next(
+            (
+                item
+                for item in document.get("animation", {}).get("content", [])
+                if item["id"] == track_id
+            ),
+            None,
+        )
+        if track is None:
+            raise DocumentError(f"Missing Animation Track {track_id}")
+        return track
 
     @classmethod
     def _keyframe_value(cls, document: dict[str, Any], target: MotionEditTarget) -> int | float:
@@ -223,9 +313,64 @@ class MotionEditorSession:
         )
 
     @staticmethod
-    def _prime_reference_frames(motion: MotionEvaluator) -> None:
-        for tick in REFERENCE_TICKS:
-            motion.evaluate(tick, Quality.FINAL)
+    def _reference_ticks(tracks: list[dict[str, Any]]) -> tuple[int, ...]:
+        ticks: set[int] = set()
+        for track in tracks:
+            track_ticks = [keyframe["tick"] for keyframe in track["keyframes"]]
+            ticks.update(track_ticks)
+            ticks.update(
+                (left + right) // 2
+                for left, right in zip(track_ticks, track_ticks[1:], strict=False)
+            )
+        return tuple(sorted(ticks))
+
+    @staticmethod
+    def _validate_editor_subset(document: dict[str, Any]) -> None:
+        unsupported = sorted(
+            {
+                operation["type"]
+                for operation in document.get("construction", {}).get("operations", [])
+                if operation["type"] not in SUPPORTED_OPERATION_TYPES
+            }
+        )
+        if unsupported:
+            raise DocumentError(
+                "Editor Vertical Slice 02 supports only CreateRectangle/CreateEllipse; "
+                f"found {', '.join(unsupported)}"
+            )
+
+    @staticmethod
+    def _scenes_view_box(scenes: list[EvaluatedScene]) -> tuple[float, float, float, float]:
+        bounds: list[tuple[float, float, float, float]] = []
+        for scene in scenes:
+            for entity in scene.entities:
+                geometry = entity.geometry
+                if geometry["kind"] == "rectangle":
+                    x = float(geometry["x"])
+                    y = float(geometry["y"])
+                    bounds.append(
+                        (x, y, x + float(geometry["width"]), y + float(geometry["height"]))
+                    )
+                elif geometry["kind"] == "ellipse":
+                    cx = float(geometry["cx"])
+                    cy = float(geometry["cy"])
+                    rx = float(geometry["rx"])
+                    ry = float(geometry["ry"])
+                    bounds.append((cx - rx, cy - ry, cx + rx, cy + ry))
+                else:
+                    raise DocumentError(
+                        f"Editor Vertical Slice 02 cannot frame geometry {geometry['kind']!r}"
+                    )
+        if not bounds:
+            return (-1, -1, 2, 2)
+        min_x = min(value[0] for value in bounds)
+        min_y = min(value[1] for value in bounds)
+        max_x = max(value[2] for value in bounds)
+        max_y = max(value[3] for value in bounds)
+        width = max(max_x - min_x, 1e-6)
+        height = max(max_y - min_y, 1e-6)
+        padding = max(width, height) * 0.08
+        return (min_x - padding, min_y - padding, width + 2 * padding, height + 2 * padding)
 
     @staticmethod
     def _document_outline(document: dict[str, Any]) -> list[dict[str, Any]]:
@@ -239,7 +384,7 @@ class MotionEditorSession:
         }
         styles = {style["entity"]: style for style in document["presentation"].get("styles", [])}
         render_stack = document["presentation"]["render_stack"]
-        tracks = document["animation"]["content"]
+        tracks = document.get("animation", {}).get("content", [])
         outline: list[dict[str, Any]] = []
         for entity in document["entities"]:
             binding = bindings.get(entity["id"])
@@ -266,3 +411,6 @@ class MotionEditorSession:
                 }
             )
         return outline
+
+
+MotionEditorSession = DocumentEditorSession

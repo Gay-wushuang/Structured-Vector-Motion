@@ -1,52 +1,22 @@
-const state = { data: null, tick: 500, previewValue: null, selectedEntityId: "entity:moving-rectangle", playing: false, request: 0 };
+const state = {
+  data: null,
+  tick: 0,
+  previewValue: null,
+  selectedEntityId: null,
+  selectedTrackId: null,
+  selectedKeyframeId: null,
+  playing: false,
+  request: 0,
+};
+
 const elements = Object.fromEntries([
-  "revision-id","revision-label","document-id","canvas-badge","svg-host","tick-readout","value-readout",
+  "revision-id","revision-label","document-id","canvas-badge","svg-host","tick-readout","value-label","value-readout",
   "entity-count","structure-document-id","entity-list","inspector-title","entity-id","binding-slot","parameter-list","motion-editor",
   "track-id","keyframe-id","operation-id","keyframe-value","edit-value","preview-copy","change-record",
   "commit-button","checkout-button","play-button","stop-button","timecode","timebase","track-title",
-  "track-semantics","curve-path","keyframes","playhead","cache-cells","delta-copy","toast",
+  "track-semantics","track-meta-name","track-meta-target","curve-path","keyframes","playhead","ruler","timeline-empty","cache-cells","delta-copy","toast",
+  "project-name","project-path","canvas-title",
 ].map((id) => [id.replaceAll("-", "_"), document.querySelector(`#${id}`)]));
-
-function formatTime(tick, ticksPerSecond) {
-  const wholeSeconds = Math.floor(tick / ticksPerSecond);
-  const minutes = Math.floor(wholeSeconds / 60);
-  const seconds = wholeSeconds % 60;
-  const subticks = tick % ticksPerSecond;
-  return `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}.${String(subticks).padStart(String(ticksPerSecond - 1).length,"0")}`;
-}
-
-async function api(path, payload = null) {
-  const options = payload ? { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) } : {};
-  const response = await fetch(path, options);
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || `Request failed: ${response.status}`);
-  return data;
-}
-
-async function loadTick(tick) {
-  const request = ++state.request;
-  const data = await api(`/api/state?tick=${tick}`);
-  if (request !== state.request) return;
-  state.tick = tick;
-  state.data = data;
-  render();
-}
-
-async function preview(value) {
-  const request = ++state.request;
-  const data = await api("/api/preview", { value:Number(value), tick:state.tick });
-  if (request !== state.request) return;
-  state.data = data;
-  state.previewValue = data.preview.active ? Number(value) : null;
-  render();
-}
-
-function selectedKeyframe() {
-  return state.data.track.keyframes.find((keyframe) => keyframe.id === state.data.target.keyframe_id);
-}
-
-function curveY(value) { return 166 - ((value - 100) / 400) * 130; }
-function cssY(value) { return 36 + (curveY(value) / 190) * 166; }
 
 function textElement(tag, text, className = "") {
   const element = document.createElement(tag);
@@ -71,70 +41,106 @@ function renderCoreSvg(svgText) {
   elements.svg_host.replaceChildren(document.importNode(root, true));
 }
 
-function renderCurve() {
-  const keyframes = state.data.track.keyframes;
-  const values = keyframes.map((keyframe) => keyframe.id === state.data.target.keyframe_id && state.previewValue !== null ? state.previewValue : keyframe.value);
-  elements.curve_path.setAttribute("d", `M0 ${curveY(values[0])} L500 ${curveY(values[1])} L1000 ${curveY(values[2])}`);
-  elements.keyframes.replaceChildren();
-  keyframes.forEach((keyframe, index) => {
-    const x = index === 0 ? "15px" : index === keyframes.length - 1 ? "calc(100% - 15px)" : `${(keyframe.tick / 1000) * 100}%`;
-    const value = values[index];
-    const fixed = keyframe.id === state.data.target.keyframe_id ? "selected" : "fixed";
-    const button = document.createElement("button");
-    button.className = `keyframe ${fixed}`;
-    button.dataset.keyframe = keyframe.id;
-    button.style.left = x;
-    button.style.top = `${cssY(value)}px`;
-    button.setAttribute("aria-label", `${keyframe.id}, value ${value}`);
-    button.append(document.createElement("i"), textElement("span", value));
-    elements.keyframes.append(button);
+function formatTime(tick, ticksPerSecond) {
+  const wholeSeconds = Math.floor(tick / ticksPerSecond);
+  const minutes = Math.floor(wholeSeconds / 60);
+  const seconds = wholeSeconds % 60;
+  const subticks = tick % ticksPerSecond;
+  return `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}.${String(subticks).padStart(String(ticksPerSecond - 1).length,"0")}`;
+}
+
+async function api(path, payload = null) {
+  const options = payload ? { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) } : {};
+  const response = await fetch(path, options);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || `Request failed: ${response.status}`);
+  return data;
+}
+
+function activeTrack() {
+  return state.data?.tracks.find((track) => track.id === state.selectedTrackId) ?? null;
+}
+
+function selectedKeyframe() {
+  return activeTrack()?.keyframes.find((keyframe) => keyframe.id === state.selectedKeyframeId) ?? null;
+}
+
+function durationTick() {
+  return Math.max(0, ...state.data.tracks.flatMap((track) => track.keyframes.map((keyframe) => keyframe.tick)));
+}
+
+function previewMatches(track, keyframe) {
+  return Boolean(
+    state.data.preview.active
+    && state.data.preview.target?.track_id === track?.id
+    && state.data.preview.target?.keyframe_id === keyframe?.id
+  );
+}
+
+function ensureSelections() {
+  if (!state.data.structure.some((entity) => entity.id === state.selectedEntityId)) {
+    state.selectedEntityId = state.data.structure[0]?.id ?? null;
+  }
+  if (!state.data.tracks.some((track) => track.id === state.selectedTrackId)) {
+    const selectedEntity = state.data.structure.find((entity) => entity.id === state.selectedEntityId);
+    state.selectedTrackId = selectedEntity?.track_ids[0] ?? state.data.tracks[0]?.id ?? null;
+  }
+  const track = activeTrack();
+  if (!track?.keyframes.some((keyframe) => keyframe.id === state.selectedKeyframeId)) {
+    state.selectedKeyframeId = track?.keyframes[Math.floor(track.keyframes.length / 2)]?.id ?? null;
+  }
+}
+
+async function loadTick(tick) {
+  const request = ++state.request;
+  const data = await api(`/api/state?tick=${tick}`);
+  if (request !== state.request) return;
+  state.tick = data.frame.tick;
+  state.data = data;
+  state.previewValue = data.preview.active ? data.preview.value : null;
+  render();
+}
+
+async function preview(value) {
+  const track = activeTrack();
+  const keyframe = selectedKeyframe();
+  if (!track || !keyframe) return;
+  const request = ++state.request;
+  const data = await api("/api/preview", {
+    track_id:track.id,
+    keyframe_id:keyframe.id,
+    value:Number(value),
+    tick:state.tick,
   });
-  const middle = [...elements.keyframes.querySelectorAll(".keyframe")].find((item) => item.dataset.keyframe === state.data.target.keyframe_id);
-  if (!middle) throw new Error("Selected Keyframe is missing from the Editor projection.");
-  let drag = null;
-  middle.addEventListener("pointerdown", (event) => { drag={y:event.clientY,value:Number(elements.keyframe_value.value)}; middle.setPointerCapture(event.pointerId); });
-  middle.addEventListener("pointermove", (event) => { if (drag) elements.keyframe_value.value=String(Math.max(180,Math.min(420,Math.round(drag.value+(drag.y-event.clientY)*2)))); if (drag) schedulePreview(elements.keyframe_value.value); });
-  middle.addEventListener("pointerup", () => { drag=null; });
-  middle.addEventListener("pointercancel", () => { drag=null; });
+  if (request !== state.request) return;
+  state.data = data;
+  state.previewValue = data.preview.active ? Number(value) : null;
+  render();
 }
 
 function render() {
+  ensureSelections();
   const data = state.data;
-  const selected = selectedKeyframe();
   elements.revision_id.textContent = data.revision.id;
   elements.revision_label.textContent = data.revision.label;
   elements.document_id.textContent = data.document_id;
+  elements.project_name.textContent = data.document_id;
+  elements.project_path.textContent = `${data.structure.length} Entities · ${data.tracks.length} Motion Tracks`;
+  elements.canvas_title.textContent = data.tracks.length ? "Animated SVM Document" : "Static SVM Document";
   elements.structure_document_id.textContent = data.document_id;
   elements.canvas_badge.className = `state-badge ${data.preview.active ? "preview" : "committed"}`;
   elements.canvas_badge.textContent = data.preview.active ? `Preview · ${data.revision.label} unchanged` : `Committed · ${data.revision.label}`;
   renderCoreSvg(data.frame.svg);
   elements.tick_readout.textContent = data.frame.tick;
-  elements.value_readout.textContent = data.frame.sampled_value;
+  elements.checkout_button.disabled = !data.revision.can_checkout_parent;
   renderStructure();
   renderInspector();
-  elements.keyframe_value.disabled = false;
-  elements.keyframe_value.value = String(data.preview.active ? data.preview.value : selected.value);
-  elements.edit_value.textContent = elements.keyframe_value.value;
-  elements.preview_copy.textContent = data.preview.active ? `Preview only. ${data.revision.label} remains committed in the real RevisionStore.` : "Move the middle Keyframe to create an isolated Core preview.";
-  elements.change_record.classList.toggle("hidden", !data.preview.active);
-  elements.commit_button.disabled = !data.preview.active;
-  elements.checkout_button.disabled = !data.revision.can_checkout_parent;
-  elements.timebase.textContent = `${data.timebase.ticks_per_second} ticks/s`;
-  elements.timecode.textContent = formatTime(data.frame.tick,data.timebase.ticks_per_second);
-  elements.track_title.textContent = `${data.track.target.operation} · ${data.track.target.parameter}`;
-  elements.track_semantics.textContent = `${data.track.interpolation} · ${data.track.value_type}`;
-  elements.playhead.disabled = false;
-  elements.playhead.value = String(data.frame.tick);
-  elements.cache_cells.replaceChildren(...data.cache.map((cell) => textElement("span", `${cell.tick} · ${cell.status}`, `cache-cell ${cell.status}`)));
-  elements.delta_copy.textContent = data.temporal_deltas.length ? data.temporal_deltas.map((delta) => `${delta.start_tick}…${delta.end_tick} invalidated by ${delta.keyframe_id}`).join(" · ") : "Initial cache primed from Golden M";
-  renderCurve();
+  renderTimeline();
+  highlightSelectedEntity();
 }
 
 function renderStructure() {
   elements.entity_count.textContent = String(state.data.structure.length);
-  if (!state.data.structure.some((entity) => entity.id === state.selectedEntityId)) {
-    state.selectedEntityId = state.data.structure[0]?.id ?? null;
-  }
   const renderOrder = (entity) => entity.render_index === null ? Number.POSITIVE_INFINITY : entity.render_index;
   const rows = [...state.data.structure].sort((a,b) => renderOrder(a)-renderOrder(b)).map((entity) => {
     const button = document.createElement("button");
@@ -147,10 +153,18 @@ function renderStructure() {
     copy.append(textElement("strong", entity.name), textElement("code", entity.id));
     button.append(textElement("span", "□", "entity-icon"), copy);
     if (entity.track_ids.length) button.append(textElement("span", "TRACK", "entity-track"));
+    button.addEventListener("click", () => {
+      state.selectedEntityId = entity.id;
+      if (entity.track_ids.length) {
+        state.selectedTrackId = entity.track_ids[0];
+        state.selectedKeyframeId = null;
+      }
+      ensureSelections();
+      render();
+    });
     return button;
   });
   elements.entity_list.replaceChildren(...rows);
-  document.querySelectorAll(".entity-row").forEach((row) => row.addEventListener("click", () => { state.selectedEntityId=row.dataset.entity; renderStructure(); renderInspector(); highlightSelectedEntity(); }));
 }
 
 function renderInspector() {
@@ -162,15 +176,15 @@ function renderInspector() {
     elements.binding_slot.textContent = "—";
     elements.parameter_list.replaceChildren();
     elements.motion_editor.classList.add("hidden");
-    highlightSelectedEntity();
     return;
   }
   const operation = entity.operation;
+  const track = activeTrack();
+  const animatedParameter = entity.track_ids.includes(track?.id) ? track.target.parameter : null;
   elements.inspector_title.textContent = entity.name;
   elements.entity_id.textContent = entity.id;
   elements.operation_id.textContent = operation?.id || "—";
   elements.binding_slot.textContent = entity.binding?.slot || "—";
-  const animatedParameter = entity.track_ids.includes(state.data.track.id) ? state.data.track.target.parameter : null;
   const parameters = Object.entries(operation?.parameters || {}).map(([name,value]) => {
     const row = document.createElement("div");
     row.className = `parameter${name===animatedParameter?" animated":""}`;
@@ -178,11 +192,109 @@ function renderInspector() {
     return row;
   });
   elements.parameter_list.replaceChildren(...parameters);
-  const isMotionTarget = Boolean(animatedParameter);
+  const isMotionTarget = Boolean(animatedParameter && selectedKeyframe());
   elements.motion_editor.classList.toggle("hidden",!isMotionTarget);
-  elements.track_id.textContent = isMotionTarget ? state.data.track.id : "—";
-  elements.keyframe_id.textContent = isMotionTarget ? state.data.target.keyframe_id : "—";
-  highlightSelectedEntity();
+  if (!isMotionTarget) return;
+  const keyframe = selectedKeyframe();
+  const values = track.keyframes.map((item) => Number(item.value));
+  const span = Math.max(Math.max(...values)-Math.min(...values),1);
+  elements.track_id.textContent = track.id;
+  elements.keyframe_id.textContent = keyframe.id;
+  elements.keyframe_value.min = String(Math.floor(Math.min(...values)-span/2));
+  elements.keyframe_value.max = String(Math.ceil(Math.max(...values)+span/2));
+  elements.keyframe_value.disabled = false;
+  const matchesPreview = previewMatches(track, keyframe);
+  const editorValue = matchesPreview ? state.data.preview.value : keyframe.value;
+  elements.keyframe_value.value = String(editorValue);
+  elements.edit_value.textContent = String(editorValue);
+  elements.preview_copy.textContent = matchesPreview ? `Preview only. ${state.data.revision.label} remains committed in the real RevisionStore.` : "Move the selected Keyframe to create an isolated Core preview.";
+  elements.change_record.classList.toggle("hidden", !matchesPreview);
+  elements.commit_button.disabled = !matchesPreview;
+}
+
+function renderTimeline() {
+  const track = activeTrack();
+  const hasMotion = Boolean(track && state.data.timebase);
+  elements.timeline_empty.classList.toggle("hidden", hasMotion);
+  elements.play_button.disabled = !hasMotion;
+  elements.stop_button.disabled = !hasMotion;
+  elements.playhead.disabled = !hasMotion;
+  if (!hasMotion) {
+    elements.track_title.textContent = "No Motion";
+    elements.track_meta_name.textContent = "Static Document";
+    elements.track_meta_target.textContent = "No animation.content";
+    elements.track_semantics.textContent = "static Document";
+    elements.timebase.textContent = "No timebase";
+    elements.timecode.textContent = "—";
+    elements.value_label.textContent = "frame";
+    elements.value_readout.textContent = "static";
+    elements.curve_path.setAttribute("d", "");
+    elements.keyframes.replaceChildren();
+    elements.ruler.replaceChildren();
+    elements.cache_cells.replaceChildren();
+    elements.delta_copy.textContent = "Evaluated once through the static Core Evaluator";
+    return;
+  }
+  const ticksPerSecond = state.data.timebase.ticks_per_second;
+  const duration = durationTick();
+  elements.track_title.textContent = `${track.target.operation} · ${track.target.parameter}`;
+  elements.track_meta_name.textContent = track.id;
+  elements.track_meta_target.textContent = `${track.target.operation}.${track.target.parameter}`;
+  elements.track_semantics.textContent = `${track.interpolation} · ${track.value_type}`;
+  elements.timebase.textContent = `${ticksPerSecond} ticks/s`;
+  elements.timecode.textContent = formatTime(state.data.frame.tick,ticksPerSecond);
+  elements.playhead.max = String(duration);
+  elements.playhead.value = String(state.data.frame.tick);
+  elements.value_label.textContent = `${track.target.parameter} @ tick`;
+  elements.value_readout.textContent = state.data.frame.effective_parameters[track.target.operation][track.target.parameter];
+  const rulerTicks = [0,.25,.5,.75,1].map((ratio) => Math.round(duration*ratio));
+  elements.ruler.replaceChildren(...rulerTicks.map((tick) => textElement("span", `${(tick/ticksPerSecond).toFixed(2)}s`)));
+  elements.cache_cells.replaceChildren(...state.data.cache.map((cell) => textElement("span", `${cell.tick} · ${cell.status}`, `cache-cell ${cell.status}`)));
+  elements.delta_copy.textContent = state.data.temporal_deltas.length ? state.data.temporal_deltas.map((delta) => `${delta.start_tick}…${delta.end_tick} invalidated by ${delta.keyframe_id}`).join(" · ") : "Motion cache primed from Document Keyframes and interval midpoints";
+  renderCurve(track,duration);
+}
+
+function renderCurve(track,duration) {
+  const safeDuration = Math.max(duration, 1);
+  const values = track.keyframes.map((keyframe) => previewMatches(track, keyframe) ? state.data.preview.value : keyframe.value);
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const span = Math.max(maximum-minimum,1);
+  const curveY = (value) => 166-((value-minimum)/span)*130;
+  const cssY = (value) => 36+(curveY(value)/190)*166;
+  const points = track.keyframes.map((keyframe,index) => `${index?"L":"M"}${(keyframe.tick/safeDuration)*1000} ${curveY(values[index])}`);
+  elements.curve_path.setAttribute("d",points.join(" "));
+  elements.keyframes.replaceChildren();
+  track.keyframes.forEach((keyframe,index) => {
+    const value = values[index];
+    const button = document.createElement("button");
+    button.className = `keyframe ${keyframe.id===state.selectedKeyframeId?"selected":"fixed"}`;
+    button.dataset.keyframe = keyframe.id;
+    button.style.left = `${(keyframe.tick/safeDuration)*100}%`;
+    button.style.top = `${cssY(value)}px`;
+    button.setAttribute("aria-label",`${keyframe.id}, tick ${keyframe.tick}, value ${value}`);
+    button.append(document.createElement("i"),textElement("span",value));
+    button.addEventListener("click",async()=>{
+      try {
+        if(state.data.preview.active && !previewMatches(track,keyframe)) {
+          state.data=await api("/api/clear-preview",{tick:state.tick});
+        }
+        state.selectedKeyframeId=keyframe.id;
+        state.previewValue=null;
+        render();
+      } catch(error) {
+        showError(error);
+      }
+    });
+    elements.keyframes.append(button);
+  });
+  const selected = [...elements.keyframes.querySelectorAll(".keyframe")].find((item)=>item.dataset.keyframe===state.selectedKeyframeId);
+  if (!selected) return;
+  let drag=null;
+  selected.addEventListener("pointerdown",(event)=>{drag={y:event.clientY,value:Number(elements.keyframe_value.value)};selected.setPointerCapture(event.pointerId);});
+  selected.addEventListener("pointermove",(event)=>{if(!drag)return;const delta=(drag.y-event.clientY)*(span/100);elements.keyframe_value.value=String(Math.round(drag.value+delta));schedulePreview(elements.keyframe_value.value);});
+  selected.addEventListener("pointerup",()=>{drag=null;});
+  selected.addEventListener("pointercancel",()=>{drag=null;});
 }
 
 function highlightSelectedEntity() {
@@ -190,19 +302,33 @@ function highlightSelectedEntity() {
 }
 
 let previewTimer;
-function schedulePreview(value) { clearTimeout(previewTimer); elements.edit_value.textContent=value; previewTimer=setTimeout(() => preview(value).catch(showError),70); }
+function schedulePreview(value) {
+  clearTimeout(previewTimer);
+  elements.edit_value.textContent=value;
+  previewTimer=setTimeout(()=>preview(value).catch(showError),70);
+}
 
-elements.keyframe_value.addEventListener("input", (event) => schedulePreview(event.target.value));
-elements.playhead.addEventListener("input", (event) => loadTick(Number(event.target.value)).catch(showError));
-elements.commit_button.addEventListener("click", async () => { try { state.data=await api("/api/commit",{value:Number(elements.keyframe_value.value),tick:state.tick}); state.previewValue=null; render(); showToast(`Committed ${state.data.revision.label} through ProposalAcceptor.`); } catch(error) { showError(error); } });
-elements.checkout_button.addEventListener("click", async () => { try { state.data=await api("/api/checkout-parent",{tick:state.tick}); state.previewValue=null; render(); showToast(`Checked out parent ${state.data.revision.label}.`); } catch(error) { showError(error); } });
+elements.keyframe_value.addEventListener("input",(event)=>schedulePreview(event.target.value));
+elements.playhead.addEventListener("input",(event)=>loadTick(Number(event.target.value)).catch(showError));
+elements.commit_button.addEventListener("click",async()=>{
+  const track=activeTrack();const keyframe=selectedKeyframe();if(!track||!keyframe)return;
+  try{state.data=await api("/api/commit",{track_id:track.id,keyframe_id:keyframe.id,value:Number(elements.keyframe_value.value),tick:state.tick});state.previewValue=null;render();showToast(`Committed ${state.data.revision.label} through ProposalAcceptor.`);}catch(error){showError(error);}
+});
+elements.checkout_button.addEventListener("click",async()=>{try{state.data=await api("/api/checkout-parent",{tick:state.tick});state.previewValue=null;render();showToast(`Checked out parent ${state.data.revision.label}.`);}catch(error){showError(error);}});
 
-let animationFrame=null, playbackStart=null, lastRequested=-1;
-elements.play_button.addEventListener("click", () => { if(state.playing)return; if(state.tick>=1000)state.tick=0; state.playing=true; playbackStart=performance.now()-state.tick; const step=(now)=>{ if(!state.playing)return; const tick=Math.min(1000,Math.round(now-playbackStart)); if(tick-lastRequested>=40||tick===1000){lastRequested=tick;loadTick(tick).catch(showError);} if(tick<1000)animationFrame=requestAnimationFrame(step);else state.playing=false;}; animationFrame=requestAnimationFrame(step); });
+let animationFrame=null,playbackStart=null,lastRequested=-1;
+elements.play_button.addEventListener("click",()=>{
+  if(state.playing||!state.data.timebase)return;
+  const duration=durationTick();const ticksPerSecond=state.data.timebase.ticks_per_second;
+  if(state.tick>=duration)state.tick=0;
+  state.playing=true;playbackStart=performance.now()-(state.tick*1000/ticksPerSecond);
+  const step=(now)=>{if(!state.playing)return;const tick=Math.min(duration,Math.round((now-playbackStart)*ticksPerSecond/1000));if(tick-lastRequested>=Math.max(1,Math.round(ticksPerSecond/25))||tick===duration){lastRequested=tick;loadTick(tick).catch(showError);}if(tick<duration)animationFrame=requestAnimationFrame(step);else state.playing=false;};
+  animationFrame=requestAnimationFrame(step);
+});
 elements.stop_button.addEventListener("click",()=>{state.playing=false;if(animationFrame)cancelAnimationFrame(animationFrame);});
 
 let toastTimer;
 function showToast(message){clearTimeout(toastTimer);elements.toast.textContent=message;elements.toast.classList.add("show");toastTimer=setTimeout(()=>elements.toast.classList.remove("show"),2600);}
 function showError(error){showToast(error instanceof Error?error.message:String(error));}
 
-loadTick(500).catch(showError);
+loadTick(0).catch(showError);

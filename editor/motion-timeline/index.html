@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SVM · Real Motion Editor</title>
+    <title>SVM · Document Editor</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <div class="brand"><span class="brand-mark">S</span><div><strong>Structured Vector Motion</strong><span>Editor Vertical Slice 01 · Real Motion Editing</span></div></div>
-        <div class="project-context"><span>Project</span><strong>Golden M Motion Study</strong><code>examples/017-motion-rectangle.svm.json</code></div>
+        <div class="brand"><span class="brand-mark">S</span><div><strong>Structured Vector Motion</strong><span>Editor Vertical Slice 02 · Generic Document Inspection</span></div></div>
+        <div class="project-context"><span>Document</span><strong id="project-name">Loading SVM Document</strong><code id="project-path">server-selected .svm</code></div>
         <div class="core-status"><i></i><span>LIVE CORE</span><code id="revision-id">loading…</code></div>
       </header>
 
@@ -22,11 +22,11 @@
           <div class="structure-note"><span>Render stack</span><small>Order is presentation only</small></div>
         </aside>
         <section class="canvas-panel">
-          <div class="panel-heading"><div><span class="eyebrow">Real SVGRenderer output</span><h1>Golden M Document</h1></div><div id="canvas-badge" class="state-badge committed">Committed</div></div>
+          <div class="panel-heading"><div><span class="eyebrow">Real SVGRenderer output</span><h1 id="canvas-title">SVM Document</h1></div><div id="canvas-badge" class="state-badge committed">Committed</div></div>
           <div class="canvas-stage">
             <div class="document-label"><span id="revision-label">R0</span><code id="document-id">document:…</code></div>
             <div id="svg-host" class="svg-host" aria-label="Core-rendered SVG frame"></div>
-            <div class="sample-readout"><span>tick</span><strong id="tick-readout">0</strong><span>sampled x</span><strong id="value-readout">—</strong></div>
+            <div class="sample-readout"><span>tick</span><strong id="tick-readout">0</strong><span id="value-label">sampled</span><strong id="value-readout">—</strong></div>
           </div>
         </section>
 
@@ -52,19 +52,20 @@
 
       <section class="timeline-panel panel">
         <div class="timeline-toolbar">
-          <div><span class="eyebrow">Document animation.content</span><h2 id="track-title">Position X</h2></div>
+          <div><span class="eyebrow">Document animation.content</span><h2 id="track-title">Loading Track</h2></div>
           <div class="transport"><button id="play-button" aria-label="Play">▶</button><button id="stop-button" aria-label="Stop">■</button><code id="timecode">00:00.000</code><span id="timebase">— ticks/s</span></div>
         </div>
         <div class="timeline-layout">
-          <div class="track-meta"><strong>Position X</strong><small id="track-semantics">linear · number</small><code>op:moving-rectangle.x</code></div>
+          <div class="track-meta"><strong id="track-meta-name">Track</strong><small id="track-semantics">—</small><code id="track-meta-target">—</code></div>
           <div class="timeline" id="timeline">
-            <div class="ruler"><span>0.0s</span><span>0.25s</span><span>0.5s</span><span>0.75s</span><span>1.0s</span></div>
+            <div id="ruler" class="ruler"></div>
             <svg viewBox="0 0 1000 190" preserveAspectRatio="none" aria-label="Document Keyframe curve"><g class="grid"><path d="M0 24H1000M0 95H1000M0 166H1000"/><path d="M0 0V190M250 0V190M500 0V190M750 0V190M1000 0V190"/></g><path id="curve-path" class="curve" /></svg>
             <div id="keyframes"></div>
             <input id="playhead" type="range" min="0" max="1000" step="1" value="0" aria-label="Timeline playhead" disabled />
+            <div id="timeline-empty" class="timeline-empty hidden"><strong>No Motion</strong><span>This Document has no content Tracks.</span></div>
           </div>
         </div>
-        <div class="cache-strip"><div><strong>Real MotionEvaluator frame cache</strong><small id="delta-copy">Initial cache primed from Golden M</small></div><div id="cache-cells" class="cache-cells" aria-live="polite"></div></div>
+        <div class="cache-strip"><div><strong>Core evaluation cache</strong><small id="delta-copy">Loading Document evaluation state</small></div><div id="cache-cells" class="cache-cells" aria-live="polite"></div></div>
       </section>
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>

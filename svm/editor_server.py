@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from .editor_motion import MotionEditorSession
+from .editor_motion import DocumentEditorSession
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DOCUMENT = REPOSITORY_ROOT / "examples" / "017-motion-rectangle.svm.json"
@@ -18,7 +18,7 @@ MAX_REQUEST_BYTES = 16_384
 
 
 class MotionEditorHandler(SimpleHTTPRequestHandler):
-    session: MotionEditorSession
+    session: DocumentEditorSession
     session_lock = threading.Lock()
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -34,8 +34,12 @@ class MotionEditorHandler(SimpleHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         actions = {
-            "/api/preview": lambda payload: self.session.preview(payload["value"], payload["tick"]),
-            "/api/commit": lambda payload: self.session.commit(payload["value"], payload["tick"]),
+            "/api/preview": lambda payload: self.session.preview(
+                payload["track_id"], payload["keyframe_id"], payload["value"], payload["tick"]
+            ),
+            "/api/commit": lambda payload: self.session.commit(
+                payload["track_id"], payload["keyframe_id"], payload["value"], payload["tick"]
+            ),
             "/api/checkout-parent": lambda payload: self.session.checkout_parent(payload["tick"]),
             "/api/clear-preview": lambda payload: self._clear_preview(payload["tick"]),
         }
@@ -94,12 +98,12 @@ def create_server(
     port: int = 4175,
 ) -> ThreadingHTTPServer:
     document = json.loads(document_path.read_text(encoding="utf-8"))
-    MotionEditorHandler.session = MotionEditorSession(document)
+    MotionEditorHandler.session = DocumentEditorSession(document)
     return ThreadingHTTPServer((host, port), MotionEditorHandler)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Serve Editor Vertical Slice 01")
+    parser = argparse.ArgumentParser(description="Serve Editor Vertical Slice 02")
     parser.add_argument("--document", type=Path, default=DEFAULT_DOCUMENT)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=4175)

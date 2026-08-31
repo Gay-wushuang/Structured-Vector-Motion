@@ -1,4 +1,4 @@
-# Editor Shell v0.1 — Real Motion Editing
+# Editor Vertical Slice 02 — Generic Document Inspection
 
 This is the first SVM Editor surface backed by the real Python Core rather than
 a browser-side simulation.
@@ -9,11 +9,18 @@ python -m svm.editor_server --port 4175
 
 Open `http://127.0.0.1:4175/`.
 
-The browser only supplies an integer tick or a proposed Keyframe value. Core
-owns all semantic work:
+Pass another compatible Document with `--document`:
+
+```powershell
+python -m svm.editor_server --document examples/018-anchored-regeneration.svm.json --port 4175
+```
+
+The Editor derives Structure, Inspector, Canvas, and Timeline state from the
+loaded Document. The browser only supplies selection, an integer tick, or a
+proposed Keyframe value. Core owns all semantic work:
 
 ```text
-Golden M Document
+Simple SVM Document
   -> MotionEvaluator
   -> EvaluatedScene
   -> SVGRenderer
@@ -34,8 +41,10 @@ Commit
 
 Checkout uses the real parent Revision snapshot. The Frame cache labels are
 derived from actual retained and evaluated `MotionEvaluator.frame_cache` keys.
-This slice intentionally supports only the one three-Keyframe Track in
-`examples/017-motion-rectangle.svm.json`.
+This slice supports `CreateRectangle`, `CreateEllipse`, and existing Motion v0.1
+numeric Tracks. Static Documents render through the real Evaluator and show
+`No Motion`; animated Documents render through `MotionEvaluator`. Unsupported
+Operation types fail closed instead of being approximated by the Editor.
 
 The durable Shell has four long-lived regions:
 
@@ -54,7 +63,10 @@ to the SVM Document interchange model.
 All Document and API projection fields are inserted as DOM text nodes. Entity
 names, IDs, Operation data, parameters, and Keyframes are never parsed as HTML.
 The Core-rendered SVG is parsed as XML and rejected if it contains scripts,
-`foreignObject`, event-handler attributes, or a non-SVG root. Non-rendered
+`foreignObject`, event-handler attributes, or a non-SVG root. This is a
+defensive layer for the current Core Renderer output subset, not a general SVG
+sanitizer. If Renderer support grows to resource-bearing SVG, the Canvas must
+adopt an explicit element and attribute allowlist. Non-rendered
 Entities sort after Render Stack members instead of being treated as render
 index zero. If a newly loaded projection no longer contains the selected Entity,
 selection moves to the first available Entity or becomes empty.
