@@ -293,6 +293,15 @@ deterministic A/B/C pending candidates, impact inspection, and acceptance into a
 visible child Revision. The prototype is browser-only Editor State and does not
 add UI fields to the SVM Document or invoke an AI model.
 
+Editor Vertical Slice 04 moves that interaction into the durable Editor Shell.
+With `examples/018-anchored-regeneration.svm.json`, the UI constructs a real
+`AnchoredRegenerationContract`, exposes deterministic A/B/C as pending
+Proposals, renders isolated Proposal previews, and accepts A and B through
+`ProposalAcceptor.accept_anchored()` as sibling Revisions. The generator remains
+a deterministic fixture; replacing it with an AI does not widen acceptance
+authority. See `spec/25-editor-anchored-regeneration.md` and
+`tests/test_editor_motion.py`.
+
 ## Development
 
 Install the project and development tools in editable mode:

@@ -9,7 +9,7 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <div class="brand"><span class="brand-mark">S</span><div><strong>Structured Vector Motion</strong><span>Editor Vertical Slice 03 · Motion Authoring</span></div></div>
+        <div class="brand"><span class="brand-mark">S</span><div><strong>Structured Vector Motion</strong><span>Editor Vertical Slice 04 · Anchored Regeneration</span></div></div>
         <div class="project-context"><span>Document</span><strong id="project-name">Loading SVM Document</strong><code id="project-path">server-selected .svm</code></div>
         <div class="core-status"><i></i><span>LIVE CORE</span><code id="revision-id">loading…</code></div>
       </header>
@@ -59,6 +59,19 @@
               </div>
             </section>
             <button id="checkout-button" class="secondary-button" disabled>Checkout parent Revision</button>
+            <section id="anchored-editor" class="motion-editor hidden">
+              <div class="motion-heading"><span>Anchored Regeneration</span><code>real Golden O Core</code></div>
+              <div class="anchor-locks"><span>LOCKED</span><code>op:eye-frame.rx</code><code>op:unrelated.x</code></div>
+              <div class="scope-options">
+                <label><input id="scope-cx" type="checkbox" checked /> Highlight X</label>
+                <label><input id="scope-cy" type="checkbox" checked /> Highlight Y</label>
+              </div>
+              <button id="generate-candidates-button" class="primary-button">Generate deterministic candidates<span>AnchoredRegenerationContract → Proposals</span></button>
+              <div id="candidate-list" class="candidate-list"></div>
+              <button id="accept-candidate-button" class="primary-button" disabled>Accept selected candidate<span>accept_anchored → sibling Revision</span></button>
+              <div class="branch-heading"><span>Revision branches</span><small>Pending Proposals are not nodes</small></div>
+              <div id="revision-graph" class="revision-graph"></div>
+            </section>
           </div>
         </aside>
       </section>

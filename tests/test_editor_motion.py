@@ -147,6 +147,83 @@ class RealMotionEditorVerticalSliceTest(unittest.TestCase):
         self.assertEqual(restored["revision"]["label"], "R0")
         self.assertEqual(restored["tracks"], [])
 
+    def test_real_anchored_candidates_preview_without_creating_revision(self) -> None:
+        document = json.loads(STATIC.read_text(encoding="utf-8"))
+        session = DocumentEditorSession(document)
+        base_revision = session.head
+        generated = session.generate_anchored_candidates(["cx", "cy"])
+        self.assertEqual(
+            [candidate["id"] for candidate in generated["anchored_regeneration"]["candidates"]],
+            ["A", "B", "C"],
+        )
+        self.assertEqual(len(session.store.revisions), 1)
+
+        preview = session.preview_anchored_candidate("C")
+        self.assertTrue(preview["preview"]["active"])
+        self.assertEqual(preview["preview"]["kind"], "anchored")
+        self.assertEqual(preview["preview"]["candidate_id"], "C")
+        self.assertEqual(preview["preview"]["base_revision_id"], base_revision)
+        self.assertEqual(preview["revision"]["id"], base_revision)
+        self.assertEqual(len(session.store.revisions), 1)
+        parameters = preview["frame"]["effective_parameters"]["op:eye-highlight"]
+        self.assertEqual(parameters["cx"], 0.2)
+        self.assertEqual(parameters["cy"], -0.1)
+        self.assertEqual(
+            session.store.get_document(base_revision)["construction"]["operations"][1][
+                "parameters"
+            ],
+            {"cx": 0.12, "cy": -0.05, "rx": 0.08, "ry": 0.05},
+        )
+        cleared = session.clear_anchored_candidates()
+        self.assertFalse(cleared["preview"]["active"])
+        self.assertEqual(cleared["anchored_regeneration"]["candidates"], [])
+        self.assertEqual(cleared["revision"]["id"], base_revision)
+        self.assertEqual(len(session.store.revisions), 1)
+
+    def test_real_anchored_acceptance_creates_sibling_revisions(self) -> None:
+        document = json.loads(STATIC.read_text(encoding="utf-8"))
+        session = DocumentEditorSession(document)
+        base_revision = session.head
+        session.generate_anchored_candidates(["cx", "cy"])
+
+        first = session.accept_anchored_candidate("A")
+        first_revision = first["revision"]["id"]
+        self.assertEqual(first["revision"]["parent_ids"], [base_revision])
+        self.assertEqual(first["revision"]["label"], "R1")
+
+        preview = session.preview_anchored_candidate("B")
+        self.assertEqual(preview["revision"]["id"], first_revision)
+        self.assertEqual(preview["preview"]["base_revision_id"], base_revision)
+        second = session.accept_anchored_candidate("B")
+        second_revision = second["revision"]["id"]
+        self.assertEqual(second["revision"]["parent_ids"], [base_revision])
+        self.assertEqual(second["revision"]["label"], "R2")
+        self.assertNotEqual(first_revision, second_revision)
+        self.assertEqual(session.store.revisions[first_revision].parent_ids, (base_revision,))
+        self.assertEqual(session.store.revisions[second_revision].parent_ids, (base_revision,))
+        self.assertEqual(len(session.store.revisions), 3)
+        self.assertEqual(
+            {node["candidate_id"] for node in second["revision_graph"]},
+            {None, "A", "B"},
+        )
+
+        with self.assertRaisesRegex(ValueError, "already accepted"):
+            session.accept_anchored_candidate("A")
+        self.assertEqual(len(session.store.revisions), 3)
+
+    def test_anchored_scope_is_reflected_in_real_candidate_impacts(self) -> None:
+        document = json.loads(STATIC.read_text(encoding="utf-8"))
+        session = DocumentEditorSession(document)
+        state = session.generate_anchored_candidates(["cx"])
+        self.assertEqual(state["anchored_regeneration"]["scope"], ["cx"])
+        for candidate in state["anchored_regeneration"]["candidates"]:
+            self.assertEqual(
+                {impact["parameter"] for impact in candidate["impacts"]},
+                {"cx"},
+            )
+        with self.assertRaisesRegex(ValueError, "supports only highlight cx/cy"):
+            session.generate_anchored_candidates(["rx"])
+
     def test_unsupported_operation_subset_fails_closed(self) -> None:
         document = json.loads((ROOT / "examples" / "001-head-basic.svm.json").read_text())
         with self.assertRaisesRegex(ValueError, "supports only CreateRectangle/CreateEllipse"):

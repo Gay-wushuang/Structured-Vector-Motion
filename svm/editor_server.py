@@ -58,6 +58,18 @@ class MotionEditorHandler(SimpleHTTPRequestHandler):
             "/api/add-keyframe": lambda payload: self.session.add_keyframe(
                 payload["track_id"], payload["tick"], payload["value"]
             ),
+            "/api/anchored/generate": lambda payload: self.session.generate_anchored_candidates(
+                payload["scope"], payload.get("tick", 0)
+            ),
+            "/api/anchored/preview": lambda payload: self.session.preview_anchored_candidate(
+                payload["candidate_id"], payload.get("tick", 0)
+            ),
+            "/api/anchored/accept": lambda payload: self.session.accept_anchored_candidate(
+                payload["candidate_id"], payload.get("tick", 0)
+            ),
+            "/api/anchored/clear": lambda payload: self.session.clear_anchored_candidates(
+                payload.get("tick", 0)
+            ),
         }
         action = actions.get(parsed.path)
         if action is None:
@@ -159,7 +171,7 @@ def create_server(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Serve Editor Vertical Slice 03")
+    parser = argparse.ArgumentParser(description="Serve Editor Vertical Slice 04")
     parser.add_argument("--document", type=Path, default=DEFAULT_DOCUMENT)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=4175)

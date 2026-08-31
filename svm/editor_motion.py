@@ -6,6 +6,12 @@ from dataclasses import dataclass
 from fractions import Fraction
 from typing import Any
 
+from .anchored_regeneration import (
+    AnchoredRegenerationContract,
+    ImpactTarget,
+    validate_anchored_proposal,
+    validate_contract_against_document,
+)
 from .evaluator import DocumentError, Evaluator, Quality, canonical_bytes
 from .motion import MotionEvaluator, MotionRevisionDelta, canonical_motion_number
 from .operations import get_operation_registry
@@ -16,12 +22,14 @@ from .revisions import (
     CreateTrackChange,
     RevisionStore,
     SetKeyframeValueChange,
+    SetOperationParameterChange,
     Transaction,
 )
 from .scene import EvaluatedScene, build_evaluated_scene
 
-EDITOR_IDENTITY = "svm-document-editor@0.3"
+EDITOR_IDENTITY = "svm-document-editor@0.4"
 EDITOR_ACTOR = "editor:motion-timeline"
+REGENERATOR_ACTOR = "adapter:editor-deterministic-regenerator"
 SUPPORTED_OPERATION_TYPES = frozenset({"CreateRectangle", "CreateEllipse"})
 
 
@@ -36,7 +44,7 @@ class DocumentEditorSession:
 
     def __init__(self, document: dict[str, Any]) -> None:
         self._validate_editor_subset(document)
-        self.store = RevisionStore.create(document, "Editor Vertical Slice 03 base")
+        self.store = RevisionStore.create(document, "Editor Vertical Slice 04 base")
         if self.store.head is None:
             raise DocumentError("Editor Revision Store did not create a head")
         self.base_revision_id = self.store.head
@@ -49,6 +57,11 @@ class DocumentEditorSession:
         self._preview_target: MotionEditTarget | None = None
         self._preview_deltas: tuple[MotionRevisionDelta, ...] = ()
         self._transition_deltas: tuple[MotionRevisionDelta, ...] = ()
+        self._anchored_contract: AnchoredRegenerationContract | None = None
+        self._anchored_proposals: dict[str, Proposal] = {}
+        self._anchored_preview_document: dict[str, Any] | None = None
+        self._anchored_preview_id: str | None = None
+        self._accepted_candidates: dict[str, str] = {}
         self.reference_ticks: tuple[int, ...] = ()
         self.view_box: tuple[float, float, float, float] = (-1, -1, 2, 2)
         self._load_runtime(self.store.get_document(self.store.head))
@@ -68,6 +81,8 @@ class DocumentEditorSession:
         return self.static_evaluator.document
 
     def state(self, tick: int) -> dict[str, Any]:
+        if self._anchored_preview_document is not None:
+            return self._serialize_anchored_preview(self._anchored_preview_document, tick)
         if self.motion is None:
             return self._serialize_static()
         runtime = self._preview_motion or self.motion
@@ -95,6 +110,108 @@ class DocumentEditorSession:
         self._preview_target = None
         self._preview_value = None
         self._preview_deltas = ()
+        self._anchored_preview_document = None
+        self._anchored_preview_id = None
+
+    def generate_anchored_candidates(
+        self, scope_parameters: list[str], tick: int = 0
+    ) -> dict[str, Any]:
+        """Create deterministic pending Proposals from one immutable base Revision."""
+        self._require_anchored_fixture()
+        if not isinstance(scope_parameters, list) or not scope_parameters:
+            raise DocumentError("Anchored regeneration requires a non-empty scope")
+        if any(type(value) is not str for value in scope_parameters):
+            raise DocumentError("Anchored regeneration scope must contain parameter names")
+        scope = tuple(dict.fromkeys(scope_parameters))
+        if len(scope) != len(scope_parameters) or not set(scope) <= {"cx", "cy"}:
+            raise DocumentError("Anchored regeneration scope supports only highlight cx/cy")
+
+        base_revision_id = self.head
+        eye_frame = ImpactTarget("set_parameter", "op:eye-frame", "rx")
+        contract = AnchoredRegenerationContract(
+            base_revision_id=base_revision_id,
+            anchor=(eye_frame,),
+            intent=(eye_frame,),
+            protection=(
+                eye_frame,
+                ImpactTarget("set_parameter", "op:unrelated", "x"),
+            ),
+            regeneration_scope=tuple(
+                ImpactTarget("set_parameter", "op:eye-highlight", parameter) for parameter in scope
+            ),
+        )
+        base_document = self.store.get_document(base_revision_id)
+        validate_contract_against_document(contract, base_document)
+        variants = self._candidate_variants(scope, base_document)
+        proposals: dict[str, Proposal] = {}
+        for label, values in variants:
+            changes = tuple(
+                SetOperationParameterChange("op:eye-highlight", parameter, value)
+                for parameter, value in values
+            )
+            identity = {
+                "identity": EDITOR_IDENTITY,
+                "generator": REGENERATOR_ACTOR,
+                "base_revision_id": base_revision_id,
+                "candidate": label,
+                "values": list(values),
+            }
+            digest = hashlib.sha256(canonical_bytes(identity)).hexdigest()
+            proposal = Proposal(
+                proposal_id=f"proposal:editor-anchored:{digest}",
+                base_revision_id=base_revision_id,
+                generator=GeneratorProvenance(
+                    adapter_id=REGENERATOR_ACTOR,
+                    adapter_version="0.1",
+                    engine="deterministic-fixture",
+                    engine_version="1",
+                ),
+                transaction=Transaction(
+                    transaction_id=f"transaction:editor-anchored:{digest}",
+                    changes=changes,
+                    message=f"Editor anchored candidate {label}",
+                ),
+                notes="Deterministic Editor Vertical Slice 04 candidate",
+            )
+            validate_anchored_proposal(contract, proposal)
+            proposals[label] = proposal
+        self._anchored_contract = contract
+        self._anchored_proposals = proposals
+        self.clear_preview()
+        return self.state(tick)
+
+    def clear_anchored_candidates(self, tick: int = 0) -> dict[str, Any]:
+        self.clear_preview()
+        self._anchored_contract = None
+        self._anchored_proposals = {}
+        return self.state(tick)
+
+    def preview_anchored_candidate(self, candidate_id: str, tick: int = 0) -> dict[str, Any]:
+        contract, proposal = self._anchored_candidate(candidate_id)
+        base_document = self.store.get_document(contract.base_revision_id)
+        validate_contract_against_document(contract, base_document)
+        validate_anchored_proposal(contract, proposal)
+        self.clear_preview()
+        self._anchored_preview_document = proposal.transaction.apply(base_document)
+        self._anchored_preview_id = candidate_id
+        return self.state(tick)
+
+    def accept_anchored_candidate(self, candidate_id: str, tick: int = 0) -> dict[str, Any]:
+        contract, proposal = self._anchored_candidate(candidate_id)
+        if any(
+            accepted_id == candidate_id
+            and self.store.revisions[revision_id].parent_ids == (contract.base_revision_id,)
+            for revision_id, accepted_id in self._accepted_candidates.items()
+        ):
+            raise DocumentError(f"Anchored candidate {candidate_id} is already accepted")
+        revision = ProposalAcceptor().accept_anchored(self.store, proposal, contract)
+        if revision.revision_id not in self._revision_labels:
+            self._revision_labels[revision.revision_id] = f"R{len(self._revision_labels)}"
+        self._accepted_candidates[revision.revision_id] = candidate_id
+        self.clear_preview()
+        self._transition_deltas = ()
+        self._load_runtime(self.store.get_document(revision.revision_id))
+        return self.state(tick)
 
     def commit(
         self, track_id: str, keyframe_id: str, value: int | float, tick: int
@@ -109,7 +226,7 @@ class DocumentEditorSession:
             base_revision_id=self.head,
             generator=GeneratorProvenance(
                 adapter_id=EDITOR_ACTOR,
-                adapter_version="0.3",
+                adapter_version="0.4",
                 engine="svm-core",
                 engine_version=EDITOR_IDENTITY,
             ),
@@ -142,7 +259,7 @@ class DocumentEditorSession:
         tick: int = 0,
     ) -> dict[str, Any]:
         if tick != 0:
-            raise DocumentError("Editor Vertical Slice 03 creates the initial Keyframe at tick 0")
+            raise DocumentError("Editor Motion authoring creates the initial Keyframe at tick 0")
         operation = next(
             (
                 item
@@ -209,7 +326,7 @@ class DocumentEditorSession:
             self.head,
             GeneratorProvenance(
                 EDITOR_ACTOR,
-                "0.3",
+                "0.4",
                 "svm-core",
                 EDITOR_IDENTITY,
             ),
@@ -251,6 +368,22 @@ class DocumentEditorSession:
             tick=0,
             seconds=Fraction(0),
             preview=False,
+            cache=[],
+            deltas=(),
+        )
+
+    def _serialize_anchored_preview(self, document: dict[str, Any], tick: int) -> dict[str, Any]:
+        if tick != 0:
+            raise DocumentError("Static anchored preview requires tick 0")
+        evaluator = Evaluator(document)
+        scene = build_evaluated_scene(document, evaluator, Quality.FINAL)
+        return self._base_payload(
+            document=document,
+            sampled_document=document,
+            scene=scene,
+            tick=0,
+            seconds=Fraction(0),
+            preview=True,
             cache=[],
             deltas=(),
         )
@@ -321,8 +454,16 @@ class DocumentEditorSession:
             },
             "preview": {
                 "active": preview,
-                "base_revision_id": self.head,
+                "kind": "anchored"
+                if self._anchored_preview_id is not None
+                else ("motion" if preview else None),
+                "base_revision_id": (
+                    self._anchored_contract.base_revision_id
+                    if self._anchored_preview_id is not None and self._anchored_contract is not None
+                    else self.head
+                ),
                 "value": self._preview_value,
+                "candidate_id": self._anchored_preview_id,
                 "target": copy.deepcopy(
                     self._preview_target.__dict__ if self._preview_target is not None else None
                 ),
@@ -349,7 +490,120 @@ class DocumentEditorSession:
                 for delta in deltas
             ],
             "cache": cache,
+            "anchored_regeneration": self._anchored_payload(document),
+            "revision_graph": self._revision_graph(),
         }
+
+    def _anchored_payload(self, document: dict[str, Any]) -> dict[str, Any]:
+        available = self._has_anchored_fixture(document)
+        contract = self._anchored_contract
+        candidates = []
+        for candidate_id, proposal in self._anchored_proposals.items():
+            impacts = [
+                {
+                    "operation": change.operation_id,
+                    "parameter": change.parameter,
+                    "value": change.value,
+                }
+                for change in proposal.transaction.changes
+                if type(change) is SetOperationParameterChange
+            ]
+            accepted = next(
+                (
+                    revision_id
+                    for revision_id, accepted_id in self._accepted_candidates.items()
+                    if accepted_id == candidate_id
+                    and contract is not None
+                    and self.store.revisions[revision_id].parent_ids == (contract.base_revision_id,)
+                ),
+                None,
+            )
+            candidates.append(
+                {
+                    "id": candidate_id,
+                    "proposal_id": proposal.proposal_id,
+                    "impacts": impacts,
+                    "accepted_revision_id": accepted,
+                }
+            )
+        return {
+            "available": available,
+            "base_revision_id": contract.base_revision_id if contract is not None else None,
+            "selected_candidate_id": self._anchored_preview_id,
+            "scope": [impact.parameter for impact in contract.regeneration_scope]
+            if contract is not None
+            else [],
+            "protection": [
+                {"target": impact.target, "parameter": impact.parameter}
+                for impact in contract.protection
+            ]
+            if contract is not None
+            else [],
+            "candidates": candidates,
+        }
+
+    def _revision_graph(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "id": revision_id,
+                "label": self._revision_labels.get(revision_id, revision_id[:12]),
+                "parent_ids": list(revision.parent_ids),
+                "current": revision_id == self.head,
+                "candidate_id": self._accepted_candidates.get(revision_id),
+            }
+            for revision_id, revision in self.store.revisions.items()
+        ]
+
+    def _anchored_candidate(
+        self, candidate_id: str
+    ) -> tuple[AnchoredRegenerationContract, Proposal]:
+        if self._anchored_contract is None:
+            raise DocumentError("Generate anchored candidates before preview or acceptance")
+        proposal = self._anchored_proposals.get(candidate_id)
+        if proposal is None:
+            raise DocumentError(f"Unknown anchored candidate {candidate_id}")
+        return self._anchored_contract, proposal
+
+    @staticmethod
+    def _candidate_variants(
+        scope: tuple[str, ...], document: dict[str, Any]
+    ) -> tuple[tuple[str, tuple[tuple[str, float], ...]], ...]:
+        operation = next(
+            item
+            for item in document["construction"]["operations"]
+            if item["id"] == "op:eye-highlight"
+        )
+        current_x = float(operation["parameters"]["cx"])
+        current_y = float(operation["parameters"]["cy"])
+        if scope == ("cx", "cy") or set(scope) == {"cx", "cy"}:
+            return (
+                ("A", (("cx", current_x + 0.04),)),
+                ("B", (("cy", current_y - 0.03),)),
+                ("C", (("cx", current_x + 0.08), ("cy", current_y - 0.05))),
+            )
+        parameter = scope[0]
+        base = current_x if parameter == "cx" else current_y
+        offsets = (0.04, 0.06, 0.08) if parameter == "cx" else (-0.02, -0.03, -0.05)
+        return tuple(
+            (label, ((parameter, base + offset),))
+            for label, offset in zip(("A", "B", "C"), offsets, strict=True)
+        )
+
+    def _require_anchored_fixture(self) -> None:
+        if not self._has_anchored_fixture(self.document):
+            raise DocumentError("This Document does not expose the Vertical Slice 04 anchor")
+
+    @staticmethod
+    def _has_anchored_fixture(document: dict[str, Any]) -> bool:
+        operations = {
+            operation.get("id"): operation
+            for operation in document.get("construction", {}).get("operations", [])
+        }
+        return (
+            operations.get("op:eye-frame", {}).get("type") == "CreateEllipse"
+            and operations.get("op:eye-highlight", {}).get("type") == "CreateEllipse"
+            and operations.get("op:unrelated", {}).get("type") == "CreateRectangle"
+        )
 
     def _transaction(
         self,
@@ -451,7 +705,7 @@ class DocumentEditorSession:
         )
         if unsupported:
             raise DocumentError(
-                "Editor Vertical Slice 03 supports only CreateRectangle/CreateEllipse; "
+                "Editor Vertical Slice 04 supports only CreateRectangle/CreateEllipse; "
                 f"found {', '.join(unsupported)}"
             )
 
@@ -475,7 +729,7 @@ class DocumentEditorSession:
                     bounds.append((cx - rx, cy - ry, cx + rx, cy + ry))
                 else:
                     raise DocumentError(
-                        f"Editor Vertical Slice 03 cannot frame geometry {geometry['kind']!r}"
+                        f"Editor Vertical Slice 04 cannot frame geometry {geometry['kind']!r}"
                     )
         if not bounds:
             return (-1, -1, 2, 2)

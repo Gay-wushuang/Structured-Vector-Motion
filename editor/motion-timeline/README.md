@@ -1,4 +1,4 @@
-# Editor Vertical Slice 03 — Motion Authoring
+# Editor Vertical Slice 04 — Real Anchored Regeneration
 
 This is the first SVM Editor surface backed by the real Python Core rather than
 a browser-side simulation.
@@ -42,8 +42,8 @@ Commit
 Checkout uses the real parent Revision snapshot. The Frame cache labels are
 derived from actual retained and evaluated `MotionEvaluator.frame_cache` keys.
 This slice supports `CreateRectangle`, `CreateEllipse`, and existing Motion v0.1
-or v0.2 numeric Tracks. Static Documents render through the real Evaluator and show
-`No Motion`; animated Documents render through `MotionEvaluator`. Unsupported
+or v0.2 numeric Tracks. Static Documents render through the real Evaluator and
+show `No Motion`; animated Documents render through `MotionEvaluator`. Unsupported
 Operation types fail closed instead of being approximated by the Editor.
 The Timeline lists every Track in the Document, including multiple Tracks that
 target one Operation. Selecting a Track changes only disposable Editor State;
@@ -67,6 +67,23 @@ defaults new static animation to 24 ticks/s and exposes an existing Document
 timebase as read-only. Authoring choices come from the Operation Registry's
 explicit `animatable_parameters`, not JavaScript numeric-type inference or
 Operation-name conditionals.
+
+Vertical Slice 04 adds the real Golden O path when the Editor opens
+`examples/018-anchored-regeneration.svm.json`:
+
+```text
+locked op:eye-frame.rx + op:unrelated.x
+-> choose highlight cx/cy regeneration scope
+-> deterministic pending Proposals A/B/C
+-> isolated Core preview (no Revision)
+-> ProposalAcceptor.accept_anchored()
+-> real sibling Revisions from one immutable base
+```
+
+Candidate and branch UI is a projection of real Proposal and RevisionStore
+state. Changing scope clears stale pending candidates and Canvas preview. The
+fixture-specific Operation IDs are an explicit Editor subset, not eye
+recognition, and the deterministic generator carries no acceptance authority.
 
 The durable Shell has four long-lived regions:
 

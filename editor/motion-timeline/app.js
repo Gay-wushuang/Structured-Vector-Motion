@@ -18,6 +18,8 @@ const elements = Object.fromEntries([
   "project-name","project-path","canvas-title","track-list",
   "authoring-editor","author-parameter","author-timebase","add-track-button",
   "new-keyframe-tick","new-keyframe-value","add-keyframe-button",
+  "anchored-editor","scope-cx","scope-cy","generate-candidates-button","candidate-list",
+  "accept-candidate-button","revision-graph",
 ].map((id) => [id.replaceAll("-", "_"), document.querySelector(`#${id}`)]));
 
 function textElement(tag, text, className = "") {
@@ -143,14 +145,62 @@ function render() {
   elements.canvas_title.textContent = data.tracks.length ? "Animated SVM Document" : "Static SVM Document";
   elements.structure_document_id.textContent = data.document_id;
   elements.canvas_badge.className = `state-badge ${data.preview.active ? "preview" : "committed"}`;
-  elements.canvas_badge.textContent = data.preview.active ? `Preview · ${data.revision.label} unchanged` : `Committed · ${data.revision.label}`;
+  elements.canvas_badge.textContent = data.preview.active
+    ? `${data.preview.kind === "anchored" ? `Proposal ${data.preview.candidate_id}` : "Preview"} · ${data.revision.label} unchanged`
+    : `Committed · ${data.revision.label}`;
   renderCoreSvg(data.frame.svg);
   elements.tick_readout.textContent = data.frame.tick;
   elements.checkout_button.disabled = !data.revision.can_checkout_parent;
   renderStructure();
   renderInspector();
   renderTimeline();
+  renderAnchoredRegeneration();
   highlightSelectedEntity();
+}
+
+function renderAnchoredRegeneration() {
+  const anchored = state.data.anchored_regeneration;
+  elements.anchored_editor.classList.toggle("hidden", !anchored.available);
+  if (!anchored.available) return;
+  if (anchored.scope.length) {
+    elements.scope_cx.checked = anchored.scope.includes("cx");
+    elements.scope_cy.checked = anchored.scope.includes("cy");
+  }
+  elements.candidate_list.replaceChildren(...anchored.candidates.map((candidate) => {
+    const button = document.createElement("button");
+    const selected = candidate.id === anchored.selected_candidate_id;
+    button.className = `candidate-card${selected ? " selected" : ""}${candidate.accepted_revision_id ? " accepted" : ""}`;
+    button.disabled = Boolean(candidate.accepted_revision_id);
+    const impact = candidate.impacts.map((item) => `${item.parameter}=${item.value}`).join(" · ");
+    button.append(
+      textElement("strong", `Candidate ${candidate.id}`),
+      textElement("code", impact),
+      textElement("small", candidate.accepted_revision_id ? "ACCEPTED" : "PREVIEW")
+    );
+    button.addEventListener("click", async () => {
+      try {
+        state.data = await api("/api/anchored/preview", {candidate_id:candidate.id,tick:0});
+        state.tick = 0;
+        render();
+      } catch(error) { showError(error); }
+    });
+    return button;
+  }));
+  elements.accept_candidate_button.disabled = !anchored.selected_candidate_id;
+  elements.revision_graph.replaceChildren(...state.data.revision_graph.map((revision) => {
+    const row = document.createElement("div");
+    const isBase = revision.id === anchored.base_revision_id;
+    row.className = `revision-node${revision.current ? " current" : ""}${isBase ? " anchor-base" : ""}`;
+    const parent = revision.parent_ids.length
+      ? state.data.revision_graph.find((item) => item.id === revision.parent_ids[0])?.label ?? "parent"
+      : "root";
+    row.append(
+      textElement("span", revision.label),
+      textElement("small", isBase ? "ANCHOR BASE" : `from ${parent}`),
+      textElement("em", revision.candidate_id ? `Candidate ${revision.candidate_id}` : revision.current ? "CURRENT" : "")
+    );
+    return row;
+  }));
 }
 
 function renderStructure() {
@@ -407,6 +457,42 @@ elements.add_keyframe_button.addEventListener("click",async()=>{
     showToast(`Added Keyframe at tick ${tick} in ${state.data.revision.label}.`);
   } catch(error) {showError(error);}
 });
+
+function selectedAnchoredScope() {
+  return [elements.scope_cx.checked ? "cx" : null, elements.scope_cy.checked ? "cy" : null].filter(Boolean);
+}
+
+elements.generate_candidates_button.addEventListener("click", async () => {
+  const scope = selectedAnchoredScope();
+  if (!scope.length) { showError(new Error("Select at least one regeneration scope.")); return; }
+  try {
+    state.data = await api("/api/anchored/generate", {scope,tick:0});
+    state.tick = 0;
+    render();
+    showToast("Generated three pending Proposals from the immutable anchor base.");
+  } catch(error) { showError(error); }
+});
+
+elements.accept_candidate_button.addEventListener("click", async () => {
+  const candidateId = state.data.anchored_regeneration.selected_candidate_id;
+  if (!candidateId) return;
+  try {
+    state.data = await api("/api/anchored/accept", {candidate_id:candidateId,tick:0});
+    state.tick = 0;
+    render();
+    showToast(`Accepted Candidate ${candidateId} as ${state.data.revision.label}.`);
+  } catch(error) { showError(error); }
+});
+
+for (const checkbox of [elements.scope_cx,elements.scope_cy]) {
+  checkbox.addEventListener("change", async () => {
+    try {
+      state.data = await api("/api/anchored/clear", {tick:0});
+      state.tick = 0;
+      render();
+    } catch(error) { showError(error); }
+  });
+}
 
 let animationFrame=null,playbackStart=null,lastRequested=-1;
 elements.play_button.addEventListener("click",()=>{

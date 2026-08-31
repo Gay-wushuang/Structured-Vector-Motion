@@ -52,8 +52,9 @@ Read these files before changing core behavior:
 20. `spec/22-motion-revisions.md` — persistent Keyframe editing and revision transition.
 21. `spec/23-anchored-regeneration.md` — scoped Proposal branching from protected anchors.
 22. `spec/24-motion-authoring.md` — persistent Track and Keyframe creation.
-23. `examples/001-head-basic.svm.json` — current example Document.
-24. `tests/test_golden_a.py` — executable expectations.
+23. `spec/25-editor-anchored-regeneration.md` — real Editor branching interaction.
+24. `examples/001-head-basic.svm.json` — current example Document.
+25. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -309,6 +310,9 @@ Next milestones:
 17. Motion Authoring and Editor Vertical Slice 03 create a numeric linear Track
     and its required initial Keyframe atomically, then add further Keyframes as
     explicit accepted Revisions. Empty Tracks never enter a Document.
+18. Editor Vertical Slice 04 projects Golden O into the durable Editor Shell:
+    deterministic pending Proposals preview without Revision mutation and
+    accepted candidates become real sibling Revisions from one immutable base.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.
