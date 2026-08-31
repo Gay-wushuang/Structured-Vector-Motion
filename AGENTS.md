@@ -53,8 +53,10 @@ Read these files before changing core behavior:
 21. `spec/23-anchored-regeneration.md` — scoped Proposal branching from protected anchors.
 22. `spec/24-motion-authoring.md` — persistent Track and Keyframe creation.
 23. `spec/25-editor-anchored-regeneration.md` — real Editor branching interaction.
-24. `examples/001-head-basic.svm.json` — current example Document.
-25. `tests/test_golden_a.py` — executable expectations.
+24. `spec/25-proposal-generator-boundary.md` — replaceable Proposal Provider boundary.
+25. `spec/26-pop-output-adapter.md` — snapshotted POP token-output boundary.
+26. `examples/001-head-basic.svm.json` — current example Document.
+27. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -313,6 +315,10 @@ Next milestones:
 18. Editor Vertical Slice 04 projects Golden O into the durable Editor Shell:
     deterministic pending Proposals preview without Revision mutation and
     accepted candidates become real sibling Revisions from one immutable base.
+19. POP Output Adapter and Golden P consume an immutable operation-prefix and
+    raw nine-token continuation, preserve versioned token decoding and native
+    half-alpha rendering semantics, and accept one editable primitive scene as
+    one atomic Revision. POP remains an optional external generator.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

@@ -1,4 +1,4 @@
-# Primitive Operation Painter Output Adapter v0.1
+# Primitive Operation Painter Output Adapter v0.2
 
 ## Status
 
@@ -19,25 +19,40 @@ POP model run
 -> one atomic Revision
 ```
 
-The Artifact media type is `application/vnd.svm.pop-output+json`; its schema is
-`svm-pop-output-0.1`. Run, output, and consumer identities are independent:
+The output Artifact media type is `application/vnd.svm.pop-output+json`; its
+schema is `svm-pop-output-0.2`. The operation-prefix Artifact uses
+`application/vnd.svm.pop-token-prefix+json` and
+`svm-pop-token-prefix-0.1`. Run, output, and consumer identities are independent:
 
 ```text
-svm-pop-run@0.1
-svm-pop-output@0.1
-svm-pop-output-adapter@0.1
+svm-pop-run@0.2
+svm-pop-output@0.2
+svm-pop-output-adapter@0.2
 ```
 
-The run records the exact generation input. The recorded producer includes the
-exact upstream repository and Git commit, model ID, checkpoint SHA-256, seed,
-and decoding configuration. Golden P permits
-only deterministic greedy decoding with an explicit maximum step count. The
-result bytes are content-addressed before the Adapter sees them.
+POP is an operation-prefix continuation model, not prompt-to-image. The
+`generation_context` therefore binds an exact prefix Artifact ID and content
+hash, prefix length, and target step count. Optional `user_intent` is annotation
+only and MUST NOT be represented as model input.
+
+The recorded producer includes the exact upstream repository and Git commit,
+model ID, checkpoint SHA-256, seed, decoding configuration,
+`pop/geometrize_256_v1` token layout,
+`pop/geometrize-256-quantization@0.1` quantization,
+`pop/decode-tokens-to-render-data@d5489b0` decoder, and
+`pop/matplotlib-half-alpha@d5489b0` renderer identity. Golden P permits only
+deterministic greedy decoding with an explicit maximum step count.
+
+The output retains the complete raw nine-token sequence. Decoded canonical
+geometry must equal an independent decoding of those tokens, and its leading
+tokens must equal the complete prefix Artifact. Thus neither model-input nor
+token-to-geometry semantics are implicit in Adapter code or prose provenance.
 
 ## Accepted output subset
 
-The canvas records positive width and height in Document coordinate units and
-an opaque RGB background. Each ordered primitive contains exactly:
+The upstream 256 layout fixes a 256×256 canvas. Quantization uses two coordinate
+bins per pixel, three angle bins per degree, four size bins per pixel, and 128
+RGB bins decoded by multiplication by two. Each ordered primitive contains:
 
 ```text
 index, x, y, angle_degrees, width, height, shape_type, RGB
@@ -49,8 +64,13 @@ semantics. v0.1 accepts only `ellipse` and `rotated_rectangle`, matching the
 recorded POP capability; it does not invent paths, Boolean operations,
 duplication, semantic labels, hierarchy, or animation.
 
+`POPTokenExporter` converts a captured raw model continuation and its prefix to
+the two canonical content-addressed Artifacts. It does not run the model.
+
 Every primitive becomes a neutral Entity backed by one Create operation and
-one Transform operation. The background is an explicit first rectangle. Render
+one Transform operation. POP's native renderer uses 0.5 primitive opacity, so
+the accepted Style records 0.5; the background remains opaque. The background
+is an explicit first rectangle. Render
 Stack order is background followed by primitive index. POP order is construction
 and rendering evidence only; it is not content-animation time and does not
 create one Revision per token.
@@ -70,7 +90,7 @@ valid and evaluable without POP installed.
 
 Golden P proves:
 
-1. equivalent base, Artifact, namespace, producer identity, and decoding record
+1. equivalent base, prefix/output Artifacts, namespace, producer identity, and decoding record
    produce the same Proposal;
 2. proposal construction and dry-run preview do not mutate the base Revision;
 3. background, ellipse, and rotated rectangle map only to existing Core
@@ -78,5 +98,9 @@ Golden P proves:
 4. POP primitive order is preserved exactly in the Render Stack;
 5. acceptance creates one atomic Revision whose primitives remain separately
    editable;
-6. forged Changes, malformed fields, unsupported shapes, non-canonical JSON,
-   provenance drift, ID collisions, and missing Artifacts fail closed.
+6. accepted Documents reload, evaluate, and render without an Artifact Store or
+   POP installation;
+7. one accepted primitive can be edited in a later Revision without invoking
+   POP or changing unrelated primitive Values;
+8. forged Changes, raw/decoded disagreement, malformed fields, unsupported
+   shapes, provenance drift, ID collisions, and missing Artifacts fail closed.

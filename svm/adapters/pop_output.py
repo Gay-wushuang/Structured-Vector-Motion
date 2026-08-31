@@ -7,7 +7,7 @@ import re
 from dataclasses import asdict
 from typing import Any
 
-from ..artifacts import ArtifactKind, ArtifactResolver, ArtifactSnapshot
+from ..artifacts import ArtifactKind, ArtifactResolver, ArtifactSnapshot, ArtifactWriter
 from ..evaluator import canonical_bytes
 from ..proposals import (
     AdapterRequest,
@@ -24,12 +24,41 @@ from ..revisions import (
 )
 
 OUTPUT_MEDIA_TYPE = "application/vnd.svm.pop-output+json"
-OUTPUT_SCHEMA = "svm-pop-output-0.1"
-OUTPUT_IDENTITY = "svm-pop-output@0.1"
-RUN_IDENTITY = "svm-pop-run@0.1"
-ADAPTER_IDENTITY = "svm-pop-output-adapter@0.1"
+PREFIX_MEDIA_TYPE = "application/vnd.svm.pop-token-prefix+json"
+OUTPUT_SCHEMA = "svm-pop-output-0.2"
+PREFIX_SCHEMA = "svm-pop-token-prefix-0.1"
+OUTPUT_IDENTITY = "svm-pop-output@0.2"
+RUN_IDENTITY = "svm-pop-run@0.2"
+ADAPTER_IDENTITY = "svm-pop-output-adapter@0.2"
+TOKEN_LAYOUT_IDENTITY = "pop/geometrize_256_v1"
+QUANTIZATION_IDENTITY = "pop/geometrize-256-quantization@0.1"
+DECODER_IDENTITY = "pop/decode-tokens-to-render-data@d5489b0"
+RENDERER_IDENTITY = "pop/matplotlib-half-alpha@d5489b0"
 UPSTREAM_REPOSITORY = "https://github.com/wonderfulearth/primitive-operation-painter"
 MAX_PRIMITIVES = 512
+
+TOKENS_PER_STEP = 9
+X_OFFSET = 0
+Y_OFFSET = 512
+ANGLE_OFFSET = 1024
+WIDTH_OFFSET = 1294
+HEIGHT_OFFSET = 1806
+SHAPE_OFFSET = 2318
+RED_OFFSET = 2574
+GREEN_OFFSET = 2702
+BLUE_OFFSET = 2830
+SPECIAL_OFFSET = 2958
+FIELD_RANGES = (
+    (X_OFFSET, Y_OFFSET),
+    (Y_OFFSET, ANGLE_OFFSET),
+    (ANGLE_OFFSET, WIDTH_OFFSET),
+    (WIDTH_OFFSET, HEIGHT_OFFSET),
+    (HEIGHT_OFFSET, SHAPE_OFFSET),
+    (SHAPE_OFFSET, RED_OFFSET),
+    (RED_OFFSET, GREEN_OFFSET),
+    (GREEN_OFFSET, BLUE_OFFSET),
+    (BLUE_OFFSET, SPECIAL_OFFSET),
+)
 
 
 class POPOutputError(ValueError):
@@ -41,7 +70,7 @@ def pop_run_identity(payload: dict[str, Any]) -> str:
         canonical_bytes(
             {
                 "identity": RUN_IDENTITY,
-                "input": payload["input"],
+                "generation_context": payload["generation_context"],
                 "producer": payload["producer"],
                 "canvas": payload["canvas"],
             }
@@ -51,13 +80,14 @@ def pop_run_identity(payload: dict[str, Any]) -> str:
 
 
 class _ResolvedOutput:
-    def __init__(self, snapshot: ArtifactSnapshot):
-        self.snapshot = snapshot
+    def __init__(self, snapshots: dict[str, ArtifactSnapshot]):
+        self.snapshots = snapshots
 
     def resolve(self, artifact_ids: tuple[str, ...]) -> tuple[ArtifactSnapshot, ...]:
-        if artifact_ids != (self.snapshot.artifact_id,):
-            raise POPOutputError("POP verification requires its exact output Artifact")
-        return (self.snapshot,)
+        try:
+            return tuple(self.snapshots[artifact_id] for artifact_id in artifact_ids)
+        except KeyError as exc:
+            raise POPOutputError("POP verification requires its exact Artifacts") from exc
 
     def resolve_as(
         self,
@@ -67,30 +97,36 @@ class _ResolvedOutput:
         media_types: frozenset[str],
     ) -> tuple[ArtifactSnapshot, ...]:
         snapshots = self.resolve(artifact_ids)
-        if self.snapshot.kind != kind or self.snapshot.media_type not in media_types:
+        if any(
+            snapshot.kind != kind or snapshot.media_type not in media_types
+            for snapshot in snapshots
+        ):
             raise POPOutputError("Resolved POP Artifact interpretation is invalid")
         return snapshots
 
     def resolve_reference(self, reference: dict[str, Any]) -> ArtifactSnapshot:
-        if self.snapshot.document_reference() != reference:
+        artifact_id = reference.get("id")
+        if not isinstance(artifact_id, str):
+            raise POPOutputError("Resolved POP Artifact reference has no ID")
+        snapshot = self.snapshots.get(artifact_id)
+        if snapshot is None or snapshot.document_reference() != reference:
             raise POPOutputError("Resolved POP Artifact reference is inconsistent")
-        return self.snapshot
+        return snapshot
 
 
 def verify_import_primitive_sequence_change(
     change: ImportPrimitiveSequenceChange, resolved: dict[str, ArtifactSnapshot]
 ) -> None:
-    if len(resolved) != 1:
-        raise POPOutputError("POP import requires exactly one resolved output Artifact")
-    snapshot = next(iter(resolved.values()))
+    if len(resolved) != 2:
+        raise POPOutputError("POP import requires exact prefix and output Artifacts")
     request = AdapterRequest(
         base_revision_id="revision:artifact-verification",
         document={"entities": [], "construction": {"operations": []}},
         scope=("document",),
-        artifact_ids=(snapshot.artifact_id,),
+        artifact_ids=tuple(sorted(resolved)),
         options={"namespace": change.namespace},
     )
-    proposal = POPOutputAdapter().propose(request, _ResolvedOutput(snapshot))
+    proposal = POPOutputAdapter().propose(request, _ResolvedOutput(resolved))
     expected = proposal.transaction.changes[0]
     if not isinstance(expected, ImportPrimitiveSequenceChange) or expected != change:
         raise POPOutputError("POP scene does not match resolved Artifact semantics")
@@ -107,18 +143,25 @@ class POPOutputAdapter:
             raise POPOutputError("POP output scope must be empty or document")
         if set(request.options) - {"namespace"}:
             raise POPOutputError("Unknown POP output option")
-        snapshots = artifacts.resolve_as(
-            request.artifact_ids,
-            kind=ArtifactKind.DERIVED,
-            media_types=frozenset({OUTPUT_MEDIA_TYPE}),
-        )
-        if len(snapshots) != 1:
-            raise POPOutputError("POP import requires exactly one Derived output Artifact")
-        snapshot = snapshots[0]
+        snapshots = artifacts.resolve(request.artifact_ids)
+        output_matches = [
+            snapshot
+            for snapshot in snapshots
+            if snapshot.kind == ArtifactKind.DERIVED and snapshot.media_type == OUTPUT_MEDIA_TYPE
+        ]
+        prefix_matches = [
+            snapshot
+            for snapshot in snapshots
+            if snapshot.kind == ArtifactKind.REFERENCE and snapshot.media_type == PREFIX_MEDIA_TYPE
+        ]
+        if len(snapshots) != 2 or len(output_matches) != 1 or len(prefix_matches) != 1:
+            raise POPOutputError("POP import requires one prefix and one Derived output Artifact")
+        snapshot = output_matches[0]
+        prefix = prefix_matches[0]
         payload = self._payload(snapshot)
-        self._validate(payload, snapshot)
+        self._validate(payload, snapshot, prefix)
         namespace = self._namespace(request, snapshot)
-        fragment = self._fragment(payload, snapshot, namespace)
+        fragment = self._fragment(payload, (prefix, snapshot), namespace)
         self._check_collisions(request.document, fragment)
         change = ImportPrimitiveSequenceChange(fragment=fragment, namespace=namespace)
         producer = payload["producer"]
@@ -131,7 +174,7 @@ class POPOutputAdapter:
                 "identity": ADAPTER_IDENTITY,
                 "output_identity": OUTPUT_IDENTITY,
                 "run_identity": payload["run_identity"],
-                "input": payload["input"],
+                "generation_context": payload["generation_context"],
                 "output_artifact_id": snapshot.artifact_id,
                 "namespace": namespace,
                 "model_id": producer["model_id"],
@@ -161,13 +204,16 @@ class POPOutputAdapter:
             report=EvaluationReport(metrics={"primitives": float(len(payload["primitives"]))}),
             preview=ProposalPreview(proposed_render_stack=fragment.render_entries),
             preview_artifacts=(
-                PreviewArtifact(
-                    artifact_id=snapshot.artifact_id,
-                    content_hash=snapshot.content_hash,
-                    media_type=snapshot.media_type,
+                *(
+                    PreviewArtifact(
+                        artifact_id=item.artifact_id,
+                        content_hash=item.content_hash,
+                        media_type=item.media_type,
+                    )
+                    for item in snapshots
                 ),
             ),
-            required_artifact_ids=(snapshot.artifact_id,),
+            required_artifact_ids=tuple(sorted(item.artifact_id for item in snapshots)),
             confidence=None,
             notes=(
                 "Ordered primitive evidence; no semantic Entity labels or animation timing inferred"
@@ -185,25 +231,40 @@ class POPOutputAdapter:
         return payload
 
     @staticmethod
-    def _validate(payload: dict[str, Any], snapshot: ArtifactSnapshot) -> None:
+    def _validate(
+        payload: dict[str, Any], snapshot: ArtifactSnapshot, prefix: ArtifactSnapshot
+    ) -> None:
         if set(payload) != {
             "schema_version",
             "run_identity",
             "producer",
-            "input",
+            "generation_context",
             "canvas",
             "primitives",
+            "raw_tokens",
         }:
             raise POPOutputError("POP output fields are invalid")
         if payload["schema_version"] != OUTPUT_SCHEMA:
             raise POPOutputError("Unsupported POP output schema")
-        generation_input = payload["input"]
-        if not isinstance(generation_input, dict) or set(generation_input) != {"kind", "value"}:
-            raise POPOutputError("POP input fields are invalid")
-        if generation_input["kind"] != "text":
-            raise POPOutputError("Golden P supports only a recorded text input")
-        if not isinstance(generation_input["value"], str) or not generation_input["value"].strip():
-            raise POPOutputError("POP text input must not be empty")
+        generation_context = payload["generation_context"]
+        if not isinstance(generation_context, dict) or set(generation_context) != {
+            "kind",
+            "prefix_artifact_id",
+            "prefix_content_hash",
+            "prefix_length",
+            "target_steps",
+            "user_intent",
+        }:
+            raise POPOutputError("POP generation context fields are invalid")
+        if generation_context["kind"] != "operation_prefix":
+            raise POPOutputError("POP generation context must be an operation prefix")
+        if (
+            generation_context["prefix_artifact_id"] != prefix.artifact_id
+            or generation_context["prefix_content_hash"] != prefix.content_hash
+        ):
+            raise POPOutputError("POP generation context prefix identity is inconsistent")
+        if not isinstance(generation_context["user_intent"], str):
+            raise POPOutputError("POP optional user intent must be text")
         producer = payload["producer"]
         if not isinstance(producer, dict) or set(producer) != {
             "repository",
@@ -212,6 +273,10 @@ class POPOutputAdapter:
             "checkpoint_hash",
             "seed",
             "decoding",
+            "token_layout_identity",
+            "quantization_identity",
+            "decoder_identity",
+            "renderer_identity",
         }:
             raise POPOutputError("POP producer fields are invalid")
         if producer["repository"] != UPSTREAM_REPOSITORY:
@@ -230,6 +295,16 @@ class POPOutputAdapter:
             raise POPOutputError("POP checkpoint hash is invalid")
         if type(producer["seed"]) is not int or producer["seed"] < 0:
             raise POPOutputError("POP seed is invalid")
+        expected_identities = {
+            "token_layout_identity": TOKEN_LAYOUT_IDENTITY,
+            "quantization_identity": QUANTIZATION_IDENTITY,
+            "decoder_identity": DECODER_IDENTITY,
+            "renderer_identity": RENDERER_IDENTITY,
+        }
+        if any(producer[name] != value for name, value in expected_identities.items()):
+            raise POPOutputError(
+                "POP token, quantization, decoder, or renderer identity is invalid"
+            )
         decoding = producer["decoding"]
         if not isinstance(decoding, dict) or set(decoding) != {"strategy", "max_steps"}:
             raise POPOutputError("POP decoding fields are invalid")
@@ -243,6 +318,26 @@ class POPOutputAdapter:
         width = _positive_number(canvas["width"], "canvas width")
         height = _positive_number(canvas["height"], "canvas height")
         _rgb(canvas["background_rgb"], "background")
+        raw_tokens = _raw_tokens(payload["raw_tokens"])
+        prefix_payload = _prefix_payload(prefix)
+        prefix_tokens = _raw_tokens(prefix_payload["raw_tokens"])
+        prefix_length = generation_context["prefix_length"]
+        target_steps = generation_context["target_steps"]
+        if type(prefix_length) is not int or prefix_length < 1:
+            raise POPOutputError("POP prefix_length must be positive")
+        if type(target_steps) is not int or not prefix_length <= target_steps <= 512:
+            raise POPOutputError("POP target_steps is invalid")
+        if target_steps != decoding["max_steps"]:
+            raise POPOutputError("POP target_steps must equal the recorded decoding max_steps")
+        if len(prefix_tokens) != prefix_length * TOKENS_PER_STEP:
+            raise POPOutputError("POP prefix token count is inconsistent")
+        if len(raw_tokens) != target_steps * TOKENS_PER_STEP:
+            raise POPOutputError("POP output token count is inconsistent")
+        if raw_tokens[: len(prefix_tokens)] != prefix_tokens:
+            raise POPOutputError("POP output does not preserve the recorded operation prefix")
+        decoded_canvas, decoded_primitives = _decode_tokens(raw_tokens)
+        if decoded_canvas != canvas or decoded_primitives != payload["primitives"]:
+            raise POPOutputError("POP decoded geometry does not match its raw token sequence")
         primitives = payload["primitives"]
         if not isinstance(primitives, list) or not 1 <= len(primitives) <= MAX_PRIMITIVES:
             raise POPOutputError("POP output must contain between 1 and 512 primitives")
@@ -288,12 +383,23 @@ class POPOutputAdapter:
             or provenance.get("checkpoint_hash") != producer["checkpoint_hash"]
             or provenance.get("seed") != producer["seed"]
             or provenance.get("decoding") != decoding
+            or provenance.get("token_layout_identity") != TOKEN_LAYOUT_IDENTITY
+            or provenance.get("quantization_identity") != QUANTIZATION_IDENTITY
+            or provenance.get("decoder_identity") != DECODER_IDENTITY
+            or provenance.get("renderer_identity") != RENDERER_IDENTITY
+            or provenance.get("prefix_artifact_id") != prefix.artifact_id
         ):
             raise POPOutputError("POP Artifact provenance is inconsistent")
+        if (
+            prefix_payload.get("schema_version") != PREFIX_SCHEMA
+            or prefix.provenance.get("token_layout_identity") != TOKEN_LAYOUT_IDENTITY
+            or prefix.provenance.get("quantization_identity") != QUANTIZATION_IDENTITY
+        ):
+            raise POPOutputError("POP prefix Artifact provenance is inconsistent")
 
     @staticmethod
     def _fragment(
-        payload: dict[str, Any], snapshot: ArtifactSnapshot, namespace: str
+        payload: dict[str, Any], snapshots: tuple[ArtifactSnapshot, ...], namespace: str
     ) -> AppendSceneFragmentChange:
         entities: list[dict[str, Any]] = []
         operations: list[dict[str, Any]] = []
@@ -331,7 +437,7 @@ class POPOutputAdapter:
                 "slot": f"{background_op}.geometry",
             }
         )
-        styles.append(_style(background_entity, canvas["background_rgb"]))
+        styles.append(_style(background_entity, canvas["background_rgb"], opacity=1))
         render_entries.append(background_entity)
 
         for primitive in payload["primitives"]:
@@ -385,7 +491,7 @@ class POPOutputAdapter:
             bindings.append(
                 {"entity": entity_id, "property": "geometry", "slot": f"{transform_op}.geometry"}
             )
-            styles.append(_style(entity_id, primitive["rgb"]))
+            styles.append(_style(entity_id, primitive["rgb"], opacity=0.5))
             render_entries.append(entity_id)
         return AppendSceneFragmentChange(
             entities=tuple(entities),
@@ -393,7 +499,7 @@ class POPOutputAdapter:
             output_bindings=tuple(bindings),
             render_entries=tuple(render_entries),
             styles=tuple(styles),
-            references=(snapshot.document_reference(),),
+            references=tuple(snapshot.document_reference() for snapshot in snapshots),
         )
 
     @staticmethod
@@ -414,6 +520,157 @@ class POPOutputAdapter:
         if not isinstance(namespace, str) or re.fullmatch(r"[a-z0-9][a-z0-9-]*", namespace) is None:
             raise POPOutputError("Namespace must contain lowercase letters, digits, and hyphens")
         return namespace
+
+
+class POPTokenExporter:
+    """Convert one captured upstream nine-token continuation into SVM Artifacts."""
+
+    def export(
+        self,
+        artifacts: ArtifactWriter,
+        raw_tokens: list[int],
+        *,
+        prefix_length: int,
+        commit: str,
+        model_id: str,
+        checkpoint_hash: str,
+        seed: int,
+        decoding: dict[str, Any],
+        user_intent: str = "",
+    ) -> tuple[ArtifactSnapshot, ArtifactSnapshot]:
+        tokens = _raw_tokens(raw_tokens)
+        if len(tokens) % TOKENS_PER_STEP != 0:
+            raise POPOutputError("POP raw token count must be divisible by nine")
+        target_steps = len(tokens) // TOKENS_PER_STEP
+        if type(prefix_length) is not int or not 1 <= prefix_length <= target_steps:
+            raise POPOutputError("POP prefix_length is invalid")
+        canvas, primitives = _decode_tokens(tokens)
+        prefix_tokens = tokens[: prefix_length * TOKENS_PER_STEP]
+        prefix = artifacts.import_bytes(
+            canonical_bytes(
+                {
+                    "schema_version": PREFIX_SCHEMA,
+                    "raw_tokens": prefix_tokens,
+                }
+            ),
+            media_type=PREFIX_MEDIA_TYPE,
+            kind=ArtifactKind.REFERENCE,
+            provenance={
+                "source_type": "pop-operation-prefix",
+                "token_layout_identity": TOKEN_LAYOUT_IDENTITY,
+                "quantization_identity": QUANTIZATION_IDENTITY,
+            },
+        )
+        producer = {
+            "repository": UPSTREAM_REPOSITORY,
+            "commit": commit,
+            "model_id": model_id,
+            "checkpoint_hash": checkpoint_hash,
+            "seed": seed,
+            "decoding": decoding,
+            "token_layout_identity": TOKEN_LAYOUT_IDENTITY,
+            "quantization_identity": QUANTIZATION_IDENTITY,
+            "decoder_identity": DECODER_IDENTITY,
+            "renderer_identity": RENDERER_IDENTITY,
+        }
+        payload = {
+            "schema_version": OUTPUT_SCHEMA,
+            "generation_context": {
+                "kind": "operation_prefix",
+                "prefix_artifact_id": prefix.artifact_id,
+                "prefix_content_hash": prefix.content_hash,
+                "prefix_length": prefix_length,
+                "target_steps": target_steps,
+                "user_intent": user_intent,
+            },
+            "producer": producer,
+            "canvas": canvas,
+            "raw_tokens": tokens,
+            "primitives": primitives,
+        }
+        payload["run_identity"] = pop_run_identity(payload)
+        output = artifacts.import_bytes(
+            canonical_bytes(payload),
+            media_type=OUTPUT_MEDIA_TYPE,
+            kind=ArtifactKind.DERIVED,
+            provenance={
+                "derived_type": "pop-ordered-primitives",
+                "output_identity": OUTPUT_IDENTITY,
+                "run_identity": payload["run_identity"],
+                "prefix_artifact_id": prefix.artifact_id,
+                **producer,
+            },
+        )
+        return prefix, output
+
+
+def _prefix_payload(snapshot: ArtifactSnapshot) -> dict[str, Any]:
+    try:
+        payload = json.loads(snapshot.content.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise POPOutputError("POP prefix must be canonical UTF-8 JSON") from exc
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != {"schema_version", "raw_tokens"}
+        or canonical_bytes(payload) != snapshot.content
+    ):
+        raise POPOutputError("POP prefix must use the canonical prefix schema")
+    return payload
+
+
+def _raw_tokens(value: Any) -> list[int]:
+    if not isinstance(value, list) or not value:
+        raise POPOutputError("POP raw_tokens must be a non-empty list")
+    if any(type(token) is not int for token in value):
+        raise POPOutputError("POP raw tokens must be integers")
+    for index, token in enumerate(value):
+        lower, upper = FIELD_RANGES[index % TOKENS_PER_STEP]
+        if not lower <= token < upper:
+            raise POPOutputError("POP raw token is outside its field vocabulary")
+    return list(value)
+
+
+def _decode_tokens(tokens: list[int]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    if len(tokens) % TOKENS_PER_STEP != 0:
+        raise POPOutputError("POP raw token count must be divisible by nine")
+    rows: list[dict[str, Any]] = []
+    for offset in range(0, len(tokens), TOKENS_PER_STEP):
+        values = tokens[offset : offset + TOKENS_PER_STEP]
+        rows.append(
+            {
+                "x": (values[0] - X_OFFSET) / 2,
+                "y": (values[1] - Y_OFFSET) / 2,
+                "angle_degrees": (values[2] - ANGLE_OFFSET) / 3,
+                "width": (values[3] - WIDTH_OFFSET) / 4,
+                "height": (values[4] - HEIGHT_OFFSET) / 4,
+                "shape": values[5] - SHAPE_OFFSET - 1,
+                "rgb": [
+                    (values[6] - RED_OFFSET) * 2,
+                    (values[7] - GREEN_OFFSET) * 2,
+                    (values[8] - BLUE_OFFSET) * 2,
+                ],
+            }
+        )
+    background = rows[0]
+    if background["shape"] != -1:
+        raise POPOutputError("POP sequence must begin with one background operation")
+    primitives: list[dict[str, Any]] = []
+    for index, row in enumerate(rows[1:]):
+        if row["shape"] not in {0, 1}:
+            raise POPOutputError("POP sequence contains an unsupported primitive shape")
+        primitives.append(
+            {
+                "index": index,
+                "x": row["x"],
+                "y": row["y"],
+                "angle_degrees": row["angle_degrees"],
+                "width": row["width"],
+                "height": row["height"],
+                "shape_type": "ellipse" if row["shape"] == 1 else "rotated_rectangle",
+                "rgb": row["rgb"],
+            }
+        )
+    return {"width": 256, "height": 256, "background_rgb": background["rgb"]}, primitives
 
 
 def _finite_number(value: Any, label: str) -> int | float:
@@ -439,13 +696,13 @@ def _rgb(value: Any, label: str) -> tuple[int, int, int]:
     return value[0], value[1], value[2]
 
 
-def _style(entity_id: str, rgb: list[int]) -> dict[str, Any]:
+def _style(entity_id: str, rgb: list[int], *, opacity: int | float) -> dict[str, Any]:
     return {
         "entity": entity_id,
         "fill": f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}",
         "stroke": "none",
         "stroke_width": 0,
-        "opacity": 1,
+        "opacity": opacity,
     }
 
 

@@ -12,16 +12,20 @@ from svm import (
     ProposalAcceptor,
     ProposalArtifactError,
     RevisionStore,
+    SetOperationParameterChange,
+    Transaction,
     build_evaluated_scene,
 )
-from svm.adapters import POPOutputAdapter, POPOutputError
+from svm.adapters import POPOutputAdapter, POPOutputError, POPTokenExporter
 from svm.evaluator import canonical_bytes
 from svm.renderers import SVGRenderer, SVGRenderOptions
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "examples" / "005-empty-canvas.svm.json"
 OUTPUT = ROOT / "examples" / "derived" / "020-pop-output" / "pop-output.json"
+PREFIX = ROOT / "examples" / "derived" / "020-pop-output" / "operation-prefix.json"
 MEDIA_TYPE = "application/vnd.svm.pop-output+json"
+PREFIX_MEDIA_TYPE = "application/vnd.svm.pop-token-prefix+json"
 
 
 class POPOutputGoldenPTest(unittest.TestCase):
@@ -31,14 +35,26 @@ class POPOutputGoldenPTest(unittest.TestCase):
         self.artifacts = ArtifactStore()
         payload = json.loads(OUTPUT.read_text(encoding="utf-8"))
         producer = payload["producer"]
+        prefix_payload = json.loads(PREFIX.read_text(encoding="utf-8"))
+        self.prefix = self.artifacts.import_bytes(
+            canonical_bytes(prefix_payload),
+            media_type=PREFIX_MEDIA_TYPE,
+            kind=ArtifactKind.REFERENCE,
+            provenance={
+                "source_type": "pop-operation-prefix",
+                "token_layout_identity": producer["token_layout_identity"],
+                "quantization_identity": producer["quantization_identity"],
+            },
+        )
         self.output = self.artifacts.import_bytes(
             canonical_bytes(payload),
             media_type=MEDIA_TYPE,
             kind=ArtifactKind.DERIVED,
             provenance={
                 "derived_type": "pop-ordered-primitives",
-                "output_identity": "svm-pop-output@0.1",
+                "output_identity": "svm-pop-output@0.2",
                 "run_identity": payload["run_identity"],
+                "prefix_artifact_id": self.prefix.artifact_id,
                 **producer,
             },
         )
@@ -48,7 +64,7 @@ class POPOutputGoldenPTest(unittest.TestCase):
             self.store,
             self.store.head,
             ("document",),
-            artifact_ids=(self.output.artifact_id,),
+            artifact_ids=(self.prefix.artifact_id, self.output.artifact_id),
             options={"namespace": namespace},
         )
 
@@ -61,7 +77,7 @@ class POPOutputGoldenPTest(unittest.TestCase):
         self.assertEqual(first.report.metrics, {"primitives": 3.0})
         self.assertEqual(self.store.get_document(self.store.head), self.document)
         self.assertEqual(len(self.store.revisions), 1)
-        self.assertEqual(first.generator.parameters["identity"], "svm-pop-output-adapter@0.1")
+        self.assertEqual(first.generator.parameters["identity"], "svm-pop-output-adapter@0.2")
 
         dry_run = ProposalAcceptor().validate(self.store, first, self.artifacts)
         self.assertEqual(len(self.store.revisions), 1)
@@ -91,18 +107,89 @@ class POPOutputGoldenPTest(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            {tag for entity in accepted["entities"] for tag in entity["semantic_tags"]},
-            {"generated-primitive", "pop-output"},
+            [style["opacity"] for style in accepted["presentation"]["styles"]],
+            [1, 0.5, 0.5, 0.5],
         )
         self.assertTrue(all("parent_id" not in entity for entity in accepted["entities"]))
         evaluator = Evaluator(accepted)
         evaluator.evaluate_all()
-        rendered = SVGRenderer(SVGRenderOptions(view_box=(0, 0, 128, 96))).render(
+        rendered = SVGRenderer(SVGRenderOptions(view_box=(0, 0, 256, 256))).render(
             build_evaluated_scene(accepted, evaluator)
         )
         self.assertIn("#DC5046", rendered)
         self.assertIn("#285AA0", rendered)
         self.assertIn("matrix(0.906307787037 0.422618261741", rendered)
+
+    def test_exporter_reproduces_checked_in_raw_token_artifacts(self) -> None:
+        payload = json.loads(OUTPUT.read_text(encoding="utf-8"))
+        producer = payload["producer"]
+        exported = ArtifactStore()
+        prefix, output = POPTokenExporter().export(
+            exported,
+            payload["raw_tokens"],
+            prefix_length=payload["generation_context"]["prefix_length"],
+            commit=producer["commit"],
+            model_id=producer["model_id"],
+            checkpoint_hash=producer["checkpoint_hash"],
+            seed=producer["seed"],
+            decoding=producer["decoding"],
+            user_intent=payload["generation_context"]["user_intent"],
+        )
+        self.assertEqual(prefix.content, canonical_bytes(json.loads(PREFIX.read_text())))
+        self.assertEqual(output.content, canonical_bytes(json.loads(OUTPUT.read_text())))
+
+    def test_accepted_document_loads_and_renders_without_pop_artifacts(self) -> None:
+        proposal = POPOutputAdapter().propose(self.request(), self.artifacts)
+        revision = ProposalAcceptor().accept(self.store, proposal, self.artifacts)
+        detached_document = json.loads(
+            canonical_bytes(self.store.get_document(revision.revision_id))
+        )
+        detached_store = RevisionStore.create(detached_document)
+        loaded = detached_store.get_document(detached_store.head)
+        evaluator = Evaluator(loaded)
+        evaluator.evaluate_all()
+        rendered = SVGRenderer(SVGRenderOptions(view_box=(0, 0, 256, 256))).render(
+            build_evaluated_scene(loaded, evaluator)
+        )
+        self.assertIn("#285AA0", rendered)
+
+    def test_one_primitive_can_be_edited_without_pop_or_other_value_changes(self) -> None:
+        proposal = POPOutputAdapter().propose(self.request(), self.artifacts)
+        revision = ProposalAcceptor().accept(self.store, proposal, self.artifacts)
+        accepted = self.store.get_document(revision.revision_id)
+        before = Evaluator(accepted)
+        before.evaluate_all()
+        operation_ids = [operation["id"] for operation in accepted["construction"]["operations"]]
+        before_ids = {
+            operation_id: before.runtime[operation_id].outputs["geometry"].value_id
+            for operation_id in operation_ids
+        }
+        edit = Transaction(
+            transaction_id="transaction:edit-pop-primitive-0001",
+            changes=(
+                SetOperationParameterChange(
+                    "op:golden-p-primitive-0001-transform",
+                    "matrix",
+                    [1, 0, 0, 1, 90, 60],
+                ),
+            ),
+            message="Move one accepted POP primitive without invoking POP",
+        )
+        edited_revision = self.store.commit(revision.revision_id, edit)
+        after = Evaluator(self.store.get_document(edited_revision.revision_id))
+        after.evaluate_all()
+        self.assertNotEqual(
+            before_ids["op:golden-p-primitive-0001-transform"],
+            after.runtime["op:golden-p-primitive-0001-transform"].outputs["geometry"].value_id,
+        )
+        for operation_id in (
+            "op:golden-p-primitive-0000-transform",
+            "op:golden-p-primitive-0002-transform",
+        ):
+            self.assertEqual(
+                before_ids[operation_id],
+                after.runtime[operation_id].outputs["geometry"].value_id,
+            )
 
     def test_acceptance_reconstructs_the_exact_artifact_bound_change(self) -> None:
         proposal = POPOutputAdapter().propose(self.request(), self.artifacts)
@@ -112,13 +199,12 @@ class POPOutputGoldenPTest(unittest.TestCase):
         styles[1]["fill"] = "#000000"
         forged_change = replace(change, fragment=replace(fragment, styles=tuple(styles)))
         forged = replace(
-            proposal,
-            transaction=replace(proposal.transaction, changes=(forged_change,)),
+            proposal, transaction=replace(proposal.transaction, changes=(forged_change,))
         )
         with self.assertRaisesRegex(ProposalArtifactError, "does not match"):
             ProposalAcceptor().accept(self.store, forged, self.artifacts)
 
-    def test_malformed_unsupported_and_provenance_drift_fail_closed(self) -> None:
+    def test_raw_decode_and_provenance_drift_fail_closed(self) -> None:
         payload = json.loads(self.output.content)
         payload["primitives"][0]["shape_type"] = "path"
         unsupported = self.artifacts.import_bytes(
@@ -131,29 +217,19 @@ class POPOutputGoldenPTest(unittest.TestCase):
             self.store,
             self.store.head,
             ("document",),
-            artifact_ids=(unsupported.artifact_id,),
+            artifact_ids=(self.prefix.artifact_id, unsupported.artifact_id),
             options={"namespace": "bad-shape"},
         )
-        with self.assertRaisesRegex(POPOutputError, "shape_type"):
-            POPOutputAdapter().propose(request, self.artifacts)
-
-        noncanonical = self.artifacts.import_bytes(
-            json.dumps(json.loads(self.output.content), indent=2).encode(),
-            media_type=MEDIA_TYPE,
-            kind=ArtifactKind.DERIVED,
-            provenance=copy.deepcopy(self.output.provenance),
-        )
-        request = AdapterRequest.from_store(
-            self.store,
-            self.store.head,
-            ("document",),
-            artifact_ids=(noncanonical.artifact_id,),
-            options={"namespace": "noncanonical"},
-        )
-        with self.assertRaisesRegex(POPOutputError, "canonical JSON"):
+        with self.assertRaisesRegex(POPOutputError, "decoded geometry"):
             POPOutputAdapter().propose(request, self.artifacts)
 
         drifted_artifacts = ArtifactStore()
+        drifted_prefix = drifted_artifacts.import_bytes(
+            self.prefix.content,
+            media_type=PREFIX_MEDIA_TYPE,
+            kind=ArtifactKind.REFERENCE,
+            provenance=copy.deepcopy(self.prefix.provenance),
+        )
         drifted = drifted_artifacts.import_bytes(
             self.output.content,
             media_type=MEDIA_TYPE,
@@ -164,7 +240,7 @@ class POPOutputGoldenPTest(unittest.TestCase):
             self.store,
             self.store.head,
             ("document",),
-            artifact_ids=(drifted.artifact_id,),
+            artifact_ids=(drifted_prefix.artifact_id, drifted.artifact_id),
             options={"namespace": "drifted"},
         )
         with self.assertRaisesRegex(POPOutputError, "provenance"):
@@ -179,7 +255,7 @@ class POPOutputGoldenPTest(unittest.TestCase):
                     self.store,
                     self.store.head,
                     ("document",),
-                    artifact_ids=(self.output.artifact_id,),
+                    artifact_ids=(self.prefix.artifact_id, self.output.artifact_id),
                     options={"namespace": "golden-p"},
                 ),
                 self.artifacts,
