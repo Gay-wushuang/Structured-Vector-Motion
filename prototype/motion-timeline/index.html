@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SVM · Motion Timeline Prototype</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">S</span>
+          <div><strong>Structured Vector Motion</strong><span>Motion Timeline · interaction prototype</span></div>
+        </div>
+        <div class="revision-status"><i></i><span id="revision-status">Committed R0 · middle value 300</span></div>
+      </header>
+
+      <section class="workspace panel">
+        <section class="canvas-panel">
+          <div class="panel-heading">
+            <div><span class="eyebrow">Canvas</span><h1>Motion study</h1></div>
+            <div id="canvas-badge" class="canvas-badge committed">Committed · R0</div>
+          </div>
+          <div class="canvas-stage">
+            <div class="bounds-label">op:moving-rectangle · x</div>
+            <svg id="motion-canvas" viewBox="0 0 720 360" role="img" aria-labelledby="canvas-title canvas-desc">
+              <title id="canvas-title">Animated rectangle preview</title>
+              <desc id="canvas-desc">A rectangle moves horizontally according to the selected timeline tick.</desc>
+              <defs>
+                <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#232328" /></pattern>
+                <linearGradient id="block-fill" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffad70"/><stop offset="1" stop-color="#f47a32"/></linearGradient>
+              </defs>
+              <rect width="720" height="360" fill="#101012" />
+              <rect width="720" height="360" fill="url(#grid)" />
+              <path d="M100 248H500" stroke="#414147" stroke-width="2" stroke-dasharray="5 7" />
+              <g id="moving-block" transform="translate(100 0)">
+                <rect x="-44" y="134" width="88" height="88" rx="16" fill="url(#block-fill)" />
+                <path d="M-19 178H19" stroke="#3a1c0c" stroke-width="8" stroke-linecap="round" opacity=".55" />
+              </g>
+              <g fill="#96969f" font-family="Segoe UI, sans-serif" font-size="12">
+                <text x="100" y="274" text-anchor="middle">100</text><text x="300" y="274" text-anchor="middle">300</text><text x="500" y="274" text-anchor="middle">500</text>
+              </g>
+            </svg>
+            <div class="sample-readout"><span>tick</span><strong id="tick-readout">500</strong><span>x</span><strong id="value-readout">300</strong></div>
+          </div>
+        </section>
+
+        <aside class="inspector-panel">
+          <div class="panel-heading compact">
+            <div><span class="eyebrow">Inspector</span><h2>Selected keyframe</h2></div>
+            <button id="reset-button" class="icon-button" aria-label="Reset prototype">↺</button>
+          </div>
+          <div class="inspector-content">
+            <div class="identity-block"><span>Track</span><code>track:moving-rectangle-x</code><span>Keyframe</span><code>keyframe:moving-x-0500</code></div>
+            <label class="value-control" for="keyframe-value"><span>Value</span><strong id="input-value-label">300</strong></label>
+            <input id="keyframe-value" type="range" min="180" max="420" step="1" value="300" />
+            <p class="helper">Drag the middle diamond or this control. The Canvas previews immediately; the Document remains R0 until commit.</p>
+            <div id="change-preview" class="change-preview hidden"><span>PREVIEW · NOT SAVED</span><code>300 → <b id="preview-value">300</b></code></div>
+            <button id="commit-button" class="primary-button" disabled>Commit keyframe change<span>SetKeyframeValueChange → Revision</span></button>
+            <button id="undo-button" class="secondary-button" disabled>Undo to R0</button>
+          </div>
+        </aside>
+      </section>
+
+      <section class="timeline-panel panel">
+        <div class="timeline-toolbar">
+          <div><span class="eyebrow">Content timeline</span><h2>Rectangle · X position</h2></div>
+          <div class="transport"><button id="play-button" aria-label="Play animation">▶</button><button id="stop-button" aria-label="Return to start">■</button><span id="timecode">00:00.500</span><span>1000 ticks/s</span></div>
+        </div>
+        <div class="timeline-layout">
+          <div class="track-header"><strong>Position X</strong><small>linear · scalar</small><code>op:moving-rectangle.x</code></div>
+          <div id="timeline" class="timeline" aria-label="Motion timeline">
+            <div class="ruler"><span>0.0s</span><span>0.25s</span><span>0.5s</span><span>0.75s</span><span>1.0s</span></div>
+            <svg id="curve" viewBox="0 0 1000 190" preserveAspectRatio="none" aria-label="Linear keyframe curve">
+              <g class="grid-lines"><path d="M0 24H1000M0 95H1000M0 166H1000"/><path d="M0 0V190M250 0V190M500 0V190M750 0V190M1000 0V190"/></g>
+              <path id="curve-path" class="curve-path" d="M0 154 L500 95 L1000 36" />
+            </svg>
+            <button class="keyframe fixed" data-tick="0" aria-label="Keyframe at tick 0, value 100"><i></i><span>100</span></button>
+            <button id="middle-keyframe" class="keyframe selected" data-tick="500" aria-label="Keyframe at tick 500, value 300"><i></i><span>300</span></button>
+            <button class="keyframe fixed" data-tick="1000" aria-label="Keyframe at tick 1000, value 500"><i></i><span>500</span></button>
+            <input id="playhead" type="range" min="0" max="1000" step="1" value="500" aria-label="Timeline playhead" />
+          </div>
+        </div>
+        <div class="cache-strip">
+          <div><strong>Frame cache</strong><small id="cache-summary">5 clean · static subtree reused</small></div>
+          <div id="cache-cells" class="cache-cells" aria-live="polite"></div>
+        </div>
+      </section>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
