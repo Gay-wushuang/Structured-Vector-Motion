@@ -3,6 +3,7 @@ import re
 import unittest
 from pathlib import Path
 
+from svm import DeterministicProposalProvider, ProposalCandidate
 from svm.editor_motion import EDITOR_IDENTITY, DocumentEditorSession
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -178,6 +179,37 @@ class RealMotionEditorVerticalSliceTest(unittest.TestCase):
         self.assertFalse(cleared["preview"]["active"])
         self.assertEqual(cleared["anchored_regeneration"]["candidates"], [])
         self.assertEqual(cleared["revision"]["id"], base_revision)
+        self.assertEqual(len(session.store.revisions), 1)
+
+    def test_editor_consumes_replaceable_proposal_provider(self) -> None:
+        document = json.loads(STATIC.read_text(encoding="utf-8"))
+
+        class RecordingProvider:
+            def __init__(self) -> None:
+                self.request = None
+                self.contract = None
+
+            def generate(self, request, contract, artifacts=None):
+                self.request = request
+                self.contract = contract
+                generated = DeterministicProposalProvider().generate(request, contract, artifacts)
+                return (ProposalCandidate("external-A", generated[0].proposal),)
+
+        provider = RecordingProvider()
+        session = DocumentEditorSession(document, proposal_provider=provider)
+        base_revision = session.head
+        state = session.generate_anchored_candidates(["cx"])
+
+        self.assertEqual(
+            [candidate["id"] for candidate in state["anchored_regeneration"]["candidates"]],
+            ["external-A"],
+        )
+        self.assertEqual(provider.request.base_revision_id, base_revision)
+        self.assertEqual(provider.request.scope, ("cx",))
+        self.assertEqual(provider.request.document, session.store.get_document(base_revision))
+        self.assertEqual(provider.contract.base_revision_id, base_revision)
+        preview = session.preview_anchored_candidate("external-A")
+        self.assertTrue(preview["preview"]["active"])
         self.assertEqual(len(session.store.revisions), 1)
 
     def test_real_anchored_acceptance_creates_sibling_revisions(self) -> None:

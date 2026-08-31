@@ -158,6 +158,15 @@ class ProposalAcceptor:
     ) -> Revision:
         return self._accept(store, proposal, artifacts, require_head=True)
 
+    def validate(
+        self,
+        store: RevisionStore,
+        proposal: Proposal,
+        artifacts: ArtifactResolver | None = None,
+    ) -> dict[str, Any]:
+        """Run the complete ordinary acceptance authority without committing."""
+        return self._validate(store, proposal, artifacts, require_head=True)
+
     def accept_anchored(
         self,
         store: RevisionStore,
@@ -174,6 +183,22 @@ class ProposalAcceptor:
             anchored_contract=contract,
         )
 
+    def validate_anchored(
+        self,
+        store: RevisionStore,
+        proposal: Proposal,
+        contract: AnchoredRegenerationContract,
+        artifacts: ArtifactResolver | None = None,
+    ) -> dict[str, Any]:
+        """Run the complete anchored acceptance authority without committing."""
+        return self._validate(
+            store,
+            proposal,
+            artifacts,
+            require_head=False,
+            anchored_contract=contract,
+        )
+
     def _accept(
         self,
         store: RevisionStore,
@@ -183,6 +208,24 @@ class ProposalAcceptor:
         require_head: bool,
         anchored_contract: AnchoredRegenerationContract | None = None,
     ) -> Revision:
+        self._validate(
+            store,
+            proposal,
+            artifacts,
+            require_head=require_head,
+            anchored_contract=anchored_contract,
+        )
+        return store.commit(proposal.base_revision_id, proposal.transaction)
+
+    def _validate(
+        self,
+        store: RevisionStore,
+        proposal: Proposal,
+        artifacts: ArtifactResolver | None,
+        *,
+        require_head: bool,
+        anchored_contract: AnchoredRegenerationContract | None = None,
+    ) -> dict[str, Any]:
         if proposal.base_revision_id not in store.revisions:
             raise ProposalConflictError(f"Missing Proposal base {proposal.base_revision_id}")
         if require_head and store.head != proposal.base_revision_id:
@@ -207,7 +250,7 @@ class ProposalAcceptor:
             )
         except PolicyEnforcementError as exc:
             raise ProposalPolicyError(str(exc)) from exc
-        return store.commit(proposal.base_revision_id, proposal.transaction)
+        return proposal.transaction.apply(document)
 
     @staticmethod
     def _verify_trusted_change_types(proposal: Proposal) -> None:

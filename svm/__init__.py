@@ -37,6 +37,13 @@ from .operations import (
     ValueType,
     get_operation_registry,
 )
+from .proposal_generators import (
+    DETERMINISTIC_PROVIDER_ACTOR,
+    DETERMINISTIC_PROVIDER_IDENTITY,
+    AnchoredProposalProvider,
+    DeterministicProposalProvider,
+    ProposalCandidate,
+)
 from .proposals import (
     AdapterRequest,
     EntityDiffPreview,
@@ -148,6 +155,11 @@ __all__ = [
     "ProposalPolicyError",
     "ProposalProvider",
     "ProposalPreview",
+    "AnchoredProposalProvider",
+    "DeterministicProposalProvider",
+    "ProposalCandidate",
+    "DETERMINISTIC_PROVIDER_ACTOR",
+    "DETERMINISTIC_PROVIDER_IDENTITY",
     "StructuralCandidatePreview",
     "StructuralRelationPreview",
 ]

@@ -220,9 +220,27 @@ class AnchoredRegenerationGoldenOTest(unittest.TestCase):
             "policy-denied",
             (SetOperationParameterChange("op:eye-highlight", "cx", 0.16),),
         )
+        acceptor = ProposalAcceptor()
         with self.assertRaisesRegex(ProposalPolicyError, "denies"):
-            ProposalAcceptor().accept_anchored(store, proposal, self._contract(r1))
+            acceptor.validate_anchored(store, proposal, self._contract(r1))
+        with self.assertRaisesRegex(ProposalPolicyError, "denies"):
+            acceptor.accept_anchored(store, proposal, self._contract(r1))
         self.assertEqual(len(store.revisions), 2)
+
+    def test_anchored_dry_run_matches_acceptance_without_committing(self) -> None:
+        proposal = self._proposal(
+            self.r1,
+            "dry-run",
+            (SetOperationParameterChange("op:eye-highlight", "cx", 0.16),),
+        )
+        acceptor = ProposalAcceptor()
+        revision_count = len(self.store.revisions)
+        candidate = acceptor.validate_anchored(self.store, proposal, self.contract)
+        self.assertEqual(len(self.store.revisions), revision_count)
+        self.assertEqual(parameter(candidate, "op:eye-highlight", "cx"), 0.16)
+
+        revision = acceptor.accept_anchored(self.store, proposal, self.contract)
+        self.assertEqual(self.store.get_document(revision.revision_id), candidate)
 
     def test_contract_base_and_deterministic_branch_identity(self) -> None:
         wrong_contract = self._contract(self.r0)

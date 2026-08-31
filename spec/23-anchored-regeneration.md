@@ -84,6 +84,13 @@ run normally. Scope permission cannot override actor policy, and actor policy
 cannot expand anchored scope. An unregistered wrapper Change fails before it can
 execute.
 
+`ProposalAcceptor.validate_anchored()` is the non-committing Core authority for
+preview. It executes the same base, trusted Change, Anchor contract, Artifact,
+Artifact-bound verifier, Edit Policy, Transaction, and final Document checks as
+`accept_anchored()`, returning only a detached candidate Document. Acceptance
+revalidates the unchanged Proposal and then commits it. Preview code MUST NOT
+approximate authority by applying a Transaction directly.
+
 ## Branch acceptance
 
 Ordinary `ProposalAcceptor.accept()` retains optimistic HEAD matching. Anchored
