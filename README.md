@@ -252,6 +252,10 @@ Canvas, Inspector, and Timeline regions. Entity selection remains disposable
 Editor State while bindings, parameters, Render Stack order, and Track links
 are read from the real Document. The current fail-closed compatibility subset is
 `CreateRectangle`, `CreateEllipse`, and existing Motion v0.1 numeric Tracks.
+The Timeline exposes all Tracks, including multiple parameters on one Operation;
+`examples/019-editor-multitrack.svm.json` covers independent `x`/`y` editing at
+24 ticks/s. Local mutation endpoints require the exact bound Host, same-origin
+or absent Origin, JSON media type, and an Editor-only request header.
 
 ## Anchored Regeneration
 

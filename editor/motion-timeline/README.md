@@ -45,6 +45,9 @@ This slice supports `CreateRectangle`, `CreateEllipse`, and existing Motion v0.1
 numeric Tracks. Static Documents render through the real Evaluator and show
 `No Motion`; animated Documents render through `MotionEvaluator`. Unsupported
 Operation types fail closed instead of being approximated by the Editor.
+The Timeline lists every Track in the Document, including multiple Tracks that
+target one Operation. Selecting a Track changes only disposable Editor State;
+preview and commit still name the exact Track and Keyframe.
 
 The durable Shell has four long-lived regions:
 
@@ -70,3 +73,17 @@ adopt an explicit element and attribute allowlist. Non-rendered
 Entities sort after Render Stack members instead of being treated as render
 index zero. If a newly loaded projection no longer contains the selected Entity,
 selection moves to the first available Entity or becomes empty.
+
+## Local API trust boundary
+
+The server binds to `127.0.0.1` by default. Every mutation endpoint also
+requires the exact bound `Host`, an absent or exact same-origin `Origin`,
+`Content-Type: application/json`, and `X-SVM-Editor-Request: 1`. The custom
+header forces cross-origin browser scripts through a CORS preflight, which this
+server does not authorize. Read-only state access does not confer mutation
+authority.
+
+`examples/019-editor-multitrack.svm.json` is the interaction fixture for two
+Tracks targeting `x` and `y` on one Entity with a non-decimal 24 ticks/s
+timebase. Tick 12 is displayed as `00:00.500`, while the exact tick remains
+visible separately.

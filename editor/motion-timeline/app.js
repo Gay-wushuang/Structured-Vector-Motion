@@ -15,7 +15,7 @@ const elements = Object.fromEntries([
   "track-id","keyframe-id","operation-id","keyframe-value","edit-value","preview-copy","change-record",
   "commit-button","checkout-button","play-button","stop-button","timecode","timebase","track-title",
   "track-semantics","track-meta-name","track-meta-target","curve-path","keyframes","playhead","ruler","timeline-empty","cache-cells","delta-copy","toast",
-  "project-name","project-path","canvas-title",
+  "project-name","project-path","canvas-title","track-list",
 ].map((id) => [id.replaceAll("-", "_"), document.querySelector(`#${id}`)]));
 
 function textElement(tag, text, className = "") {
@@ -42,15 +42,16 @@ function renderCoreSvg(svgText) {
 }
 
 function formatTime(tick, ticksPerSecond) {
-  const wholeSeconds = Math.floor(tick / ticksPerSecond);
+  const totalMilliseconds = Math.round((tick * 1000) / ticksPerSecond);
+  const wholeSeconds = Math.floor(totalMilliseconds / 1000);
   const minutes = Math.floor(wholeSeconds / 60);
   const seconds = wholeSeconds % 60;
-  const subticks = tick % ticksPerSecond;
-  return `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}.${String(subticks).padStart(String(ticksPerSecond - 1).length,"0")}`;
+  const milliseconds = totalMilliseconds % 1000;
+  return `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}.${String(milliseconds).padStart(3,"0")}`;
 }
 
 async function api(path, payload = null) {
-  const options = payload ? { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) } : {};
+  const options = payload ? { method:"POST", headers:{"Content-Type":"application/json","X-SVM-Editor-Request":"1"}, body:JSON.stringify(payload) } : {};
   const response = await fetch(path, options);
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || `Request failed: ${response.status}`);
@@ -75,6 +76,17 @@ function previewMatches(track, keyframe) {
     && state.data.preview.target?.track_id === track?.id
     && state.data.preview.target?.keyframe_id === keyframe?.id
   );
+}
+
+async function selectTrack(trackId) {
+  if (state.data.preview.active && state.data.preview.target?.track_id !== trackId) {
+    state.data = await api("/api/clear-preview", {tick:state.tick});
+  }
+  state.selectedTrackId = trackId;
+  state.selectedKeyframeId = null;
+  state.previewValue = null;
+  ensureSelections();
+  render();
 }
 
 function ensureSelections() {
@@ -153,14 +165,23 @@ function renderStructure() {
     copy.append(textElement("strong", entity.name), textElement("code", entity.id));
     button.append(textElement("span", "□", "entity-icon"), copy);
     if (entity.track_ids.length) button.append(textElement("span", "TRACK", "entity-track"));
-    button.addEventListener("click", () => {
-      state.selectedEntityId = entity.id;
-      if (entity.track_ids.length) {
-        state.selectedTrackId = entity.track_ids[0];
+    button.addEventListener("click", async () => {
+      try {
+        state.selectedEntityId = entity.id;
+        if (entity.track_ids.length) {
+          await selectTrack(entity.track_ids[0]);
+          return;
+        }
+        if (state.data.preview.active) {
+          state.data = await api("/api/clear-preview", {tick:state.tick});
+          state.previewValue = null;
+        }
+        state.selectedTrackId = null;
         state.selectedKeyframeId = null;
+        render();
+      } catch(error) {
+        showError(error);
       }
-      ensureSelections();
-      render();
     });
     return button;
   });
@@ -223,6 +244,7 @@ function renderTimeline() {
     elements.track_title.textContent = "No Motion";
     elements.track_meta_name.textContent = "Static Document";
     elements.track_meta_target.textContent = "No animation.content";
+    elements.track_list.replaceChildren();
     elements.track_semantics.textContent = "static Document";
     elements.timebase.textContent = "No timebase";
     elements.timecode.textContent = "—";
@@ -251,6 +273,13 @@ function renderTimeline() {
   elements.ruler.replaceChildren(...rulerTicks.map((tick) => textElement("span", `${(tick/ticksPerSecond).toFixed(2)}s`)));
   elements.cache_cells.replaceChildren(...state.data.cache.map((cell) => textElement("span", `${cell.tick} · ${cell.status}`, `cache-cell ${cell.status}`)));
   elements.delta_copy.textContent = state.data.temporal_deltas.length ? state.data.temporal_deltas.map((delta) => `${delta.start_tick}…${delta.end_tick} invalidated by ${delta.keyframe_id}`).join(" · ") : "Motion cache primed from Document Keyframes and interval midpoints";
+  elements.track_list.replaceChildren(...state.data.tracks.map((item) => {
+    const button = document.createElement("button");
+    button.className = `track-row${item.id === track.id ? " selected" : ""}`;
+    button.append(textElement("strong", item.target.parameter), textElement("code", item.id));
+    button.addEventListener("click", () => selectTrack(item.id).catch(showError));
+    return button;
+  }));
   renderCurve(track,duration);
 }
 

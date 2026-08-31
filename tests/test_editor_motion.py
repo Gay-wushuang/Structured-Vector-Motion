@@ -8,6 +8,7 @@ from svm.editor_motion import EDITOR_IDENTITY, DocumentEditorSession
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / "examples" / "017-motion-rectangle.svm.json"
 STATIC = ROOT / "examples" / "018-anchored-regeneration.svm.json"
+MULTITRACK = ROOT / "examples" / "019-editor-multitrack.svm.json"
 TRACK = "track:moving-rectangle-x"
 KEYFRAME = "keyframe:moving-x-0500"
 
@@ -118,6 +119,24 @@ class RealMotionEditorVerticalSliceTest(unittest.TestCase):
         document = json.loads((ROOT / "examples" / "001-head-basic.svm.json").read_text())
         with self.assertRaisesRegex(ValueError, "supports only CreateRectangle/CreateEllipse"):
             DocumentEditorSession(document)
+
+    def test_multiple_tracks_are_addressable_and_edit_independently(self) -> None:
+        document = json.loads(MULTITRACK.read_text(encoding="utf-8"))
+        session = DocumentEditorSession(document)
+        initial = session.state(12)
+        self.assertEqual(initial["timebase"]["ticks_per_second"], 24)
+        self.assertEqual(
+            initial["structure"][0]["track_ids"],
+            ["track:moving-rectangle-x", "track:moving-rectangle-y"],
+        )
+        self.assertEqual(initial["frame"]["effective_parameters"]["op:moving-rectangle"]["x"], 200)
+        self.assertEqual(initial["frame"]["effective_parameters"]["op:moving-rectangle"]["y"], 80)
+
+        preview = session.preview("track:moving-rectangle-y", "keyframe:moving-y-0012", 100, 12)
+        parameters = preview["frame"]["effective_parameters"]["op:moving-rectangle"]
+        self.assertEqual(parameters["x"], 200)
+        self.assertEqual(parameters["y"], 100)
+        self.assertEqual(preview["preview"]["target"]["track_id"], "track:moving-rectangle-y")
 
     def test_shell_uses_dom_text_nodes_for_document_projection(self) -> None:
         script = (ROOT / "editor" / "motion-timeline" / "app.js").read_text(encoding="utf-8")

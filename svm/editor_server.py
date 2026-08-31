@@ -6,7 +6,7 @@ import threading
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from .editor_motion import DocumentEditorSession
@@ -15,6 +15,8 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DOCUMENT = REPOSITORY_ROOT / "examples" / "017-motion-rectangle.svm.json"
 STATIC_ROOT = REPOSITORY_ROOT / "editor" / "motion-timeline"
 MAX_REQUEST_BYTES = 16_384
+EDITOR_REQUEST_HEADER = "X-SVM-Editor-Request"
+EDITOR_REQUEST_VALUE = "1"
 
 
 class MotionEditorHandler(SimpleHTTPRequestHandler):
@@ -25,6 +27,8 @@ class MotionEditorHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(STATIC_ROOT), **kwargs)
 
     def do_GET(self) -> None:  # noqa: N802
+        if not self._trusted_host():
+            return
         parsed = urlparse(self.path)
         if parsed.path == "/api/state":
             self._handle(lambda: self.session.state(_tick(parsed.query)))
@@ -32,6 +36,8 @@ class MotionEditorHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self) -> None:  # noqa: N802
+        if not self._trusted_host():
+            return
         parsed = urlparse(self.path)
         actions = {
             "/api/preview": lambda payload: self.session.preview(
@@ -47,12 +53,39 @@ class MotionEditorHandler(SimpleHTTPRequestHandler):
         if action is None:
             self.send_error(HTTPStatus.NOT_FOUND)
             return
+        if not self._trusted_mutation_request():
+            return
         try:
             payload = self._read_payload()
         except (ValueError, json.JSONDecodeError) as exc:
             self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
             return
         self._handle(lambda: action(payload))
+
+    def _trusted_mutation_request(self) -> bool:
+        host, port = cast(tuple[str, int], self.server.server_address)
+        expected_origin = f"http://{host}:{port}"
+        origin = self.headers.get("Origin")
+        if origin is not None and origin != expected_origin:
+            self._json({"error": "Untrusted Editor Origin"}, HTTPStatus.FORBIDDEN)
+            return False
+        if self.headers.get_content_type() != "application/json":
+            self._json(
+                {"error": "Editor mutations require application/json"},
+                HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            )
+            return False
+        if self.headers.get(EDITOR_REQUEST_HEADER) != EDITOR_REQUEST_VALUE:
+            self._json({"error": "Missing Editor request authority"}, HTTPStatus.FORBIDDEN)
+            return False
+        return True
+
+    def _trusted_host(self) -> bool:
+        host, port = cast(tuple[str, int], self.server.server_address)
+        if self.headers.get("Host") == f"{host}:{port}":
+            return True
+        self._json({"error": "Untrusted Editor Host"}, HTTPStatus.FORBIDDEN)
+        return False
 
     def _clear_preview(self, tick: int) -> dict[str, Any]:
         self.session.clear_preview()
@@ -98,8 +131,12 @@ def create_server(
     port: int = 4175,
 ) -> ThreadingHTTPServer:
     document = json.loads(document_path.read_text(encoding="utf-8"))
-    MotionEditorHandler.session = DocumentEditorSession(document)
-    return ThreadingHTTPServer((host, port), MotionEditorHandler)
+
+    class SessionEditorHandler(MotionEditorHandler):
+        session = DocumentEditorSession(document)
+        session_lock = threading.Lock()
+
+    return ThreadingHTTPServer((host, port), SessionEditorHandler)
 
 
 def main() -> None:
