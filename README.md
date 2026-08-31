@@ -238,6 +238,11 @@ sibling Revision children without mutating their common base or each other. See
 `examples/018-anchored-regeneration.svm.json`, and
 `tests/test_anchored_regeneration.py`.
 
+Contracts are validated against their exact base snapshot. Registered actions,
+Operation parameters, Entities, Tracks, and Keyframes must exist. Motion impact
+uses `(set_keyframe_value, Track ID, Keyframe ID)`, allowing one Keyframe without
+implicitly authorizing every Keyframe on the Track.
+
 ## Development
 
 Install the project and development tools in editable mode:

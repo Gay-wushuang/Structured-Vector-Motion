@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .change_authority import resolve_transaction_intents
+from .change_authority import known_change_actions, resolve_transaction_intents
 
 
 class AnchoredRegenerationError(ValueError):
@@ -84,6 +84,79 @@ def validate_anchored_proposal(
             f"Proposal impacts are outside regeneration scope: {_describe(_sorted(outside))}"
         )
     return actual
+
+
+def validate_contract_against_document(
+    contract: AnchoredRegenerationContract, document: dict[str, Any]
+) -> None:
+    """Fail closed when a trusted Contract names nonexistent Core targets."""
+    known_actions = known_change_actions()
+    operations = {
+        operation.get("id"): operation
+        for operation in document.get("construction", {}).get("operations", [])
+    }
+    entities = {entity.get("id") for entity in document.get("entities", [])}
+    tracks = {track.get("id"): track for track in document.get("animation", {}).get("content", [])}
+    for collection_name in ("anchor", "intent", "protection", "regeneration_scope"):
+        for impact in getattr(contract, collection_name):
+            if impact.action not in known_actions:
+                raise AnchoredRegenerationError(
+                    f"Unknown ChangeAuthority action {impact.action!r} in {collection_name}"
+                )
+            _validate_target(impact, operations, entities, tracks, collection_name)
+
+
+def _validate_target(
+    impact: ImpactTarget,
+    operations: dict[Any, dict[str, Any]],
+    entities: set[Any],
+    tracks: dict[Any, dict[str, Any]],
+    collection_name: str,
+) -> None:
+    if impact.action == "set_parameter":
+        operation = operations.get(impact.target)
+        if operation is None:
+            raise AnchoredRegenerationError(
+                f"Missing Operation target {impact.target!r} in {collection_name}"
+            )
+        if impact.parameter not in operation.get("parameters", {}):
+            raise AnchoredRegenerationError(
+                f"Missing Operation parameter {impact.target}.{impact.parameter} in "
+                f"{collection_name}"
+            )
+        return
+    if impact.action == "set_keyframe_value":
+        track = tracks.get(impact.target)
+        if track is None:
+            raise AnchoredRegenerationError(
+                f"Missing Track target {impact.target!r} in {collection_name}"
+            )
+        keyframe_ids = {item.get("id") for item in track.get("keyframes", [])}
+        if impact.parameter not in keyframe_ids:
+            raise AnchoredRegenerationError(
+                f"Missing Keyframe target {impact.parameter!r} in {collection_name}"
+            )
+        return
+    if impact.parameter is not None:
+        raise AnchoredRegenerationError(
+            f"Action {impact.action!r} does not accept a parameter in {collection_name}"
+        )
+    if impact.action == "split_entity":
+        if impact.target not in entities:
+            raise AnchoredRegenerationError(
+                f"Missing Entity target {impact.target!r} in {collection_name}"
+            )
+        return
+    if impact.action == "reconcile_scene":
+        if impact.target != "document" and impact.target not in entities:
+            raise AnchoredRegenerationError(
+                f"Missing reconciliation target {impact.target!r} in {collection_name}"
+            )
+        return
+    if impact.target != "document":
+        raise AnchoredRegenerationError(
+            f"Action {impact.action!r} requires target 'document' in {collection_name}"
+        )
 
 
 def _describe(targets: list[ImpactTarget]) -> str:

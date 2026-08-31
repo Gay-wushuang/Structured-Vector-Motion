@@ -5,6 +5,7 @@ from .anchored_regeneration import (
     AnchoredRegenerationError,
     ImpactTarget,
     validate_anchored_proposal,
+    validate_contract_against_document,
 )
 from .artifacts import (
     ArtifactBlob,
@@ -88,6 +89,7 @@ __all__ = [
     "AnchoredRegenerationContract",
     "AnchoredRegenerationError",
     "ImpactTarget",
+    "validate_contract_against_document",
     "validate_anchored_proposal",
     "GeometryBackend",
     "GeometryBackendError",

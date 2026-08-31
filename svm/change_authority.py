@@ -28,6 +28,7 @@ IntentResolver = Callable[[Any], tuple[Intent, ...]]
 @dataclass(frozen=True)
 class ChangeAuthority:
     change_type: type[Any]
+    actions: frozenset[str]
     intent_resolver: IntentResolver
     artifact_verifier: ArtifactVerifier | None = None
 
@@ -100,7 +101,7 @@ def _set_parameter(change: Any) -> tuple[Intent, ...]:
 
 
 def _set_keyframe_value(change: Any) -> tuple[Intent, ...]:
-    return (("set_keyframe_value", change.track_id, None),)
+    return (("set_keyframe_value", change.track_id, change.keyframe_id),)
 
 
 def _replace_scene(change: Any) -> tuple[Intent, ...]:
@@ -116,16 +117,33 @@ def _split_entity(change: Any) -> tuple[Intent, ...]:
 CHANGE_AUTHORITIES = {
     authority.change_type: authority
     for authority in (
-        ChangeAuthority(SetOperationParameterChange, _set_parameter),
-        ChangeAuthority(SetKeyframeValueChange, _set_keyframe_value),
-        ChangeAuthority(AppendSceneFragmentChange, _single("import_scene")),
-        ChangeAuthority(AppendReferencesChange, _single("attach_analysis")),
-        ChangeAuthority(PromoteComponentsChange, _single("promote_components"), _verify_promotion),
-        ChangeAuthority(ReplaceSceneFragmentChange, _replace_scene),
-        ChangeAuthority(SplitEntityChange, _split_entity),
-        ChangeAuthority(ImportLayeredSceneChange, _single("import_scene"), _verify_layered),
+        ChangeAuthority(SetOperationParameterChange, frozenset({"set_parameter"}), _set_parameter),
+        ChangeAuthority(
+            SetKeyframeValueChange, frozenset({"set_keyframe_value"}), _set_keyframe_value
+        ),
+        ChangeAuthority(
+            AppendSceneFragmentChange, frozenset({"import_scene"}), _single("import_scene")
+        ),
+        ChangeAuthority(
+            AppendReferencesChange, frozenset({"attach_analysis"}), _single("attach_analysis")
+        ),
+        ChangeAuthority(
+            PromoteComponentsChange,
+            frozenset({"promote_components"}),
+            _single("promote_components"),
+            _verify_promotion,
+        ),
+        ChangeAuthority(ReplaceSceneFragmentChange, frozenset({"reconcile_scene"}), _replace_scene),
+        ChangeAuthority(SplitEntityChange, frozenset({"split_entity"}), _split_entity),
+        ChangeAuthority(
+            ImportLayeredSceneChange,
+            frozenset({"import_scene"}),
+            _single("import_scene"),
+            _verify_layered,
+        ),
         ChangeAuthority(
             ImportRasterLayerEvidenceChange,
+            frozenset({"import_scene"}),
             _single("import_scene"),
             _verify_raster_layers,
         ),
@@ -137,6 +155,12 @@ def change_authority(change: Any) -> ChangeAuthority | None:
     return CHANGE_AUTHORITIES.get(type(change))
 
 
+def known_change_actions() -> frozenset[str]:
+    return frozenset(
+        action for authority in CHANGE_AUTHORITIES.values() for action in authority.actions
+    )
+
+
 def resolve_transaction_intents(transaction: Any) -> tuple[Intent, ...]:
     """Derive actual impact only from registered executable Change semantics."""
     intents: list[Intent] = []
@@ -144,5 +168,12 @@ def resolve_transaction_intents(transaction: Any) -> tuple[Intent, ...]:
         authority = change_authority(change)
         if authority is None:
             raise ValueError(f"Unregistered Change type {type(change).__name__}")
-        intents.extend(authority.intent_resolver(change))
+        resolved = authority.intent_resolver(change)
+        undeclared = {action for action, _target, _parameter in resolved} - authority.actions
+        if undeclared:
+            raise ValueError(
+                f"ChangeAuthority for {type(change).__name__} emitted undeclared actions "
+                f"{sorted(undeclared)}"
+            )
+        intents.extend(resolved)
     return tuple(intents)

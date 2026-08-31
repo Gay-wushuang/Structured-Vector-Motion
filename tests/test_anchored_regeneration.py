@@ -14,6 +14,7 @@ from svm import (
     ProposalAcceptor,
     ProposalPolicyError,
     RevisionStore,
+    SetKeyframeValueChange,
     SetOperationParameterChange,
     Transaction,
 )
@@ -21,6 +22,7 @@ from svm.document import validate_document
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / "examples" / "018-anchored-regeneration.svm.json"
+GOLDEN_M = ROOT / "examples" / "017-motion-rectangle.svm.json"
 ACTOR = "adapter:deterministic-regenerator"
 
 
@@ -261,6 +263,69 @@ class AnchoredRegenerationGoldenOTest(unittest.TestCase):
         with self.assertRaisesRegex(ProposalPolicyError, "actual Change impact"):
             ProposalAcceptor().accept_anchored(self.store, proposal, self.contract)
         self.assertEqual(len(self.store.revisions), 2)
+
+    def test_contract_targets_are_validated_against_base_revision(self) -> None:
+        typo = ImpactTarget("set_paramter", "op:eye-frame", "rx")
+        typo_contract = AnchoredRegenerationContract(
+            base_revision_id=self.r1,
+            anchor=(typo,),
+            intent=(typo,),
+            protection=(typo,),
+            regeneration_scope=(ImpactTarget("set_parameter", "op:eye-highlight", "cx"),),
+        )
+        proposal = self._proposal(
+            self.r1,
+            "typo-contract",
+            (SetOperationParameterChange("op:eye-highlight", "cx", 0.16),),
+        )
+        with self.assertRaisesRegex(ProposalPolicyError, "Unknown ChangeAuthority action"):
+            ProposalAcceptor().accept_anchored(self.store, proposal, typo_contract)
+
+        missing_parameter = ImpactTarget("set_parameter", "op:eye-highlight", "missing")
+        invalid_scope = AnchoredRegenerationContract(
+            base_revision_id=self.r1,
+            anchor=self.contract.anchor,
+            intent=self.contract.intent,
+            protection=self.contract.protection,
+            regeneration_scope=(missing_parameter,),
+        )
+        with self.assertRaisesRegex(ProposalPolicyError, "Missing Operation parameter"):
+            ProposalAcceptor().accept_anchored(self.store, proposal, invalid_scope)
+        self.assertEqual(len(self.store.revisions), 2)
+
+    def test_motion_scope_is_exact_to_keyframe_identity(self) -> None:
+        motion_document = json.loads(GOLDEN_M.read_text(encoding="utf-8"))
+        store = RevisionStore.create(motion_document)
+        assert store.head is not None
+        start = ImpactTarget(
+            "set_keyframe_value", "track:moving-rectangle-x", "keyframe:moving-x-0000"
+        )
+        middle = ImpactTarget(
+            "set_keyframe_value", "track:moving-rectangle-x", "keyframe:moving-x-0500"
+        )
+        contract = AnchoredRegenerationContract(
+            base_revision_id=store.head,
+            anchor=(start,),
+            intent=(start,),
+            protection=(start,),
+            regeneration_scope=(middle,),
+        )
+        forbidden = self._proposal(
+            store.head,
+            "wrong-keyframe",
+            (SetKeyframeValueChange("track:moving-rectangle-x", "keyframe:moving-x-1000", 550),),
+        )
+        with self.assertRaisesRegex(ProposalPolicyError, "outside regeneration scope"):
+            ProposalAcceptor().accept_anchored(store, forbidden, contract)
+        self.assertEqual(len(store.revisions), 1)
+
+        allowed = self._proposal(
+            store.head,
+            "allowed-keyframe",
+            (SetKeyframeValueChange("track:moving-rectangle-x", "keyframe:moving-x-0500", 350),),
+        )
+        revision = ProposalAcceptor().accept_anchored(store, allowed, contract)
+        self.assertEqual(revision.parent_ids, (contract.base_revision_id,))
 
 
 if __name__ == "__main__":

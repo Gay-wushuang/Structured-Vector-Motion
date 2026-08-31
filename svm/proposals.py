@@ -8,6 +8,7 @@ from .anchored_regeneration import (
     AnchoredRegenerationContract,
     AnchoredRegenerationError,
     validate_anchored_proposal,
+    validate_contract_against_document,
 )
 from .artifacts import ArtifactError, ArtifactResolver, ArtifactSnapshot
 from .change_authority import change_authority
@@ -191,14 +192,15 @@ class ProposalAcceptor:
         if proposal.report.constraint_violations:
             raise ProposalPolicyError("Proposal has unresolved constraint violations")
         self._verify_trusted_change_types(proposal)
+        document = store.get_document(proposal.base_revision_id)
         if anchored_contract is not None:
             try:
+                validate_contract_against_document(anchored_contract, document)
                 validate_anchored_proposal(anchored_contract, proposal)
             except AnchoredRegenerationError as exc:
                 raise ProposalPolicyError(str(exc)) from exc
         resolved_artifacts = self._verify_artifacts(proposal, artifacts)
         self._verify_artifact_bound_changes(proposal, resolved_artifacts)
-        document = store.get_document(proposal.base_revision_id)
         try:
             enforce_transaction_policies(
                 document, proposal.generator.adapter_id, proposal.transaction

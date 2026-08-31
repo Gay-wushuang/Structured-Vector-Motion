@@ -38,6 +38,23 @@ must also be protected. Protection and regeneration scope must be disjoint.
 An anchored Proposal must contain at least one actual registered Change impact;
 an empty Transaction cannot create a candidate branch.
 
+Before scope comparison, Core validates every Contract target against the base
+Revision. The action must be declared by the Change Authority Registry;
+Operation parameters, Tracks, Keyframes, and Entities must exist; and
+document-wide actions must name `document`. A malformed trusted protection
+statement therefore fails instead of silently protecting nothing. Editors may
+invoke the same public validation before presenting a Contract for acceptance.
+
+Motion Keyframe impact uses the existing triple without widening the language:
+
+```text
+(set_keyframe_value, Track ID, Keyframe ID)
+```
+
+Edit Permission may still deny the action at Track granularity because policy
+matching remains based on action and target, while Anchored Regeneration can
+allow or protect individual Keyframes through the parameter field.
+
 The confirmed `intent` records why candidates are being explored. It does not
 grant mutation authority. Only `regeneration_scope` grants eligibility.
 The contract is trusted user/editor policy input supplied independently at
@@ -96,6 +113,8 @@ Golden O proves:
 - all four snapshots remain independently readable and valid;
 - Entity and Operation identities remain stable;
 - protected, outside-scope, and mixed transactions fail atomically;
+- Motion scope distinguishes individual Keyframes on the same Track;
+- misspelled actions and dangling Contract targets fail against the base;
 - claimed impact cannot override ChangeAuthority-derived impact;
 - existing Edit Permission denial remains effective;
 - equivalent base, contract, and Proposal content produce the same Revision and

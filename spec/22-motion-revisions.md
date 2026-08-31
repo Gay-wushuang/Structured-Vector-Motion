@@ -19,8 +19,11 @@ policy intent:
 ```text
 action    = set_keyframe_value
 target    = Track ID
-parameter = none
+parameter = Keyframe ID
 ```
+
+Edit Permission v0.1 continues to match the action and Track target. The exact
+Keyframe parameter additionally supports narrower Anchored Regeneration scope.
 
 Editors and Adapters must use Proposal acceptance where the input is untrusted;
 `RevisionStore.commit()` remains a trusted lower-level Core mechanism.

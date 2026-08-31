@@ -30,7 +30,7 @@ The v0.1 intents are:
 | Change | Action | Target | Parameter |
 | --- | --- | --- | --- |
 | `SetOperationParameterChange` | `set_parameter` | Operation ID | parameter name |
-| `SetKeyframeValueChange` | `set_keyframe_value` | Track ID | none |
+| `SetKeyframeValueChange` | `set_keyframe_value` | Track ID | Keyframe ID |
 | `SplitEntityChange` | `split_entity` | source Entity ID | none |
 | `AppendSceneFragmentChange` | `import_scene` | `document` | none |
 | `ReplaceSceneFragmentChange` | `reconcile_scene` | `document` and each scoped Entity ID | none |
