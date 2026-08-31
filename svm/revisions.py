@@ -214,6 +214,21 @@ class ImportLayeredSceneChange:
 
 
 @dataclass(frozen=True)
+class ImportPrimitiveSequenceChange:
+    """Core-owned primitive for a verifier-bound ordered primitive scene."""
+
+    fragment: AppendSceneFragmentChange
+    namespace: str
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return self.fragment.references
+
+    def apply(self, document: dict[str, Any]) -> None:
+        self.fragment.apply(document)
+
+
+@dataclass(frozen=True)
 class RasterLayerEvidence:
     bundle_artifact_id: str
     run_identity: str

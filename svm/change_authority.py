@@ -13,6 +13,7 @@ from .revisions import (
     AppendSceneFragmentChange,
     CreateTrackChange,
     ImportLayeredSceneChange,
+    ImportPrimitiveSequenceChange,
     ImportRasterLayerEvidenceChange,
     PromoteComponentsChange,
     PromotedComponent,
@@ -45,6 +46,12 @@ def _verify_raster_layers(change: Any, resolved: dict[str, ArtifactSnapshot]) ->
     from .adapters.layerd_output import verify_import_raster_layer_evidence_change
 
     verify_import_raster_layer_evidence_change(change, resolved)
+
+
+def _verify_primitive_sequence(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.pop_output import verify_import_primitive_sequence_change
+
+    verify_import_primitive_sequence_change(change, resolved)
 
 
 def _verify_promotion(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
@@ -158,6 +165,12 @@ CHANGE_AUTHORITIES = {
             frozenset({"import_scene"}),
             _single("import_scene"),
             _verify_raster_layers,
+        ),
+        ChangeAuthority(
+            ImportPrimitiveSequenceChange,
+            frozenset({"import_scene"}),
+            _single("import_scene"),
+            _verify_primitive_sequence,
         ),
     )
 }

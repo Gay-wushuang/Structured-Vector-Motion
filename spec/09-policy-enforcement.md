@@ -40,6 +40,7 @@ The v0.1 intents are:
 | `PromoteComponentsChange` | `promote_components` | `document` | none |
 | `ImportLayeredSceneChange` | `import_scene` | `document` | none |
 | `ImportRasterLayerEvidenceChange` | `import_scene` | `document` | none |
+| `ImportPrimitiveSequenceChange` | `import_scene` | `document` | none |
 
 An unknown Change always fails closed before policy enforcement because Core
 cannot prove its executable semantics or intent.

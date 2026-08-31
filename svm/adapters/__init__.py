@@ -4,6 +4,7 @@ from .component_promotion import ComponentPromotionAdapter, ComponentPromotionEr
 from .layerd_output import LayerDOutputAdapter, LayerDOutputError
 from .layerpeeler_output import LayerPeelerOutputAdapter, LayerPeelerOutputError
 from .opencv_analysis import OpenCVAnalysisAdapter, OpenCVAnalysisError
+from .pop_output import POPOutputAdapter, POPOutputError
 from .svg_import import SVGImportAdapter, SVGImportError
 
 __all__ = [
@@ -20,6 +21,8 @@ __all__ = [
     "PotracerEngine",
     "OpenCVAnalysisAdapter",
     "OpenCVAnalysisError",
+    "POPOutputAdapter",
+    "POPOutputError",
     "SVGImportAdapter",
     "SVGImportError",
 ]
