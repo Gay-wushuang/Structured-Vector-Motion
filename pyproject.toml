@@ -36,6 +36,7 @@ dev = [
 
 [project.scripts]
 svm = "svm.cli:main"
+svm-motion-editor = "svm.editor_server:main"
 
 [tool.setuptools.packages.find]
 include = ["svm*"]

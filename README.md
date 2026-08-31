@@ -226,6 +226,21 @@ Frames and shared immutable Values, invalidates only the changed interpolation
 domain, and leaves the prior Revision independently evaluable and recoverable by
 Undo. See `spec/22-motion-revisions.md` and `tests/test_motion_revision.py`.
 
+Editor Vertical Slice 01 turns this closed Core behavior into the first real
+software path. `svm-motion-editor` loads Golden M, samples through the actual
+`MotionEvaluator`, renders the actual `EvaluatedScene` with `SVGRenderer`,
+previews an isolated `Transaction.apply()` snapshot, and commits untrusted UI
+intent through `ProposalAcceptor` into `RevisionStore`. Parent checkout restores
+the prior accepted Document and Canvas. Run it with:
+
+```powershell
+svm-motion-editor --port 4175
+```
+
+The implementation lives in `svm/editor_motion.py`, `svm/editor_server.py`, and
+`editor/motion-timeline/`; its vertical-slice contract is exercised by
+`tests/test_editor_motion.py`.
+
 ## Anchored Regeneration
 
 Golden O treats a Proposal as a candidate future rather than accepted history.

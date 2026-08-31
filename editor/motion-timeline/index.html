@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SVM · Real Motion Editor</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">S</span><div><strong>Structured Vector Motion</strong><span>Editor Vertical Slice 01 · Real Motion Editing</span></div></div>
+        <div class="core-status"><i></i><span>LIVE CORE</span><code id="revision-id">loading…</code></div>
+      </header>
+
+      <section class="workspace panel">
+        <section class="canvas-panel">
+          <div class="panel-heading"><div><span class="eyebrow">Real SVGRenderer output</span><h1>Golden M Document</h1></div><div id="canvas-badge" class="state-badge committed">Committed</div></div>
+          <div class="canvas-stage">
+            <div class="document-label"><span id="revision-label">R0</span><code id="document-id">document:…</code></div>
+            <div id="svg-host" class="svg-host" aria-label="Core-rendered SVG frame"></div>
+            <div class="sample-readout"><span>tick</span><strong id="tick-readout">0</strong><span>sampled x</span><strong id="value-readout">—</strong></div>
+          </div>
+        </section>
+
+        <aside class="inspector-panel">
+          <div class="panel-heading"><div><span class="eyebrow">Real Document target</span><h2>Selected Keyframe</h2></div></div>
+          <div class="inspector-content">
+            <div class="identity-list"><span>Track</span><code id="track-id">—</code><span>Keyframe</span><code id="keyframe-id">—</code><span>Operation</span><code id="operation-id">—</code></div>
+            <label class="value-label" for="keyframe-value"><span>Value</span><strong id="edit-value">—</strong></label>
+            <input id="keyframe-value" type="range" min="180" max="420" step="1" value="300" disabled />
+            <p id="preview-copy" class="helper">Move the middle Keyframe to create an isolated Core preview.</p>
+            <div id="change-record" class="change-record hidden"><span>PREVIEW · NO REVISION</span><code>SetKeyframeValueChange</code></div>
+            <button id="commit-button" class="primary-button" disabled>Commit real Revision<span>ProposalAcceptor → RevisionStore</span></button>
+            <button id="checkout-button" class="secondary-button" disabled>Checkout parent Revision</button>
+          </div>
+        </aside>
+      </section>
+
+      <section class="timeline-panel panel">
+        <div class="timeline-toolbar">
+          <div><span class="eyebrow">Document animation.content</span><h2 id="track-title">Position X</h2></div>
+          <div class="transport"><button id="play-button" aria-label="Play">▶</button><button id="stop-button" aria-label="Stop">■</button><code id="timecode">00:00.000</code><span id="timebase">— ticks/s</span></div>
+        </div>
+        <div class="timeline-layout">
+          <div class="track-meta"><strong>Position X</strong><small id="track-semantics">linear · number</small><code>op:moving-rectangle.x</code></div>
+          <div class="timeline" id="timeline">
+            <div class="ruler"><span>0.0s</span><span>0.25s</span><span>0.5s</span><span>0.75s</span><span>1.0s</span></div>
+            <svg viewBox="0 0 1000 190" preserveAspectRatio="none" aria-label="Document Keyframe curve"><g class="grid"><path d="M0 24H1000M0 95H1000M0 166H1000"/><path d="M0 0V190M250 0V190M500 0V190M750 0V190M1000 0V190"/></g><path id="curve-path" class="curve" /></svg>
+            <div id="keyframes"></div>
+            <input id="playhead" type="range" min="0" max="1000" step="1" value="0" aria-label="Timeline playhead" disabled />
+          </div>
+        </div>
+        <div class="cache-strip"><div><strong>Real MotionEvaluator frame cache</strong><small id="delta-copy">Initial cache primed from Golden M</small></div><div id="cache-cells" class="cache-cells" aria-live="polite"></div></div>
+      </section>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
