@@ -92,11 +92,25 @@ class StructuralRelationPreview:
 
 
 @dataclass(frozen=True)
+class GroupCandidatePreview:
+    candidate_id: str
+    inference_id: str
+    members: tuple[str, ...]
+    status: str
+    positive_score: float
+    conflict_score: float
+    confidence: float
+    policy_version: str
+    evidence_artifact_id: str
+
+
+@dataclass(frozen=True)
 class ProposalPreview:
     entity_diffs: tuple[EntityDiffPreview, ...] = ()
     proposed_render_stack: tuple[str, ...] = ()
     structural_candidates: tuple[StructuralCandidatePreview, ...] = ()
     structural_relations: tuple[StructuralRelationPreview, ...] = ()
+    group_candidates: tuple[GroupCandidatePreview, ...] = ()
 
 
 @dataclass(frozen=True)

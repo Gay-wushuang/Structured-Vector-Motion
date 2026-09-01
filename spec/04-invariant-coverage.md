@@ -84,3 +84,8 @@ accepted-POP source reconstruction, deterministic normal/X-Ray renders, full
 and topmost mask evidence, geometric topmost coverage attribution and
 conservation, non-mutating preview, evidence-only atomic acceptance, and
 fail-closed source drift.
+
+`tests/test_pop_group_candidates.py` implements Golden Q v1. It covers stable
+member-set candidate identity, separately versioned inference identity,
+explicit support and conflict, deterministic abstention, accepted-Q-v0 source
+binding, and evidence-only acceptance without group materialization.
