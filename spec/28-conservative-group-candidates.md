@@ -16,9 +16,11 @@ group definition.
 
 `candidate_id` identifies only the canonical sorted unique member Entity IDs.
 It SHALL NOT depend on scores, status, confidence, evidence versions, or policy
-version. `inference_id` additionally identifies the exact evidence vector,
-scores, status, and scoring policy. Re-scoring one member set therefore creates
-a new inference about the same candidate subject.
+version. `inference_id` additionally identifies the exact canonical Q v0 source
+Artifact IDs, evidence vector, scores, status, and scoring policy. Equivalent
+feature values derived from different evidence Artifacts SHALL NOT share an
+inference identity. Re-scoring one member set therefore creates a new inference
+about the same candidate subject.
 
 ## Candidate judgment
 
@@ -37,8 +39,10 @@ work semantics.
 ## Deterministic baseline
 
 Policy `svm-pop-group-scoring-policy@0.1` generates pair subjects only and uses
-full masks, topmost coverage edges, overlap, containment, boundary proximity,
-color similarity, size ratio, Render Stack distance, and bilateral symmetry.
+full masks, topmost coverage edges, IoU overlap, smaller-member containment,
+boundary proximity, color similarity, size ratio, Render Stack distance, and
+horizontal alignment similarity. The latter measures only size similarity and
+vertical center alignment; it SHALL NOT be represented as bilateral symmetry.
 Inputs, weights, thresholds, abstention rules, and canonical numeric precision
 are versioned. Equivalent inputs and policy produce byte-identical Artifacts.
 

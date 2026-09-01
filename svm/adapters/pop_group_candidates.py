@@ -57,7 +57,8 @@ class POPGroupCandidateAdapter:
         analysis = _json(by_media[ANALYSIS_MEDIA_TYPE].content)
         document_hash = f"sha256:{hashlib.sha256(canonical_bytes(request.document)).hexdigest()}"
         source_document_hash = _validate_sources(request, masks, analysis)
-        candidates = _infer(masks, analysis, request.document)
+        source_artifact_ids = sorted(request.artifact_ids)
+        candidates = _infer(masks, analysis, request.document, source_artifact_ids)
         payload = {
             "schema_version": "svm-pop-group-candidates-0.1",
             "identity": INFERENCE_IDENTITY,
@@ -65,7 +66,7 @@ class POPGroupCandidateAdapter:
             "source_revision_id": request.base_revision_id,
             "source_document_hash": document_hash,
             "q_v0_source_document_hash": source_document_hash,
-            "source_artifact_ids": sorted(request.artifact_ids),
+            "source_artifact_ids": source_artifact_ids,
             "semantic_labels": [],
             "candidates": candidates,
         }
@@ -81,7 +82,7 @@ class POPGroupCandidateAdapter:
                 "policy_version": POLICY_VERSION,
                 "source_revision_id": request.base_revision_id,
                 "source_document_hash": document_hash,
-                "source_artifact_ids": sorted(request.artifact_ids),
+                "source_artifact_ids": source_artifact_ids,
             },
         )
         previews = tuple(
@@ -105,7 +106,7 @@ class POPGroupCandidateAdapter:
             engine_version=INFERENCE_IDENTITY,
             parameters={
                 "policy_version": POLICY_VERSION,
-                "source_artifact_ids": sorted(request.artifact_ids),
+                "source_artifact_ids": source_artifact_ids,
             },
         )
         digest = hashlib.sha256(
@@ -185,7 +186,10 @@ def _validate_sources(
 
 
 def _infer(
-    masks: dict[str, Any], analysis: dict[str, Any], document: dict[str, Any]
+    masks: dict[str, Any],
+    analysis: dict[str, Any],
+    document: dict[str, Any],
+    source_artifact_ids: list[str],
 ) -> list[dict[str, Any]]:
     records = {item["entity_id"]: item for item in masks["entities"]}
     styles = {item["entity"]: item for item in document["presentation"]["styles"]}
@@ -198,16 +202,15 @@ def _infer(
         left, right = records[left_id], records[right_id]
         left_box, right_box = _bounds(left["full_runs"]), _bounds(right["full_runs"])
         proximity = max(0.0, 1.0 - _box_distance(left_box, right_box) / 32.0)
-        overlap = _run_overlap(left["full_runs"], right["full_runs"]) / min(
-            left["full_pixels"], right["full_pixels"]
-        )
-        containment = overlap
+        intersection = _run_overlap(left["full_runs"], right["full_runs"])
+        overlap = intersection / (left["full_pixels"] + right["full_pixels"] - intersection)
+        containment = intersection / min(left["full_pixels"], right["full_pixels"])
         size_ratio = min(left["full_pixels"], right["full_pixels"]) / max(
             left["full_pixels"], right["full_pixels"]
         )
         color = _color_similarity(styles[left_id]["fill"], styles[right_id]["fill"])
         render = max(0.0, 1.0 - abs(left["render_index"] - right["render_index"]) / 12.0)
-        symmetry = size_ratio * max(
+        horizontal_alignment_similarity = size_ratio * max(
             0.0, 1.0 - abs(_center(left_box)[1] - _center(right_box)[1]) / 32.0
         )
         cover = min(1.0, coverage.get(frozenset((left_id, right_id)), 0.0))
@@ -221,7 +224,7 @@ def _infer(
             "size_ratio": size_ratio,
             "topmost_coverage": cover,
             "render_order": render,
-            "symmetry": symmetry,
+            "horizontal_alignment_similarity": horizontal_alignment_similarity,
         }
         positive = _round(
             sum(
@@ -234,7 +237,7 @@ def _infer(
                     "size_ratio": 0.10,
                     "topmost_coverage": 0.16,
                     "render_order": 0.06,
-                    "symmetry": 0.12,
+                    "horizontal_alignment_similarity": 0.12,
                 }.items()
             )
         )
@@ -262,6 +265,7 @@ def _infer(
         inference_content = {
             "candidate_id": candidate_id,
             "members": members,
+            "source_artifact_ids": source_artifact_ids,
             "evidence": evidence,
             "positive_score": positive,
             "conflict_score": conflict,

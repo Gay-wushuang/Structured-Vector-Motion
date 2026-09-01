@@ -92,6 +92,22 @@ class POPGroupCandidatesGoldenQv1Test(unittest.TestCase):
         self.assertEqual(artifact.media_type, MEDIA_TYPE)
         content = json.loads(artifact.content)
         self.assertEqual(content["semantic_labels"], [])
+        evidence_types = {
+            evidence["type"]
+            for candidate in content["candidates"]
+            for evidence in candidate["evidence"]
+        }
+        self.assertIn("horizontal_alignment_similarity", evidence_types)
+        self.assertNotIn("symmetry", evidence_types)
+        self.assertTrue(
+            any(
+                next(item["score"] for item in candidate["evidence"] if item["type"] == "overlap")
+                != next(
+                    item["score"] for item in candidate["evidence"] if item["type"] == "containment"
+                )
+                for candidate in content["candidates"]
+            )
+        )
         base = self.store.get_document(self.q0_revision.revision_id)
         accepted = ProposalAcceptor().accept(self.store, first, self.artifacts)
         document = self.store.get_document(accepted.revision_id)
@@ -112,6 +128,16 @@ class POPGroupCandidatesGoldenQv1Test(unittest.TestCase):
         changed = copy.deepcopy(candidate)
         changed["confidence"] = 0.0
         self.assertEqual(candidate["candidate_id"], changed["candidate_id"])
+        inference_content = {
+            key: value
+            for key, value in candidate.items()
+            if key not in {"inference_id", "confidence"}
+        }
+        expected_inference = (
+            "inference:group:" + hashlib.sha256(canonical_bytes(inference_content)).hexdigest()
+        )
+        self.assertEqual(candidate["inference_id"], expected_inference)
+        self.assertEqual(candidate["source_artifact_ids"], sorted(self.q0_ids))
 
     def test_unaccepted_or_mismatched_q0_evidence_fails_closed(self) -> None:
         request = self.request()
