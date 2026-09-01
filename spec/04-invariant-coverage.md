@@ -26,7 +26,7 @@ Status values:
 | INV-DOC-002 | specified | Separate schema and semantics fields are defined. |
 | INV-REF-001 | covered | Artifact Store and SVG Import tests verify byte-only SHA-256 identity, resolver verification, and accepted references. |
 | INV-REF-002 | covered | Artifact tests keep content identity separate from URI/provenance locators. |
-| INV-REF-003 | specified | Adapter boundary requires accepted fixed artifacts; model adapters are pending. |
+| INV-REF-003 | covered | Golden P snapshots a real stochastic POP continuation before acceptance; Golden Q consumes only its immutable accepted result. |
 | INV-REL-001 | covered | Example Documents keep hierarchy, render stack, and stages separate. |
 | INV-TIME-001 | covered | Golden M samples content animation without interpreting DAG order as time. |
 | INV-TIME-002 | covered | Golden M uses only `animation.content`; construction scheduling remains a separate untouched collection. |
@@ -78,3 +78,9 @@ ChangeAuthority-derived impact, protected and allowlisted targets, non-mutating
 pending Proposals, sibling Revision branches, policy composition, malicious
 wrapper rejection, atomic failure, identity preservation, and deterministic
 Revision content.
+
+`tests/test_pop_structure_adapter.py` implements Golden Q. It covers exact
+accepted-POP source reconstruction, deterministic normal/X-Ray renders, full
+and visible mask evidence, topmost occlusion attribution and conservation,
+non-mutating preview, evidence-only atomic acceptance, and fail-closed source
+drift.
