@@ -55,7 +55,7 @@ Read these files before changing core behavior:
 23. `spec/25-editor-anchored-regeneration.md` — real Editor branching interaction.
 24. `spec/25-proposal-generator-boundary.md` — replaceable Proposal Provider boundary.
 25. `spec/26-pop-output-adapter.md` — snapshotted POP token-output boundary.
-26. `spec/27-pop-structure-reconciliation.md` — POP visibility and occlusion evidence boundary.
+26. `spec/27-pop-structure-reconciliation.md` — POP geometric topmost coverage evidence boundary.
 27. `examples/001-head-basic.svm.json` — current example Document.
 28. `tests/test_golden_a.py` — executable expectations.
 
@@ -321,9 +321,9 @@ Next milestones:
     half-alpha rendering semantics, and accept one editable primitive scene as
     one atomic Revision. POP remains an optional external generator.
 20. POP Structure Reconciliation and Golden Q derive deterministic normal/X-Ray
-    renders, full/visible masks, and topmost occlusion evidence from the exact
-    accepted Golden P scene. Acceptance attaches evidence only; it does not
-    infer hierarchy, grouping, labels, or change Render Stack order.
+    renders, full/topmost masks, and geometric topmost coverage evidence from
+    the exact accepted Golden P scene. Acceptance attaches evidence only; it
+    does not infer hierarchy, grouping, labels, or change Render Stack order.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

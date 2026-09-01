@@ -70,8 +70,8 @@ def main() -> None:
     files = {
         "normal.svg": normal,
         "xray.svg": xray,
-        "visibility-masks.json": by_type[MASK_BUNDLE_MEDIA_TYPE],
-        "occlusion-analysis.json": by_type[ANALYSIS_MEDIA_TYPE],
+        "coverage-masks.json": by_type[MASK_BUNDLE_MEDIA_TYPE],
+        "topmost-coverage-analysis.json": by_type[ANALYSIS_MEDIA_TYPE],
     }
     OUTPUT.mkdir(parents=True, exist_ok=True)
     for filename, snapshot in files.items():

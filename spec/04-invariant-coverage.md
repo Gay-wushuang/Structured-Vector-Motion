@@ -81,6 +81,6 @@ Revision content.
 
 `tests/test_pop_structure_adapter.py` implements Golden Q. It covers exact
 accepted-POP source reconstruction, deterministic normal/X-Ray renders, full
-and visible mask evidence, topmost occlusion attribution and conservation,
-non-mutating preview, evidence-only atomic acceptance, and fail-closed source
-drift.
+and topmost mask evidence, geometric topmost coverage attribution and
+conservation, non-mutating preview, evidence-only atomic acceptance, and
+fail-closed source drift.

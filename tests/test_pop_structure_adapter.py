@@ -83,15 +83,15 @@ class POPStructureGoldenQTest(unittest.TestCase):
             first.report.metrics,
             {
                 "primitives": 143.0,
-                "occlusion_relations": 783.0,
-                "fully_occluded_primitives": 2.0,
+                "topmost_coverage_relations": 783.0,
+                "fully_covered_primitives": 2.0,
             },
         )
         self.assertEqual(len(first.preview_artifacts), 4)
         self.assertEqual(len(first.preview.structural_relations), 783)
         self.assertTrue(
             all(
-                relation.relation_type == "occludes"
+                relation.relation_type == "geometric-topmost-covers"
                 for relation in first.preview.structural_relations
             )
         )
@@ -131,32 +131,35 @@ class POPStructureGoldenQTest(unittest.TestCase):
         self.assertEqual(normal.content, (GOLDEN_Q / "normal.svg").read_bytes())
         self.assertEqual(normal.content, (GOLDEN_P / "svm.svg").read_bytes())
         self.assertEqual(xray.content, (GOLDEN_Q / "xray.svg").read_bytes())
-        self.assertEqual(masks.content, (GOLDEN_Q / "visibility-masks.json").read_bytes())
-        self.assertEqual(analysis.content, (GOLDEN_Q / "occlusion-analysis.json").read_bytes())
+        self.assertEqual(masks.content, (GOLDEN_Q / "coverage-masks.json").read_bytes())
+        self.assertEqual(
+            analysis.content, (GOLDEN_Q / "topmost-coverage-analysis.json").read_bytes()
+        )
 
         analysis_payload = json.loads(analysis.content)
         mask_payload = json.loads(masks.content)
-        incoming: dict[str, int] = {}
-        for relation in analysis_payload["occlusion_relations"]:
-            incoming[relation["occluded_entity_id"]] = (
-                incoming.get(relation["occluded_entity_id"], 0) + relation["overlap_pixels"]
+        incoming_coverage: dict[str, int] = {}
+        for relation in analysis_payload["topmost_coverage_relations"]:
+            incoming_coverage[relation["covered_entity_id"]] = (
+                incoming_coverage.get(relation["covered_entity_id"], 0)
+                + relation["coverage_pixels"]
             )
-            self.assertLess(relation["occluded_render_index"], relation["occluder_render_index"])
+            self.assertLess(relation["covered_render_index"], relation["topmost_render_index"])
         for entity in analysis_payload["entities"]:
             self.assertEqual(
                 entity["full_pixels"],
-                entity["visible_pixels"] + incoming.get(entity["entity_id"], 0),
+                entity["topmost_pixels"] + incoming_coverage.get(entity["entity_id"], 0),
             )
 
-        visible_union = 0
+        topmost_union = 0
         for entity in mask_payload["entities"]:
             full = _runs_to_mask(entity["full_runs"])
-            visible = _runs_to_mask(entity["visible_runs"])
+            topmost = _runs_to_mask(entity["topmost_runs"])
             self.assertEqual(full.bit_count(), entity["full_pixels"])
-            self.assertEqual(visible.bit_count(), entity["visible_pixels"])
-            self.assertEqual(visible & ~full, 0)
-            self.assertEqual(visible_union & visible, 0)
-            visible_union |= visible
+            self.assertEqual(topmost.bit_count(), entity["topmost_pixels"])
+            self.assertEqual(topmost & ~full, 0)
+            self.assertEqual(topmost_union & topmost, 0)
+            topmost_union |= topmost
 
     def test_source_drift_options_and_artifact_mismatch_fail_closed(self) -> None:
         with self.assertRaisesRegex(POPStructureError, "does not accept options"):

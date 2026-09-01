@@ -21,13 +21,13 @@ from ..revisions import AppendReferencesChange, Transaction
 from ..scene import EvaluatedEntity, EvaluatedScene, EvaluatedStyle, build_evaluated_scene
 from .pop_output import POPOutputAdapter
 
-ANALYSIS_MEDIA_TYPE = "application/vnd.svm.pop-occlusion-analysis+json"
-MASK_BUNDLE_MEDIA_TYPE = "application/vnd.svm.pop-visibility-masks+json"
-ANALYSIS_IDENTITY = "svm-pop-occlusion-analysis@0.1"
+ANALYSIS_MEDIA_TYPE = "application/vnd.svm.pop-topmost-coverage-analysis+json"
+MASK_BUNDLE_MEDIA_TYPE = "application/vnd.svm.pop-coverage-masks+json"
+ANALYSIS_IDENTITY = "svm-pop-topmost-coverage-analysis@0.1"
 MASK_IDENTITY = "svm-pop-pixel-center-masks@0.1"
 XRAY_IDENTITY = "svm-pop-xray-svg@0.1"
 NORMAL_RENDER_IDENTITY = "svm-svg-renderer/pop-256@0.1"
-RELATION_IDENTITY = "svm-pop-topmost-occlusion@0.1"
+RELATION_IDENTITY = "svm-pop-geometric-topmost-coverage@0.1"
 CANVAS_SIZE = 256
 MAX_PRIMITIVES = 256
 SAMPLE_COORDINATE_PRECISION = ".12g"
@@ -38,7 +38,7 @@ class POPStructureError(ValueError):
 
 
 class POPStructureAdapter:
-    """Derive reviewable masks and occlusion evidence from an accepted POP scene."""
+    """Derive reviewable geometric topmost-coverage evidence from a POP scene."""
 
     adapter_id = "adapter:pop-structure"
     adapter_version = "0.1"
@@ -56,7 +56,7 @@ class POPStructureAdapter:
             raise POPStructureError("POP structure requires between 1 and 256 primitives")
 
         full_masks = tuple(_geometry_mask(entity.geometry) for entity in primitives)
-        visible_masks = _visible_masks(full_masks)
+        topmost_masks = _topmost_masks(full_masks)
         source_document_hash = (
             f"sha256:{hashlib.sha256(canonical_bytes(request.document)).hexdigest()}"
         )
@@ -94,7 +94,7 @@ class POPStructureAdapter:
         mask_payload = _mask_payload(
             primitives,
             full_masks,
-            visible_masks,
+            topmost_masks,
             request.base_revision_id,
             source_document_hash,
         )
@@ -104,14 +104,14 @@ class POPStructureAdapter:
             kind=ArtifactKind.DERIVED,
             provenance={
                 **base_provenance,
-                "derived_type": "pop-visibility-mask-bundle",
+                "derived_type": "pop-coverage-mask-bundle",
                 "mask_identity": MASK_IDENTITY,
             },
         )
         analysis_payload = _analysis_payload(
             primitives,
             full_masks,
-            visible_masks,
+            topmost_masks,
             request.base_revision_id,
             source_document_hash,
             normal_artifact.artifact_id,
@@ -124,7 +124,7 @@ class POPStructureAdapter:
             kind=ArtifactKind.DERIVED,
             provenance={
                 **base_provenance,
-                "derived_type": "pop-occlusion-analysis",
+                "derived_type": "pop-topmost-coverage-analysis",
                 "analysis_identity": ANALYSIS_IDENTITY,
                 "mask_identity": MASK_IDENTITY,
                 "relation_identity": RELATION_IDENTITY,
@@ -141,7 +141,7 @@ class POPStructureAdapter:
             "canvas": [CANVAS_SIZE, CANVAS_SIZE],
             "coverage_sample": "pixel-center",
             "sample_coordinate_canonicalization": SAMPLE_COORDINATE_PRECISION,
-            "occlusion_basis": "later-render-stack-geometric-coverage",
+            "coverage_basis": "topmost-later-render-stack-geometric-coverage",
             "source_document_hash": source_document_hash,
         }
         generator = GeneratorProvenance(
@@ -164,16 +164,16 @@ class POPStructureAdapter:
         relation_previews = tuple(
             StructuralRelationPreview(
                 relation_id=relation["relation_id"],
-                relation_type="occludes",
+                relation_type="geometric-topmost-covers",
                 status="evidence",
-                source=relation["occluder_entity_id"],
-                target=relation["occluded_entity_id"],
+                source=relation["topmost_entity_id"],
+                target=relation["covered_entity_id"],
                 evidence_artifact_id=analysis_artifact.artifact_id,
             )
-            for relation in analysis_payload["occlusion_relations"]
+            for relation in analysis_payload["topmost_coverage_relations"]
         )
-        fully_occluded = sum(
-            1 for item in analysis_payload["entities"] if item["visible_pixels"] == 0
+        fully_covered = sum(
+            1 for item in analysis_payload["entities"] if item["topmost_pixels"] == 0
         )
         return Proposal(
             proposal_id=f"proposal:pop-structure:{digest}",
@@ -182,13 +182,13 @@ class POPStructureAdapter:
             transaction=Transaction(
                 transaction_id=f"transaction:pop-structure:{digest}",
                 changes=(AppendReferencesChange(references),),
-                message="Attach deterministic POP visibility and occlusion evidence",
+                message="Attach deterministic POP geometric topmost coverage evidence",
             ),
             report=EvaluationReport(
                 metrics={
                     "primitives": float(len(primitives)),
-                    "occlusion_relations": float(len(relation_previews)),
-                    "fully_occluded_primitives": float(fully_occluded),
+                    "topmost_coverage_relations": float(len(relation_previews)),
+                    "fully_covered_primitives": float(fully_covered),
                 }
             ),
             preview_artifacts=tuple(
@@ -203,7 +203,7 @@ class POPStructureAdapter:
             required_artifact_ids=tuple(artifact.artifact_id for artifact in derived),
             confidence=None,
             notes=(
-                "Occlusion is geometric pixel evidence only; no hierarchy, grouping, "
+                "Topmost coverage is geometric pixel evidence only; no hierarchy, grouping, "
                 "semantic label, or render-order change is proposed"
             ),
         )
@@ -360,24 +360,24 @@ def _primitive_contains(primitive: dict[str, Any], x: float, y: float) -> bool:
     return dx * dx + dy * dy <= 1
 
 
-def _visible_masks(full_masks: tuple[int, ...]) -> tuple[int, ...]:
+def _topmost_masks(full_masks: tuple[int, ...]) -> tuple[int, ...]:
     covered = 0
-    reversed_visible: list[int] = []
+    reversed_topmost: list[int] = []
     for full_mask in reversed(full_masks):
-        reversed_visible.append(full_mask & ~covered)
+        reversed_topmost.append(full_mask & ~covered)
         covered |= full_mask
-    return tuple(reversed(reversed_visible))
+    return tuple(reversed(reversed_topmost))
 
 
 def _mask_payload(
     primitives: tuple[EvaluatedEntity, ...],
     full_masks: tuple[int, ...],
-    visible_masks: tuple[int, ...],
+    topmost_masks: tuple[int, ...],
     revision_id: str,
     document_hash: str,
 ) -> dict[str, Any]:
     return {
-        "schema_version": "svm-pop-visibility-masks-0.1",
+        "schema_version": "svm-pop-coverage-masks-0.1",
         "identity": MASK_IDENTITY,
         "source_revision_id": revision_id,
         "source_document_hash": document_hash,
@@ -389,12 +389,12 @@ def _mask_payload(
                 "entity_id": entity.entity_id,
                 "render_index": index + 1,
                 "full_pixels": full_mask.bit_count(),
-                "visible_pixels": visible_mask.bit_count(),
+                "topmost_pixels": topmost_mask.bit_count(),
                 "full_runs": _runs(full_mask),
-                "visible_runs": _runs(visible_mask),
+                "topmost_runs": _runs(topmost_mask),
             }
-            for index, (entity, full_mask, visible_mask) in enumerate(
-                zip(primitives, full_masks, visible_masks, strict=True)
+            for index, (entity, full_mask, topmost_mask) in enumerate(
+                zip(primitives, full_masks, topmost_masks, strict=True)
             )
         ],
     }
@@ -403,7 +403,7 @@ def _mask_payload(
 def _analysis_payload(
     primitives: tuple[EvaluatedEntity, ...],
     full_masks: tuple[int, ...],
-    visible_masks: tuple[int, ...],
+    topmost_masks: tuple[int, ...],
     revision_id: str,
     document_hash: str,
     normal_artifact_id: str,
@@ -411,20 +411,20 @@ def _analysis_payload(
     mask_artifact_id: str,
 ) -> dict[str, Any]:
     entities = []
-    for index, (entity, full_mask, visible_mask) in enumerate(
-        zip(primitives, full_masks, visible_masks, strict=True)
+    for index, (entity, full_mask, topmost_mask) in enumerate(
+        zip(primitives, full_masks, topmost_masks, strict=True)
     ):
         full_pixels = full_mask.bit_count()
-        visible_pixels = visible_mask.bit_count()
+        topmost_pixels = topmost_mask.bit_count()
         entities.append(
             {
                 "entity_id": entity.entity_id,
                 "render_index": index + 1,
                 "full_pixels": full_pixels,
-                "visible_pixels": visible_pixels,
-                "occluded_pixels": full_pixels - visible_pixels,
-                "visibility_ratio": _ratio(visible_pixels, full_pixels),
-                "fully_occluded": visible_pixels == 0,
+                "topmost_pixels": topmost_pixels,
+                "covered_by_later_pixels": full_pixels - topmost_pixels,
+                "topmost_ratio": _ratio(topmost_pixels, full_pixels),
+                "fully_covered_by_later": topmost_pixels == 0,
             }
         )
     relations = []
@@ -432,21 +432,21 @@ def _analysis_payload(
         zip(primitives, full_masks, strict=True)
     ):
         for upper_index in range(lower_index + 1, len(primitives)):
-            overlap_pixels = (lower_mask & visible_masks[upper_index]).bit_count()
-            if overlap_pixels == 0:
+            coverage_pixels = (lower_mask & topmost_masks[upper_index]).bit_count()
+            if coverage_pixels == 0:
                 continue
             content = {
-                "occluder_entity_id": primitives[upper_index].entity_id,
-                "occluded_entity_id": lower_entity.entity_id,
-                "occluder_render_index": upper_index + 1,
-                "occluded_render_index": lower_index + 1,
-                "overlap_pixels": overlap_pixels,
-                "occluded_fraction": _ratio(overlap_pixels, lower_mask.bit_count()),
-                "basis": "topmost-later-geometric-coverage@0.1",
+                "topmost_entity_id": primitives[upper_index].entity_id,
+                "covered_entity_id": lower_entity.entity_id,
+                "topmost_render_index": upper_index + 1,
+                "covered_render_index": lower_index + 1,
+                "coverage_pixels": coverage_pixels,
+                "covered_fraction": _ratio(coverage_pixels, lower_mask.bit_count()),
+                "basis": "geometric-topmost-coverage@0.1",
             }
             relations.append({"relation_id": _relation_id(content), **content})
     return {
-        "schema_version": "svm-pop-occlusion-analysis-0.1",
+        "schema_version": "svm-pop-topmost-coverage-analysis-0.1",
         "identity": ANALYSIS_IDENTITY,
         "relation_identity": RELATION_IDENTITY,
         "source_revision_id": revision_id,
@@ -456,14 +456,14 @@ def _analysis_payload(
         "xray_render_artifact_id": xray_artifact_id,
         "mask_bundle_artifact_id": mask_artifact_id,
         "entities": entities,
-        "occlusion_relations": relations,
+        "topmost_coverage_relations": relations,
         "semantic_claims": [],
     }
 
 
 def _relation_id(content: dict[str, Any]) -> str:
     digest = hashlib.sha256(canonical_bytes({"identity": RELATION_IDENTITY, **content})).hexdigest()
-    return f"relation:occludes:{digest}"
+    return f"relation:geometric-topmost-covers:{digest}"
 
 
 def _ratio(numerator: int, denominator: int) -> float:
