@@ -74,7 +74,8 @@ model execution may participate in `generation_config_identity`.
 Accepting `field-aware-sampling` provenance proves only that the Artifact makes
 a valid, internally consistent provenance assertion. It is not proof that the
 upstream checkpoint was re-executed with that policy. End-to-end execution
-truth belongs to a separately tested POPRunner boundary.
+truth belongs to the separate `tools/run_pop_golden_p.py` runner and its
+snapshotted run manifest; neither is part of Adapter acceptance authority.
 
 The output retains the complete raw nine-token sequence. Decoded canonical
 geometry must equal an independent decoding of those tokens, and its leading
@@ -144,3 +145,35 @@ Golden P proves:
    POP or changing unrelated primitive Values;
 8. forged Changes, raw/decoded disagreement, malformed fields, unsupported
    shapes, provenance drift, ID collisions, and missing Artifacts fail closed.
+
+## Real upstream freeze evidence
+
+Golden P's checked-in `real/` fixture was produced by executing upstream commit
+`d5489b039d876839b58b61c512205713b3ab6909` with checkpoint SHA-256
+`6492d34615b14e43ac9fc6b10496a490655bb28c31819b783cb6cb1e1fbd9f7b`, the
+first bundled eleven-operation prefix, seed zero, the upstream default
+field-aware sampling schedule, and a target of 144 operations. The runner:
+
+```text
+pinned upstream model + real prefix
+-> upstream generate()
+-> exact 1,296-token sequence
+-> POPTokenExporter
+-> POPOutputAdapter
+-> Core dry-run / accept
+-> Evaluator / SVGRenderer
+```
+
+The same decoded token sequence is rendered through the upstream Matplotlib
+renderer and through accepted SVM semantics. The frozen 256×256 rasters have a
+mean absolute RGB channel error of `0.17316691080729166 / 255` and a maximum
+channel error of `33`; visual inspection and the low aggregate error establish
+geometry, draw-order, color, and half-alpha parity while allowing renderer
+anti-aliasing differences. Pixel identity is not required across Matplotlib and
+Chromium rasterizers.
+
+The run manifest records the Python, Torch, NumPy, Matplotlib, device, model,
+checkpoint, prefix, seed, sampling policy, token, Artifact, Proposal, Revision,
+SVG, and PNG identities. Repeating the complete CPU run with the same pinned
+inputs produced the same raw-token, Artifact, Proposal, Revision, SVG, and PNG
+hashes. The 1.23 GB checkpoint is deliberately not part of the repository.
