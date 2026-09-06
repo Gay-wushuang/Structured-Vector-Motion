@@ -38,6 +38,7 @@ The v0.1 intents are:
 | `ReplaceSceneFragmentChange` | `reconcile_scene` | `document` and each scoped Entity ID | none |
 | `AppendReferencesChange` | `attach_analysis` | `document` | none |
 | `PromoteComponentsChange` | `promote_components` | `document` | none |
+| `PromoteGroupsChange` | `promote_group` | `document` | none |
 | `ImportLayeredSceneChange` | `import_scene` | `document` | none |
 | `ImportRasterLayerEvidenceChange` | `import_scene` | `document` | none |
 | `ImportPrimitiveSequenceChange` | `import_scene` | `document` | none |

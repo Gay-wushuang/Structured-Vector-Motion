@@ -27,6 +27,7 @@ IDs are non-empty strings scoped by kind:
 
 - `document:*` — Document identity;
 - `entity:*` — persistent semantic entities;
+- `group:*` — persistent explicit Group Definitions;
 - `op:*` — construction operations;
 - `artifact:*` — accepted external artifacts.
 
@@ -47,6 +48,14 @@ hash identifies the accepted bytes.
 Persistent semantic objects. Each entity has `id` and `name`; `parent_id` is
 optional. Entity order has no semantic meaning. Parent relations must be
 acyclic and parent IDs must resolve.
+
+### `groups`
+
+Persistent explicit Group Definitions are independent of Entity hierarchy and
+Render Stack order. A v0.1 Group records a canonical member Entity ID set,
+`kind = explicit-group`, and exact promotion provenance. It carries no transform,
+semantic label, motion-parent role, or occlusion meaning. See
+`29-explicit-group-promotion.md`.
 
 ### `construction.operations`
 

@@ -47,6 +47,8 @@ def validate_document(document: dict[str, Any]) -> None:
         raise DocumentError("Entity IDs must be unique")
     known_entities = set(entity_ids)
 
+    _validate_groups(document.get("groups", []), known_entities, reference_ids)
+
     parents: dict[str, str] = {}
     for entity in entities:
         provenance = entity.get("provenance")
@@ -72,7 +74,6 @@ def validate_document(document: dict[str, Any]) -> None:
     _validate_structural_relations(
         document.get("structural_relations", []), entities, known_entities, reference_ids
     )
-
     bindings = document.get("construction", {}).get("output_bindings", [])
     binding_keys: set[tuple[str, str]] = set()
     for binding in bindings:
@@ -133,6 +134,59 @@ def validate_document(document: dict[str, Any]) -> None:
     from .motion import validate_motion
 
     validate_motion(document, evaluator)
+
+
+def _validate_groups(groups: Any, known_entities: set[str], reference_ids: set[str]) -> None:
+    if not isinstance(groups, list):
+        raise DocumentError("Document groups must be an array")
+    group_ids: set[str] = set()
+    promoted_pairs: set[tuple[str, str]] = set()
+    for group in groups:
+        if not isinstance(group, dict) or set(group) != {"id", "kind", "members", "provenance"}:
+            raise DocumentError("Group Definition fields are invalid")
+        group_id = group.get("id")
+        if not isinstance(group_id, str) or re.fullmatch(r"group:[0-9a-f]{64}", group_id) is None:
+            raise DocumentError("Group Definition ID is invalid")
+        if group_id in group_ids:
+            raise DocumentError(f"Duplicate Group Definition ID {group_id}")
+        group_ids.add(group_id)
+        if group.get("kind") != "explicit-group":
+            raise DocumentError("Group Definition kind must be explicit-group")
+        members = group.get("members")
+        if (
+            not isinstance(members, list)
+            or len(members) < 2
+            or members != sorted(members)
+            or len(members) != len(set(members))
+            or not set(members) <= known_entities
+        ):
+            raise DocumentError("Group Definition members must be sorted existing unique Entities")
+        provenance = group.get("provenance")
+        if not isinstance(provenance, dict) or set(provenance) != {
+            "candidate_id",
+            "inference_id",
+            "inference_artifact_id",
+        }:
+            raise DocumentError("Group Definition provenance is invalid")
+        artifact_id = provenance.get("inference_artifact_id")
+        candidate_id = provenance.get("candidate_id")
+        inference_id = provenance.get("inference_id")
+        if artifact_id not in reference_ids:
+            raise DocumentError("Group Definition inference Artifact is not accepted")
+        if (
+            not isinstance(candidate_id, str)
+            or re.fullmatch(r"candidate:group:[0-9a-f]{64}", candidate_id) is None
+        ):
+            raise DocumentError("Group Definition candidate ID is invalid")
+        if (
+            not isinstance(inference_id, str)
+            or re.fullmatch(r"inference:group:[0-9a-f]{64}", inference_id) is None
+        ):
+            raise DocumentError("Group Definition inference ID is invalid")
+        key = (artifact_id, candidate_id)
+        if key in promoted_pairs:
+            raise DocumentError("Group candidate is already promoted")
+        promoted_pairs.add(key)
 
 
 def _is_supported_color(value: str) -> bool:

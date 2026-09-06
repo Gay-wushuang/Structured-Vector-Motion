@@ -172,6 +172,7 @@ def command_inspect(args: argparse.Namespace) -> dict[str, Any]:
         "document_id": document["document_id"],
         "references": copy.deepcopy(document["references"]),
         "entities": copy.deepcopy(document["entities"]),
+        "groups": copy.deepcopy(document.get("groups", [])),
         "operations": operations,
         "output_bindings": copy.deepcopy(document["construction"]["output_bindings"]),
         "render_stack": copy.deepcopy(document["presentation"]["render_stack"]),

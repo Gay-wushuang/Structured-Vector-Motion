@@ -105,12 +105,23 @@ class GroupCandidatePreview:
 
 
 @dataclass(frozen=True)
+class GroupDefinitionPreview:
+    group_id: str
+    members: tuple[str, ...]
+    kind: str
+    candidate_id: str
+    inference_id: str
+    inference_artifact_id: str
+
+
+@dataclass(frozen=True)
 class ProposalPreview:
     entity_diffs: tuple[EntityDiffPreview, ...] = ()
     proposed_render_stack: tuple[str, ...] = ()
     structural_candidates: tuple[StructuralCandidatePreview, ...] = ()
     structural_relations: tuple[StructuralRelationPreview, ...] = ()
     group_candidates: tuple[GroupCandidatePreview, ...] = ()
+    group_definitions: tuple[GroupDefinitionPreview, ...] = ()
 
 
 @dataclass(frozen=True)

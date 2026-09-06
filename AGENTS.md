@@ -57,8 +57,9 @@ Read these files before changing core behavior:
 25. `spec/26-pop-output-adapter.md` — snapshotted POP token-output boundary.
 26. `spec/27-pop-structure-reconciliation.md` — POP geometric topmost coverage evidence boundary.
 27. `spec/28-conservative-group-candidates.md` — abstaining evidence-only group inference.
-28. `examples/001-head-basic.svm.json` — current example Document.
-29. `tests/test_golden_a.py` — executable expectations.
+28. `spec/29-explicit-group-promotion.md` — stale-safe explicit Group promotion.
+29. `examples/001-head-basic.svm.json` — current example Document.
+30. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -328,6 +329,9 @@ Next milestones:
 21. Conservative Group Candidate Inference consumes frozen Q v0 evidence and
     emits explainable `SUPPORTED`, `UNCERTAIN`, or `REJECTED` hypotheses. Its
     acceptance remains evidence-only; Group Promotion is a later milestone.
+22. Explicit Group Promotion and Golden Q v2 promote only user-selected,
+    non-stale `SUPPORTED` candidates into persistent unlabeled Group Definitions.
+    Group Transform remains a separate Golden Q v3 milestone.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

@@ -29,6 +29,10 @@
       "type": "array",
       "items": {"$ref": "#/$defs/entity"}
     },
+    "groups": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/groupDefinition"}
+    },
     "construction": {"$ref": "#/$defs/construction"},
     "presentation": {"$ref": "#/$defs/presentation"},
     "constraints": {"type": "array", "items": {"$ref": "#/$defs/constraint"}},
@@ -102,6 +106,31 @@
               "maxItems": 4,
               "items": {"type": "integer", "minimum": 0}
             }
+          }
+        }
+      }
+    },
+    "groupDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "members", "provenance"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^group:[0-9a-f]{64}$"},
+        "kind": {"const": "explicit-group"},
+        "members": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/entityId"}
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["candidate_id", "inference_id", "inference_artifact_id"],
+          "properties": {
+            "candidate_id": {"type": "string", "pattern": "^candidate:group:[0-9a-f]{64}$"},
+            "inference_id": {"type": "string", "pattern": "^inference:group:[0-9a-f]{64}$"},
+            "inference_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"}
           }
         }
       }

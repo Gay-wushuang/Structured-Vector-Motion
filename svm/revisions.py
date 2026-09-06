@@ -15,6 +15,7 @@ from .structural_relations import (
 COMPONENT_PROMOTION_ADAPTER_VERSION = "0.5"
 COMPONENT_PROMOTION_IDENTITY = f"svm-component-promotion@{COMPONENT_PROMOTION_ADAPTER_VERSION}"
 PROMOTED_ENTITY_IDENTITY = "svm-component-promotion@0.4"
+GROUP_PROMOTION_IDENTITY = "svm-explicit-group-promotion@0.1"
 
 
 class Change(Protocol):
@@ -305,6 +306,88 @@ class AppendReferencesChange:
             if reference["id"] not in known_references:
                 document["references"].append(copy.deepcopy(reference))
                 known_references.add(reference["id"])
+
+
+@dataclass(frozen=True)
+class PromotedGroup:
+    inference_artifact_id: str
+    candidate_id: str
+    inference_id: str
+    members: tuple[str, ...]
+    source_document_hash: str
+
+    def group_id(self) -> str:
+        digest = hashlib.sha256(
+            canonical_bytes(
+                {
+                    "promotion_identity": GROUP_PROMOTION_IDENTITY,
+                    "candidate_id": self.candidate_id,
+                    "inference_artifact_id": self.inference_artifact_id,
+                }
+            )
+        ).hexdigest()
+        return f"group:{digest}"
+
+    def to_definition(self) -> dict[str, Any]:
+        return {
+            "id": self.group_id(),
+            "kind": "explicit-group",
+            "members": list(self.members),
+            "provenance": {
+                "candidate_id": self.candidate_id,
+                "inference_id": self.inference_id,
+                "inference_artifact_id": self.inference_artifact_id,
+            },
+        }
+
+
+@dataclass(frozen=True)
+class PromoteGroupsChange:
+    groups: tuple[PromotedGroup, ...]
+    references: tuple[dict[str, Any], ...]
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if not self.groups or any(type(group) is not PromotedGroup for group in self.groups):
+            raise DocumentError("Group promotion requires typed PromotedGroup records")
+        if len(self.references) != 1:
+            raise DocumentError("Group promotion requires one inference Artifact reference")
+        accepted = {reference["id"]: reference for reference in document["references"]}
+        reference = self.references[0]
+        if accepted.get(reference.get("id")) != reference:
+            raise DocumentError("Group promotion inference must already be accepted")
+        source_document = copy.deepcopy(document)
+        source_document["references"] = [
+            item
+            for item in source_document["references"]
+            if item.get("import_metadata", {}).get("provenance", {}).get("adapter_id")
+            != "adapter:pop-group-candidates"
+        ]
+        current_source_hash = (
+            f"sha256:{hashlib.sha256(canonical_bytes(source_document)).hexdigest()}"
+        )
+        if any(group.source_document_hash != current_source_hash for group in self.groups):
+            raise DocumentError("STALE_CANDIDATE: inference source Document has changed")
+        existing = document.setdefault("groups", [])
+        promoted = {
+            (item["provenance"]["inference_artifact_id"], item["provenance"]["candidate_id"])
+            for item in existing
+        }
+        definitions = []
+        entity_ids = {entity["id"] for entity in document["entities"]}
+        for group in self.groups:
+            if group.inference_artifact_id != reference["id"]:
+                raise DocumentError("Promoted Group Artifact does not match inference reference")
+            if tuple(sorted(group.members)) != group.members or len(group.members) < 2:
+                raise DocumentError("Promoted Group members must be canonical")
+            if not set(group.members) <= entity_ids:
+                raise DocumentError("Promoted Group contains missing Entity")
+            if (group.inference_artifact_id, group.candidate_id) in promoted:
+                raise DocumentError("Group candidate is already promoted")
+            definitions.append(group.to_definition())
+        ids = {item["id"] for item in existing}
+        if any(item["id"] in ids for item in definitions):
+            raise DocumentError("Promoted Group ID collision")
+        existing.extend(definitions)
 
 
 @dataclass(frozen=True)

@@ -89,3 +89,8 @@ fail-closed source drift.
 member-set candidate identity, separately versioned inference identity,
 explicit support and conflict, deterministic abstention, accepted-Q-v0 source
 binding, and evidence-only acceptance without group materialization.
+
+`tests/test_pop_group_promotion.py` implements Golden Q v2. It covers explicit
+selection, status gating, inference Artifact verification, source-drift
+rejection, atomic promotion, member identity preservation, and exact
+non-mutation of primitive construction and presentation.

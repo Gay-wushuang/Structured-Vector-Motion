@@ -5,6 +5,7 @@ from .layerd_output import LayerDOutputAdapter, LayerDOutputError
 from .layerpeeler_output import LayerPeelerOutputAdapter, LayerPeelerOutputError
 from .opencv_analysis import OpenCVAnalysisAdapter, OpenCVAnalysisError
 from .pop_group_candidates import POPGroupCandidateAdapter, POPGroupCandidateError
+from .pop_group_promotion import POPGroupPromotionAdapter, POPGroupPromotionError
 from .pop_output import POPOutputAdapter, POPOutputError, POPTokenExporter
 from .pop_structure import POPStructureAdapter, POPStructureError
 from .svg_import import SVGImportAdapter, SVGImportError
@@ -30,6 +31,8 @@ __all__ = [
     "POPStructureError",
     "POPGroupCandidateAdapter",
     "POPGroupCandidateError",
+    "POPGroupPromotionAdapter",
+    "POPGroupPromotionError",
     "SVGImportAdapter",
     "SVGImportError",
 ]

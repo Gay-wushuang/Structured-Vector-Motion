@@ -17,6 +17,8 @@ from .revisions import (
     ImportRasterLayerEvidenceChange,
     PromoteComponentsChange,
     PromotedComponent,
+    PromotedGroup,
+    PromoteGroupsChange,
     ReplaceSceneFragmentChange,
     SetKeyframeValueChange,
     SetOperationParameterChange,
@@ -101,6 +103,46 @@ def _verify_promotion(change: Any, resolved: dict[str, ArtifactSnapshot]) -> Non
             )
 
 
+def _verify_group_promotion(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.pop_group_candidates import INFERENCE_IDENTITY, MEDIA_TYPE
+
+    if len(change.references) != 1:
+        raise ValueError("Group promotion requires one resolved inference Artifact")
+    artifact_id = change.references[0].get("id")
+    snapshot = resolved.get(artifact_id)
+    if snapshot is None or snapshot.media_type != MEDIA_TYPE:
+        raise ValueError("Group promotion inference Artifact was not resolved")
+    try:
+        payload = json.loads(snapshot.content)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("Group promotion inference Artifact is invalid JSON") from exc
+    if (
+        not isinstance(payload, dict)
+        or canonical_bytes(payload) != snapshot.content
+        or payload.get("identity") != INFERENCE_IDENTITY
+        or not isinstance(payload.get("candidates"), list)
+    ):
+        raise ValueError("Group promotion requires canonical Q v1 inference evidence")
+    candidates = {
+        item.get("candidate_id"): item for item in payload["candidates"] if isinstance(item, dict)
+    }
+    if len(candidates) != len(payload["candidates"]):
+        raise ValueError("Group candidate identities must be unique")
+    for group in change.groups:
+        if type(group) is not PromotedGroup:
+            raise ValueError("Group promotion accepts only PromotedGroup records")
+        candidate = candidates.get(group.candidate_id)
+        if candidate is None or candidate.get("status") != "SUPPORTED":
+            raise ValueError("Only a SUPPORTED GroupCandidate may be promoted")
+        if (
+            candidate.get("inference_id") != group.inference_id
+            or tuple(candidate.get("members", ())) != group.members
+            or payload.get("source_document_hash") != group.source_document_hash
+            or group.inference_artifact_id != snapshot.artifact_id
+        ):
+            raise ValueError("Promoted Group does not match inference evidence")
+
+
 def _single(action: str) -> IntentResolver:
     return lambda change: ((action, "document", None),)
 
@@ -151,6 +193,12 @@ CHANGE_AUTHORITIES = {
             frozenset({"promote_components"}),
             _single("promote_components"),
             _verify_promotion,
+        ),
+        ChangeAuthority(
+            PromoteGroupsChange,
+            frozenset({"promote_group"}),
+            _single("promote_group"),
+            _verify_group_promotion,
         ),
         ChangeAuthority(ReplaceSceneFragmentChange, frozenset({"reconcile_scene"}), _replace_scene),
         ChangeAuthority(SplitEntityChange, frozenset({"split_entity"}), _split_entity),
