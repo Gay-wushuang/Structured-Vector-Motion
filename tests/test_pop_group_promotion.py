@@ -5,8 +5,15 @@ import json
 import unittest
 
 import tests.test_pop_group_candidates as qv1
-from svm import AdapterRequest, ProposalAcceptor
+from svm import (
+    AdapterRequest,
+    AppendReferencesChange,
+    ArtifactKind,
+    ProposalAcceptor,
+    Transaction,
+)
 from svm.adapters import POPGroupCandidateAdapter, POPGroupPromotionAdapter, POPGroupPromotionError
+from svm.evaluator import canonical_bytes
 
 
 class POPGroupPromotionGoldenQv2Test(unittest.TestCase):
@@ -102,6 +109,38 @@ class POPGroupPromotionGoldenQv2Test(unittest.TestCase):
         request = self.request(self.by_status["SUPPORTED"]["candidate_id"])
         request.options.clear()
         with self.assertRaisesRegex(POPGroupPromotionError, "explicit"):
+            POPGroupPromotionAdapter().propose(request, self.artifacts)
+
+    def test_another_inference_reference_makes_the_first_candidate_stale(self) -> None:
+        candidate = self.by_status["SUPPORTED"]
+        first = self.artifacts.get(self.inference_artifact_id)
+        second_payload = json.loads(first.content)
+        second_payload["benchmark_variant"] = "independent-inference-b"
+        second = self.artifacts.import_bytes(
+            canonical_bytes(second_payload),
+            media_type=first.media_type,
+            kind=ArtifactKind.DERIVED,
+            provenance={
+                **first.provenance,
+                "inference_variant": "b",
+            },
+        )
+        second_revision = self.store.commit(
+            self.inference_revision.revision_id,
+            Transaction(
+                transaction_id="transaction:test-accept-second-inference",
+                changes=(AppendReferencesChange((second.document_reference(),)),),
+                message="Accept a second independent inference Artifact",
+            ),
+        )
+        request = AdapterRequest.from_store(
+            self.store,
+            second_revision.revision_id,
+            ("document",),
+            artifact_ids=(self.inference_artifact_id,),
+            options={"candidate_ids": [candidate["candidate_id"]]},
+        )
+        with self.assertRaisesRegex(POPGroupPromotionError, "STALE_CANDIDATE"):
             POPGroupPromotionAdapter().propose(request, self.artifacts)
 
 

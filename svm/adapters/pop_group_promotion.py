@@ -51,10 +51,7 @@ class POPGroupPromotionAdapter:
             raise POPGroupPromotionError("Group promotion inference identity mismatch")
         source_document = json.loads(canonical_bytes(request.document))
         source_document["references"] = [
-            item
-            for item in source_document["references"]
-            if item.get("import_metadata", {}).get("provenance", {}).get("adapter_id")
-            != "adapter:pop-group-candidates"
+            item for item in source_document["references"] if item.get("id") != snapshot.artifact_id
         ]
         source_hash = f"sha256:{hashlib.sha256(canonical_bytes(source_document)).hexdigest()}"
         if payload.get("source_document_hash") != source_hash:

@@ -357,10 +357,7 @@ class PromoteGroupsChange:
             raise DocumentError("Group promotion inference must already be accepted")
         source_document = copy.deepcopy(document)
         source_document["references"] = [
-            item
-            for item in source_document["references"]
-            if item.get("import_metadata", {}).get("provenance", {}).get("adapter_id")
-            != "adapter:pop-group-candidates"
+            item for item in source_document["references"] if item.get("id") != reference["id"]
         ]
         current_source_hash = (
             f"sha256:{hashlib.sha256(canonical_bytes(source_document)).hexdigest()}"
