@@ -30,6 +30,7 @@ The v0.1 intents are:
 | Change | Action | Target | Parameter |
 | --- | --- | --- | --- |
 | `SetOperationParameterChange` | `set_parameter` | Operation ID | parameter name |
+| `SetGroupTransformChange` | `set_group_transform` | Group ID | `transform` |
 | `SetKeyframeValueChange` | `set_keyframe_value` | Track ID | Keyframe ID |
 | `CreateTrackChange` | `create_track` | Operation ID | parameter name |
 | `AddKeyframeChange` | `add_keyframe` | Track ID | new Keyframe ID |

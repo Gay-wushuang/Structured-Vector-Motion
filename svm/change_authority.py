@@ -20,6 +20,7 @@ from .revisions import (
     PromotedGroup,
     PromoteGroupsChange,
     ReplaceSceneFragmentChange,
+    SetGroupTransformChange,
     SetKeyframeValueChange,
     SetOperationParameterChange,
     SplitEntityChange,
@@ -151,6 +152,10 @@ def _set_parameter(change: Any) -> tuple[Intent, ...]:
     return (("set_parameter", change.operation_id, change.parameter),)
 
 
+def _set_group_transform(change: Any) -> tuple[Intent, ...]:
+    return (("set_group_transform", change.group_id, "transform"),)
+
+
 def _set_keyframe_value(change: Any) -> tuple[Intent, ...]:
     return (("set_keyframe_value", change.track_id, change.keyframe_id),)
 
@@ -177,6 +182,11 @@ CHANGE_AUTHORITIES = {
     authority.change_type: authority
     for authority in (
         ChangeAuthority(SetOperationParameterChange, frozenset({"set_parameter"}), _set_parameter),
+        ChangeAuthority(
+            SetGroupTransformChange,
+            frozenset({"set_group_transform"}),
+            _set_group_transform,
+        ),
         ChangeAuthority(
             SetKeyframeValueChange, frozenset({"set_keyframe_value"}), _set_keyframe_value
         ),

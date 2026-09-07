@@ -62,6 +62,11 @@ artifact before it becomes a formal construction input.
 **INV-REL-001** Semantic hierarchy, render order, and refinement stage SHALL be
 represented as independent relations.
 
+**INV-REL-002** A Group Transform SHALL compose outside each member's local
+geometry at evaluation time. Editing it SHALL NOT rewrite member Entities,
+construction Operations, output bindings, local transforms, Styles, Entity
+IDs, or Render Stack order.
+
 **INV-TIME-001** Construction dependency order SHALL NOT imply presentation
 time.
 

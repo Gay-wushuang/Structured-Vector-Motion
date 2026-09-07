@@ -123,6 +123,17 @@
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/entityId"}
         },
+        "transform": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["translate", "rotation_degrees", "scale", "origin"],
+          "properties": {
+            "translate": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+            "rotation_degrees": {"type": "number"},
+            "scale": {"type": "number", "exclusiveMinimum": 0},
+            "origin": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}
+          }
+        },
         "provenance": {
           "type": "object",
           "additionalProperties": false,

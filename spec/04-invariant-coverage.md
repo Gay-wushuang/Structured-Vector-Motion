@@ -94,3 +94,8 @@ binding, and evidence-only acceptance without group materialization.
 selection, status gating, inference Artifact verification, source-drift
 rejection, atomic promotion, member identity preservation, and exact
 non-mutation of primitive construction and presentation.
+
+`tests/test_group_transform.py` implements Golden Q v3. It covers atomic static
+Group Transform edits, outer evaluation-time composition, stable member and
+Value identity, unchanged local geometry and presentation, and fail-closed
+invalid or ambiguous group transforms.

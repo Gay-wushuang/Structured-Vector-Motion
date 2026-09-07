@@ -58,8 +58,9 @@ Read these files before changing core behavior:
 26. `spec/27-pop-structure-reconciliation.md` — POP geometric topmost coverage evidence boundary.
 27. `spec/28-conservative-group-candidates.md` — abstaining evidence-only group inference.
 28. `spec/29-explicit-group-promotion.md` — stale-safe explicit Group promotion.
-29. `examples/001-head-basic.svm.json` — current example Document.
-30. `tests/test_golden_a.py` — executable expectations.
+29. `spec/30-group-transform.md` — evaluation-time Group Transform composition.
+30. `examples/001-head-basic.svm.json` — current example Document.
+31. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -332,6 +333,9 @@ Next milestones:
 22. Explicit Group Promotion and Golden Q v2 promote only user-selected,
     non-stale `SUPPORTED` candidates into persistent unlabeled Group Definitions.
     Group Transform remains a separate Golden Q v3 milestone.
+23. Group Transform and Golden Q v3 compose translate, rotate, and uniform scale
+    around a fixed origin at evaluation time without rewriting member state.
+    Group Transform Tracks remain a later Authoring Motion Slice.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

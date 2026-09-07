@@ -1,0 +1,66 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:golden-q-v3",
+  "references": [
+    {
+      "id": "artifact:0000000000000000000000000000000000000000000000000000000000000000",
+      "uri": "artifact://0000000000000000000000000000000000000000000000000000000000000000",
+      "content_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "media_type": "application/vnd.svm.pop-group-candidates+json;version=0.1",
+      "import_metadata": {"fixture": "golden-q-v3"}
+    }
+  ],
+  "entities": [
+    {"id": "entity:head", "name": "Head"},
+    {"id": "entity:hair", "name": "Hair"},
+    {"id": "entity:shield", "name": "Shield"}
+  ],
+  "groups": [
+    {
+      "id": "group:1111111111111111111111111111111111111111111111111111111111111111",
+      "kind": "explicit-group",
+      "members": ["entity:hair", "entity:head"],
+      "transform": {
+        "translate": [2, 3],
+        "rotation_degrees": 90,
+        "scale": 2,
+        "origin": [0, 0]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:2222222222222222222222222222222222222222222222222222222222222222",
+        "inference_id": "inference:group:3333333333333333333333333333333333333333333333333333333333333333",
+        "inference_artifact_id": "artifact:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ],
+  "construction": {
+    "operations": [
+      {"id": "op:head_base", "type": "CreateEllipse", "inputs": {}, "parameters": {"cx": 0.0, "cy": 0.0, "rx": 0.4, "ry": 0.5}},
+      {"id": "op:head_transform", "type": "Transform", "inputs": {"geometry": "op:head_base.geometry"}, "parameters": {"matrix": [1, 0, 0, 1, 0, 0]}},
+      {"id": "op:head_path", "type": "ConvertToPath", "inputs": {"geometry": "op:head_transform.geometry"}, "parameters": {}},
+      {"id": "op:head_refine", "type": "RefineBezier", "inputs": {"geometry": "op:head_path.geometry"}, "parameters": {"tolerance": 0.01}},
+      {"id": "op:hair_base", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": -0.5, "y": -0.6, "width": 1.0, "height": 0.5}},
+      {"id": "op:hair_clip", "type": "Clip", "inputs": {"content": "op:hair_base.geometry", "clip": "op:head_refine.geometry"}, "parameters": {}},
+      {"id": "op:shield", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": 1.0, "y": 0.0, "width": 0.5, "height": 0.8}}
+    ],
+    "output_bindings": [
+      {"entity": "entity:head", "property": "geometry", "slot": "op:head_refine.geometry"},
+      {"entity": "entity:hair", "property": "geometry", "slot": "op:hair_clip.geometry"},
+      {"entity": "entity:shield", "property": "geometry", "slot": "op:shield.geometry"}
+    ],
+    "refinement_stages": ["mass", "contour", "detail"]
+  },
+  "presentation": {
+    "render_stack": ["entity:hair", "entity:head", "entity:shield"],
+    "styles": [
+      {"entity": "entity:hair", "fill": "#6D4C41", "stroke": "#2D1B16", "stroke_width": 0.015, "opacity": 1.0},
+      {"entity": "entity:head", "fill": "#F2C6A0", "stroke": "#5D4037", "stroke_width": 0.015, "opacity": 1.0},
+      {"entity": "entity:shield", "fill": "#4A78C2", "stroke": "#183A70", "stroke_width": 0.02, "opacity": 1.0}
+    ]
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {"content": [], "construction_scheduling_hints": []}
+}

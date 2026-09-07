@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 from typing import Any
 
@@ -142,7 +143,11 @@ def _validate_groups(groups: Any, known_entities: set[str], reference_ids: set[s
     group_ids: set[str] = set()
     promoted_pairs: set[tuple[str, str]] = set()
     for group in groups:
-        if not isinstance(group, dict) or set(group) != {"id", "kind", "members", "provenance"}:
+        if (
+            not isinstance(group, dict)
+            or not {"id", "kind", "members", "provenance"} <= set(group)
+            or set(group) - {"id", "kind", "members", "provenance", "transform"}
+        ):
             raise DocumentError("Group Definition fields are invalid")
         group_id = group.get("id")
         if not isinstance(group_id, str) or re.fullmatch(r"group:[0-9a-f]{64}", group_id) is None:
@@ -187,6 +192,58 @@ def _validate_groups(groups: Any, known_entities: set[str], reference_ids: set[s
         if key in promoted_pairs:
             raise DocumentError("Group candidate is already promoted")
         promoted_pairs.add(key)
+        transform = group.get("transform")
+        if transform is not None:
+            _validate_group_transform(transform)
+
+    transformed_members: set[str] = set()
+    for group in groups:
+        if group.get("transform") is None:
+            continue
+        overlap = transformed_members & set(group["members"])
+        if overlap:
+            raise DocumentError(
+                f"Entity belongs to multiple transformed Groups: {sorted(overlap)[0]}"
+            )
+        transformed_members.update(group["members"])
+
+
+def _validate_group_transform(transform: Any) -> None:
+    if not isinstance(transform, dict) or set(transform) != {
+        "translate",
+        "rotation_degrees",
+        "scale",
+        "origin",
+    }:
+        raise DocumentError("Group Transform fields are invalid")
+    for name in ("translate", "origin"):
+        value = transform[name]
+        if (
+            not isinstance(value, list)
+            or len(value) != 2
+            or any(
+                isinstance(item, bool)
+                or not isinstance(item, (int, float))
+                or not math.isfinite(float(item))
+                for item in value
+            )
+        ):
+            raise DocumentError(f"Group Transform {name} must contain two finite numbers")
+    rotation = transform["rotation_degrees"]
+    scale = transform["scale"]
+    if (
+        isinstance(rotation, bool)
+        or not isinstance(rotation, (int, float))
+        or not math.isfinite(float(rotation))
+    ):
+        raise DocumentError("Group Transform rotation must be finite")
+    if (
+        isinstance(scale, bool)
+        or not isinstance(scale, (int, float))
+        or not math.isfinite(float(scale))
+        or scale <= 0
+    ):
+        raise DocumentError("Group Transform scale must be finite and positive")
 
 
 def _is_supported_color(value: str) -> bool:

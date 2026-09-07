@@ -39,5 +39,6 @@ different evidence, or any other incompatible source drift produces
 `STALE_CANDIDATE` and requires re-inference.
 
 Accepting Q v1 evidence is not promotion. Promotion is a separate dry-runnable
-Proposal and one atomic Revision. Group Transform and Group Motion are reserved
-for Golden Q v3 and the later Authoring Motion Slice.
+Proposal and one atomic Revision. Static Group Transform is specified
+separately by Golden Q v3; Group Motion remains reserved for the later
+Authoring Motion Slice.

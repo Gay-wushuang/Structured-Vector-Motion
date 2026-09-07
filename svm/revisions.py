@@ -48,6 +48,25 @@ class SetOperationParameterChange:
 
 
 @dataclass(frozen=True)
+class SetGroupTransformChange:
+    """Set one Group transform without mutating member Entities or Operations."""
+
+    group_id: str
+    transform: dict[str, Any]
+
+    def apply(self, document: dict[str, Any]) -> None:
+        group = next(
+            (item for item in document.get("groups", []) if item.get("id") == self.group_id),
+            None,
+        )
+        if group is None:
+            raise DocumentError(f"Cannot transform missing Group {self.group_id}")
+        if group.get("transform") == self.transform:
+            raise DocumentError("SetGroupTransformChange must change the Group transform")
+        group["transform"] = copy.deepcopy(self.transform)
+
+
+@dataclass(frozen=True)
 class SetKeyframeValueChange:
     """Persist one numeric Keyframe edit without changing Track identity."""
 

@@ -53,9 +53,10 @@ acyclic and parent IDs must resolve.
 
 Persistent explicit Group Definitions are independent of Entity hierarchy and
 Render Stack order. A v0.1 Group records a canonical member Entity ID set,
-`kind = explicit-group`, and exact promotion provenance. It carries no transform,
-semantic label, motion-parent role, or occlusion meaning. See
-`29-explicit-group-promotion.md`.
+`kind = explicit-group`, and exact promotion provenance. An optional Group
+Transform composes at evaluation time without rewriting members. A Group
+carries no semantic label, motion-parent role, or occlusion meaning. See
+`29-explicit-group-promotion.md` and `30-group-transform.md`.
 
 ### `construction.operations`
 
