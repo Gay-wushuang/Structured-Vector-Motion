@@ -105,4 +105,5 @@ invalid or ambiguous group transforms.
 `tests/test_group_transform_motion.py` implements the Group Transform Motion
 Slice. It covers atomic four-channel Track authoring, deterministic sampling
 into effective Group transforms, static origin, stable member/local/Value
-identity, static-subtree reuse, and fail-closed unsupported or invalid targets.
+identity, static-subtree reuse, runtime and Revision-transition temporal cache
+invalidation, and fail-closed unsupported or invalid targets.

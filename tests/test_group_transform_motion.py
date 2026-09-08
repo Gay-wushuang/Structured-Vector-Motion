@@ -14,6 +14,7 @@ from svm import (
     Proposal,
     ProposalAcceptor,
     RevisionStore,
+    SetKeyframeValueChange,
     Transaction,
     build_evaluated_scene,
 )
@@ -186,6 +187,55 @@ class GroupTransformMotionSliceTest(unittest.TestCase):
                 ),
             )
         self.assertEqual(len(self.store.revisions), 1)
+
+    def test_group_keyframe_edit_invalidates_only_its_influence_interval(self) -> None:
+        document = json.loads(MOTION_EXAMPLE.read_text(encoding="utf-8"))
+        runtime = MotionEvaluator(document)
+        ticks = (0, 12, 24, 48)
+        cached = {tick: runtime.evaluate(tick) for tick in ticks}
+
+        interval = runtime.set_keyframe_value(
+            "track:group-rotation", "keyframe:group-rotation-0024", 8
+        )
+        self.assertIsNotNone(interval)
+        assert interval is not None
+        self.assertEqual((interval.start_tick, interval.end_tick), (1, 47))
+        self.assertIs(runtime.frame_cache[(0, cached[0].scene.quality)], cached[0])
+        self.assertIs(runtime.frame_cache[(48, cached[48].scene.quality)], cached[48])
+        self.assertNotIn((12, cached[12].scene.quality), runtime.frame_cache)
+        self.assertNotIn((24, cached[24].scene.quality), runtime.frame_cache)
+
+        store = RevisionStore.create(document)
+        assert store.head is not None
+        revision = store.commit(
+            store.head,
+            Transaction(
+                "transaction:edit-group-rotation-middle",
+                (
+                    SetKeyframeValueChange(
+                        "track:group-rotation", "keyframe:group-rotation-0024", 8
+                    ),
+                ),
+            ),
+        )
+        previous = MotionEvaluator(document)
+        previous_cached = {tick: previous.evaluate(tick) for tick in ticks}
+        successor, deltas = previous.transition_to_revision(
+            store.get_document(revision.revision_id)
+        )
+        self.assertEqual(
+            [(delta.interval.start_tick, delta.interval.end_tick) for delta in deltas],
+            [(1, 47)],
+        )
+        self.assertIs(
+            successor.frame_cache[(0, previous_cached[0].scene.quality)], previous_cached[0]
+        )
+        self.assertIs(
+            successor.frame_cache[(48, previous_cached[48].scene.quality)],
+            previous_cached[48],
+        )
+        self.assertNotIn((12, previous_cached[12].scene.quality), successor.frame_cache)
+        self.assertNotIn((24, previous_cached[24].scene.quality), successor.frame_cache)
 
 
 if __name__ == "__main__":
