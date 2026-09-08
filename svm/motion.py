@@ -14,16 +14,19 @@ from .scene import EvaluatedScene, build_evaluated_scene
 MOTION_SEMANTICS_V1_IDENTITY = "svm-motion@0.1"
 MOTION_SEMANTICS_IDENTITY = "svm-motion@0.2"
 GROUP_MOTION_SEMANTICS_IDENTITY = "svm-motion@0.3"
+EASING_MOTION_SEMANTICS_IDENTITY = "svm-motion@0.4"
 SUPPORTED_MOTION_SEMANTICS = frozenset(
     {
         MOTION_SEMANTICS_V1_IDENTITY,
         MOTION_SEMANTICS_IDENTITY,
         GROUP_MOTION_SEMANTICS_IDENTITY,
+        EASING_MOTION_SEMANTICS_IDENTITY,
     }
 )
 GROUP_TRANSFORM_TRACK_PROPERTIES = frozenset(
     {"translate.x", "translate.y", "rotation_degrees", "scale"}
 )
+SUPPORTED_INTERPOLATIONS = frozenset({"linear", "ease-in-out"})
 
 
 @dataclass(frozen=True)
@@ -77,7 +80,13 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
         if track_id in track_ids:
             raise DocumentError(f"Duplicate Animation Track ID {track_id}")
         track_ids.add(track_id)
-        if track.get("value_type") != "number" or track.get("interpolation") != "linear":
+        interpolation = track.get("interpolation")
+        allowed_interpolations = (
+            SUPPORTED_INTERPOLATIONS
+            if semantics_version == EASING_MOTION_SEMANTICS_IDENTITY
+            else frozenset({"linear"})
+        )
+        if track.get("value_type") != "number" or interpolation not in allowed_interpolations:
             raise DocumentError(f"Track {track_id} uses unsupported value/interpolation semantics")
         target_key = _validate_track_target(
             document, evaluator, semantics_version, track_id, track.get("target")
@@ -130,6 +139,7 @@ def _validate_track_target(
         if semantics_version in {
             MOTION_SEMANTICS_IDENTITY,
             GROUP_MOTION_SEMANTICS_IDENTITY,
+            EASING_MOTION_SEMANTICS_IDENTITY,
         } and parameter not in evaluator.registry.animatable_parameters(operation):
             raise DocumentError(
                 f"Track {track_id} targets non-animatable parameter {operation_id}.{parameter}"
@@ -139,7 +149,10 @@ def _validate_track_target(
             raise DocumentError(f"Track {track_id} target parameter is not numeric")
         return ("operation", operation_id, parameter)
     if isinstance(target, dict) and set(target) == {"group", "property"}:
-        if semantics_version != GROUP_MOTION_SEMANTICS_IDENTITY:
+        if semantics_version not in {
+            GROUP_MOTION_SEMANTICS_IDENTITY,
+            EASING_MOTION_SEMANTICS_IDENTITY,
+        }:
             raise DocumentError(f"Track {track_id} requires Group Motion semantics")
         group_id = target["group"]
         property_name = target["property"]
@@ -402,9 +415,13 @@ def _sample_track(track: dict[str, Any], tick: int) -> int | float:
         if left["tick"] <= tick <= right["tick"]:
             span = right["tick"] - left["tick"]
             offset = tick - left["tick"]
-            value = Fraction(str(left["value"])) + (
-                Fraction(str(right["value"])) - Fraction(str(left["value"]))
-            ) * Fraction(offset, span)
+            progress = Fraction(offset, span)
+            if track["interpolation"] == "ease-in-out":
+                progress = 3 * progress**2 - 2 * progress**3
+            value = (
+                Fraction(str(left["value"]))
+                + (Fraction(str(right["value"])) - Fraction(str(left["value"]))) * progress
+            )
             return canonical_motion_number(value)
     raise DocumentError(f"Cannot sample Track {track['id']} at tick {tick}")
 

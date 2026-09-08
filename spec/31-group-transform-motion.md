@@ -51,8 +51,9 @@ change. Static construction Values remain reusable across Group-motion Frames.
 
 ## Authoring
 
-`CreateGroupTransformTrackChange` creates one numeric linear Track for an
-existing transformed Group and one supported property. Initial creation still
+`CreateGroupTransformTrackChange` creates one numeric Track for an existing
+transformed Group and one supported property. Its default is linear; Easing v0
+may explicitly record `ease-in-out` under Motion v0.4. Initial creation still
 requires an `AddKeyframeChange` in the same atomic Transaction. Further
 Keyframes and value edits reuse the existing Motion authoring Changes.
 

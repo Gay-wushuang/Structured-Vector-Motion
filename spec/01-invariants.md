@@ -91,6 +91,10 @@ remain eligible for cross-time immutable Value cache reuse.
 Transform property. It SHALL NOT animate `origin`, rewrite member-local state,
 or change member Entity and geometry Value identity.
 
+**INV-TIME-008** Recorded interpolation semantics SHALL be versioned. Easing
+sampling SHALL be deterministic from integer ticks and recorded Keyframes and
+SHALL preserve exact endpoint values.
+
 ## Transactions, proposals, and control
 
 **INV-TXN-001** One user-visible intent that changes multiple records SHALL

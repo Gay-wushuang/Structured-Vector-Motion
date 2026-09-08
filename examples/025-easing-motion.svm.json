@@ -1,0 +1,69 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:easing-motion-v0",
+  "references": [
+    {
+      "id": "artifact:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "uri": "artifact://eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "content_hash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "media_type": "application/vnd.svm.pop-group-candidates+json;version=0.1",
+      "import_metadata": {"fixture": "easing-motion-v0"}
+    }
+  ],
+  "entities": [
+    {"id": "entity:ease-a", "name": "Ease A"},
+    {"id": "entity:ease-b", "name": "Ease B"}
+  ],
+  "groups": [
+    {
+      "id": "group:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "kind": "explicit-group",
+      "members": ["entity:ease-a", "entity:ease-b"],
+      "transform": {"translate": [0, 0], "rotation_degrees": 0, "scale": 1, "origin": [0, 0]},
+      "provenance": {
+        "candidate_id": "candidate:group:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "inference_id": "inference:group:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "inference_artifact_id": "artifact:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      }
+    }
+  ],
+  "construction": {
+    "operations": [
+      {"id": "op:ease-a", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": -0.5, "y": -0.2, "width": 0.4, "height": 0.4}},
+      {"id": "op:ease-b", "type": "CreateEllipse", "inputs": {}, "parameters": {"cx": 0.2, "cy": 0, "rx": 0.2, "ry": 0.2}}
+    ],
+    "output_bindings": [
+      {"entity": "entity:ease-a", "property": "geometry", "slot": "op:ease-a.geometry"},
+      {"entity": "entity:ease-b", "property": "geometry", "slot": "op:ease-b.geometry"}
+    ],
+    "refinement_stages": []
+  },
+  "presentation": {
+    "render_stack": ["entity:ease-a", "entity:ease-b"],
+    "styles": [
+      {"entity": "entity:ease-a", "fill": "#7C5CFC", "stroke": "none", "stroke_width": 0, "opacity": 1},
+      {"entity": "entity:ease-b", "fill": "#56C596", "stroke": "none", "stroke_width": 0, "opacity": 1}
+    ]
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {
+    "semantics_version": "svm-motion@0.4",
+    "timebase": {"ticks_per_second": 4},
+    "content": [
+      {
+        "id": "track:ease-group-x",
+        "target": {"group": "group:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "property": "translate.x"},
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {"id": "keyframe:ease-group-x-0000", "tick": 0, "value": 0},
+          {"id": "keyframe:ease-group-x-0004", "tick": 4, "value": 100}
+        ]
+      }
+    ],
+    "construction_scheduling_hints": []
+  }
+}

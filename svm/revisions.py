@@ -101,9 +101,15 @@ class CreateTrackChange:
     operation_id: str
     parameter: str
     ticks_per_second: int
+    interpolation: str = "linear"
 
     def apply(self, document: dict[str, Any]) -> None:
-        from .motion import GROUP_MOTION_SEMANTICS_IDENTITY, MOTION_SEMANTICS_IDENTITY
+        from .motion import (
+            EASING_MOTION_SEMANTICS_IDENTITY,
+            GROUP_MOTION_SEMANTICS_IDENTITY,
+            MOTION_SEMANTICS_IDENTITY,
+            SUPPORTED_INTERPOLATIONS,
+        )
         from .operations import get_operation_registry
 
         if not isinstance(self.track_id, str) or not self.track_id.startswith("track:"):
@@ -114,6 +120,8 @@ class CreateTrackChange:
             or self.ticks_per_second <= 0
         ):
             raise DocumentError("CreateTrackChange requires a positive integer timebase")
+        if self.interpolation not in SUPPORTED_INTERPOLATIONS:
+            raise DocumentError("CreateTrackChange uses unsupported interpolation")
         operations = {
             operation["id"]: operation for operation in document["construction"]["operations"]
         }
@@ -148,7 +156,12 @@ class CreateTrackChange:
         timebase = animation.get("timebase")
         if timebase is not None and timebase.get("ticks_per_second") != self.ticks_per_second:
             raise DocumentError("CreateTrackChange timebase conflicts with the Document")
-        if animation.get("semantics_version") != GROUP_MOTION_SEMANTICS_IDENTITY:
+        if self.interpolation == "ease-in-out":
+            animation["semantics_version"] = EASING_MOTION_SEMANTICS_IDENTITY
+        elif animation.get("semantics_version") not in {
+            GROUP_MOTION_SEMANTICS_IDENTITY,
+            EASING_MOTION_SEMANTICS_IDENTITY,
+        }:
             animation["semantics_version"] = MOTION_SEMANTICS_IDENTITY
         animation["timebase"] = {"ticks_per_second": self.ticks_per_second}
         tracks.append(
@@ -156,7 +169,7 @@ class CreateTrackChange:
                 "id": self.track_id,
                 "target": {"operation": self.operation_id, "parameter": self.parameter},
                 "value_type": "number",
-                "interpolation": "linear",
+                "interpolation": self.interpolation,
                 "keyframes": [],
             }
         )
@@ -170,9 +183,15 @@ class CreateGroupTransformTrackChange:
     group_id: str
     property_name: str
     ticks_per_second: int
+    interpolation: str = "linear"
 
     def apply(self, document: dict[str, Any]) -> None:
-        from .motion import GROUP_MOTION_SEMANTICS_IDENTITY, GROUP_TRANSFORM_TRACK_PROPERTIES
+        from .motion import (
+            EASING_MOTION_SEMANTICS_IDENTITY,
+            GROUP_MOTION_SEMANTICS_IDENTITY,
+            GROUP_TRANSFORM_TRACK_PROPERTIES,
+            SUPPORTED_INTERPOLATIONS,
+        )
 
         if not isinstance(self.track_id, str) or not self.track_id.startswith("track:"):
             raise DocumentError("CreateGroupTransformTrackChange requires a track: ID")
@@ -184,6 +203,8 @@ class CreateGroupTransformTrackChange:
             raise DocumentError(
                 "CreateGroupTransformTrackChange requires a positive integer timebase"
             )
+        if self.interpolation not in SUPPORTED_INTERPOLATIONS:
+            raise DocumentError("CreateGroupTransformTrackChange uses unsupported interpolation")
         if self.property_name not in GROUP_TRANSFORM_TRACK_PROPERTIES:
             raise DocumentError("Unsupported Group Transform Track property")
         group = next(
@@ -205,14 +226,17 @@ class CreateGroupTransformTrackChange:
         timebase = animation.get("timebase")
         if timebase is not None and timebase.get("ticks_per_second") != self.ticks_per_second:
             raise DocumentError("CreateGroupTransformTrackChange timebase conflicts with Document")
-        animation["semantics_version"] = GROUP_MOTION_SEMANTICS_IDENTITY
+        if self.interpolation == "ease-in-out":
+            animation["semantics_version"] = EASING_MOTION_SEMANTICS_IDENTITY
+        elif animation.get("semantics_version") != EASING_MOTION_SEMANTICS_IDENTITY:
+            animation["semantics_version"] = GROUP_MOTION_SEMANTICS_IDENTITY
         animation["timebase"] = {"ticks_per_second": self.ticks_per_second}
         tracks.append(
             {
                 "id": self.track_id,
                 "target": target,
                 "value_type": "number",
-                "interpolation": "linear",
+                "interpolation": self.interpolation,
                 "keyframes": [],
             }
         )

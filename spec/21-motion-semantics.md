@@ -104,3 +104,6 @@ Golden N extends this model across immutable Revision snapshots; see
 
 Motion v0.3 adds explicit Group Transform targets without changing the recorded
 v0.1/v0.2 Operation-target semantics; see `31-group-transform-motion.md`.
+
+Motion v0.4 adds one deterministic smoothstep `ease-in-out` interpolation while
+preserving all earlier recorded semantics; see `32-easing-interpolation.md`.

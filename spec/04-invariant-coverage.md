@@ -36,6 +36,7 @@ Status values:
 | INV-TIME-005 | covered | Golden M edits the middle Keyframe and retains cached neighbor Frames outside the affected tick interval. |
 | INV-TIME-006 | covered | Golden M proves a static Operation Value ID and evaluation cache entry are reused at three times. |
 | INV-TIME-007 | covered | Group Transform Motion tests preserve origin, member state, and geometry Value IDs while sampling four explicit channels. |
+| INV-TIME-008 | covered | Easing tests verify version gating, exact endpoints, and rational quarter/half/three-quarter smoothstep samples. |
 | INV-TXN-001 | covered | Golden B verifies atomic success and failure. |
 | INV-PROP-001 | covered | Adapter snapshot isolation and explicit acceptance are tested. |
 | INV-PROP-002 | covered | Base conflicts plus supported Constraints and Edit Permissions are enforced by acceptance tests. |
@@ -107,3 +108,7 @@ Slice. It covers atomic four-channel Track authoring, deterministic sampling
 into effective Group transforms, static origin, stable member/local/Value
 identity, static-subtree reuse, runtime and Revision-transition temporal cache
 invalidation, and fail-closed unsupported or invalid targets.
+
+`tests/test_easing_motion.py` implements Easing v0. It covers exact smoothstep
+sampling, linear compatibility, Group Track authoring, and rejection under old
+Motion identities.

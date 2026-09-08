@@ -7,8 +7,8 @@ Motion semantics from an existing static Document.
 
 ## Changes
 
-`CreateTrackChange(track_id, operation_id, parameter, ticks_per_second)` creates
-one numeric, linear Track with stable identity. It may also establish
+`CreateTrackChange(track_id, operation_id, parameter, ticks_per_second,
+interpolation="linear")` creates one numeric Track with stable identity. It may also establish
 `svm-motion@0.2` and the Document timebase when the Document has no Tracks.
 Existing timebase and target uniqueness are fail-closed.
 The target must occur in the active Operation Definition's explicit
@@ -20,6 +20,10 @@ explicit migration to v0.2 in the successor Revision. Final Transaction
 validation rechecks every existing Track under v0.2; an incompatible legacy
 numeric-only target prevents migration atomically. Reading and editing values
 in the original v0.1 Revision remains supported.
+
+Easing v0 may explicitly record `ease-in-out` and Motion v0.4; see
+`32-easing-interpolation.md`. The default remains linear and preserves the v0.2
+authoring result.
 
 `AddKeyframeChange(track_id, keyframe_id, tick, value)` inserts one finite
 numeric Keyframe in tick order. Keyframe IDs and ticks must be unique within the

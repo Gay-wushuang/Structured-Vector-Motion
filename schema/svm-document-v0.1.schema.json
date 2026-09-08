@@ -253,7 +253,7 @@
         "additionalProperties": false,
         "required": ["content", "construction_scheduling_hints"],
         "properties": {
-          "semantics_version": {"enum": ["svm-motion@0.1", "svm-motion@0.2", "svm-motion@0.3"]},
+          "semantics_version": {"enum": ["svm-motion@0.1", "svm-motion@0.2", "svm-motion@0.3", "svm-motion@0.4"]},
           "timebase": {
             "type": "object",
             "additionalProperties": false,
@@ -301,7 +301,7 @@
             ]
           },
           "value_type": {"const": "number"},
-          "interpolation": {"const": "linear"},
+          "interpolation": {"enum": ["linear", "ease-in-out"]},
           "keyframes": {
             "type": "array",
             "minItems": 1,

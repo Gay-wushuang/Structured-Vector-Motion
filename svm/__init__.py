@@ -21,6 +21,7 @@ from .artifacts import (
 from .backends import GeometryBackend, GeometryBackendError
 from .evaluator import EvaluationState, Evaluator, Quality
 from .motion import (
+    EASING_MOTION_SEMANTICS_IDENTITY,
     GROUP_MOTION_SEMANTICS_IDENTITY,
     MOTION_SEMANTICS_IDENTITY,
     MOTION_SEMANTICS_V1_IDENTITY,
@@ -122,6 +123,7 @@ __all__ = [
     "MOTION_SEMANTICS_IDENTITY",
     "MOTION_SEMANTICS_V1_IDENTITY",
     "GROUP_MOTION_SEMANTICS_IDENTITY",
+    "EASING_MOTION_SEMANTICS_IDENTITY",
     "MotionEvaluator",
     "MotionFrame",
     "MotionRevisionDelta",
