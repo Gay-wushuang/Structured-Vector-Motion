@@ -103,7 +103,7 @@ class CreateTrackChange:
     ticks_per_second: int
 
     def apply(self, document: dict[str, Any]) -> None:
-        from .motion import MOTION_SEMANTICS_IDENTITY
+        from .motion import GROUP_MOTION_SEMANTICS_IDENTITY, MOTION_SEMANTICS_IDENTITY
         from .operations import get_operation_registry
 
         if not isinstance(self.track_id, str) or not self.track_id.startswith("track:"):
@@ -148,12 +148,69 @@ class CreateTrackChange:
         timebase = animation.get("timebase")
         if timebase is not None and timebase.get("ticks_per_second") != self.ticks_per_second:
             raise DocumentError("CreateTrackChange timebase conflicts with the Document")
-        animation["semantics_version"] = MOTION_SEMANTICS_IDENTITY
+        if animation.get("semantics_version") != GROUP_MOTION_SEMANTICS_IDENTITY:
+            animation["semantics_version"] = MOTION_SEMANTICS_IDENTITY
         animation["timebase"] = {"ticks_per_second": self.ticks_per_second}
         tracks.append(
             {
                 "id": self.track_id,
                 "target": {"operation": self.operation_id, "parameter": self.parameter},
+                "value_type": "number",
+                "interpolation": "linear",
+                "keyframes": [],
+            }
+        )
+
+
+@dataclass(frozen=True)
+class CreateGroupTransformTrackChange:
+    """Create one numeric linear Track for a supported Group Transform property."""
+
+    track_id: str
+    group_id: str
+    property_name: str
+    ticks_per_second: int
+
+    def apply(self, document: dict[str, Any]) -> None:
+        from .motion import GROUP_MOTION_SEMANTICS_IDENTITY, GROUP_TRANSFORM_TRACK_PROPERTIES
+
+        if not isinstance(self.track_id, str) or not self.track_id.startswith("track:"):
+            raise DocumentError("CreateGroupTransformTrackChange requires a track: ID")
+        if (
+            not isinstance(self.ticks_per_second, int)
+            or isinstance(self.ticks_per_second, bool)
+            or self.ticks_per_second <= 0
+        ):
+            raise DocumentError(
+                "CreateGroupTransformTrackChange requires a positive integer timebase"
+            )
+        if self.property_name not in GROUP_TRANSFORM_TRACK_PROPERTIES:
+            raise DocumentError("Unsupported Group Transform Track property")
+        group = next(
+            (item for item in document.get("groups", []) if item.get("id") == self.group_id), None
+        )
+        if group is None:
+            raise DocumentError(f"Cannot animate missing Group {self.group_id}")
+        if not isinstance(group.get("transform"), dict):
+            raise DocumentError("Group Transform Track requires an existing static transform")
+        animation = document["animation"]
+        tracks = animation["content"]
+        if any(track.get("id") == self.track_id for track in tracks):
+            raise DocumentError(f"Animation Track already exists: {self.track_id}")
+        target = {"group": self.group_id, "property": self.property_name}
+        if any(track.get("target") == target for track in tracks):
+            raise DocumentError(
+                f"Animation Track already targets {self.group_id}.{self.property_name}"
+            )
+        timebase = animation.get("timebase")
+        if timebase is not None and timebase.get("ticks_per_second") != self.ticks_per_second:
+            raise DocumentError("CreateGroupTransformTrackChange timebase conflicts with Document")
+        animation["semantics_version"] = GROUP_MOTION_SEMANTICS_IDENTITY
+        animation["timebase"] = {"ticks_per_second": self.ticks_per_second}
+        tracks.append(
+            {
+                "id": self.track_id,
+                "target": target,
                 "value_type": "number",
                 "interpolation": "linear",
                 "keyframes": [],

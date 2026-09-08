@@ -1,0 +1,108 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:group-transform-motion-slice",
+  "references": [
+    {
+      "id": "artifact:0000000000000000000000000000000000000000000000000000000000000000",
+      "uri": "artifact://0000000000000000000000000000000000000000000000000000000000000000",
+      "content_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "media_type": "application/vnd.svm.pop-group-candidates+json;version=0.1",
+      "import_metadata": {"fixture": "group-transform-motion-slice"}
+    }
+  ],
+  "entities": [
+    {"id": "entity:block-a", "name": "Block A"},
+    {"id": "entity:block-b", "name": "Block B"}
+  ],
+  "groups": [
+    {
+      "id": "group:1111111111111111111111111111111111111111111111111111111111111111",
+      "kind": "explicit-group",
+      "members": ["entity:block-a", "entity:block-b"],
+      "transform": {
+        "translate": [0, 0],
+        "rotation_degrees": 0,
+        "scale": 1,
+        "origin": [0, 0]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:2222222222222222222222222222222222222222222222222222222222222222",
+        "inference_id": "inference:group:3333333333333333333333333333333333333333333333333333333333333333",
+        "inference_artifact_id": "artifact:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ],
+  "construction": {
+    "operations": [
+      {"id": "op:block-a", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": -0.5, "y": -0.25, "width": 0.4, "height": 0.5}},
+      {"id": "op:block-b", "type": "CreateEllipse", "inputs": {}, "parameters": {"cx": 0.25, "cy": 0, "rx": 0.2, "ry": 0.2}}
+    ],
+    "output_bindings": [
+      {"entity": "entity:block-a", "property": "geometry", "slot": "op:block-a.geometry"},
+      {"entity": "entity:block-b", "property": "geometry", "slot": "op:block-b.geometry"}
+    ],
+    "refinement_stages": []
+  },
+  "presentation": {
+    "render_stack": ["entity:block-a", "entity:block-b"],
+    "styles": [
+      {"entity": "entity:block-a", "fill": "#6D4C41", "stroke": "none", "stroke_width": 0, "opacity": 1},
+      {"entity": "entity:block-b", "fill": "#F2C6A0", "stroke": "none", "stroke_width": 0, "opacity": 1}
+    ]
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {
+    "semantics_version": "svm-motion@0.3",
+    "timebase": {"ticks_per_second": 24},
+    "content": [
+      {
+        "id": "track:group-translate-x",
+        "target": {"group": "group:1111111111111111111111111111111111111111111111111111111111111111", "property": "translate.x"},
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {"id": "keyframe:group-translate-x-0000", "tick": 0, "value": 0},
+          {"id": "keyframe:group-translate-x-0024", "tick": 24, "value": 40},
+          {"id": "keyframe:group-translate-x-0048", "tick": 48, "value": 100}
+        ]
+      },
+      {
+        "id": "track:group-translate-y",
+        "target": {"group": "group:1111111111111111111111111111111111111111111111111111111111111111", "property": "translate.y"},
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {"id": "keyframe:group-translate-y-0000", "tick": 0, "value": 0},
+          {"id": "keyframe:group-translate-y-0024", "tick": 24, "value": -10},
+          {"id": "keyframe:group-translate-y-0048", "tick": 48, "value": 0}
+        ]
+      },
+      {
+        "id": "track:group-rotation",
+        "target": {"group": "group:1111111111111111111111111111111111111111111111111111111111111111", "property": "rotation_degrees"},
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {"id": "keyframe:group-rotation-0000", "tick": 0, "value": 0},
+          {"id": "keyframe:group-rotation-0024", "tick": 24, "value": 4},
+          {"id": "keyframe:group-rotation-0048", "tick": 48, "value": 0}
+        ]
+      },
+      {
+        "id": "track:group-scale",
+        "target": {"group": "group:1111111111111111111111111111111111111111111111111111111111111111", "property": "scale"},
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {"id": "keyframe:group-scale-0000", "tick": 0, "value": 1},
+          {"id": "keyframe:group-scale-0024", "tick": 24, "value": 1.1},
+          {"id": "keyframe:group-scale-0048", "tick": 48, "value": 1.5}
+        ]
+      }
+    ],
+    "construction_scheduling_hints": []
+  }
+}

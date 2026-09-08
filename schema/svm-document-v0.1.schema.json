@@ -253,7 +253,7 @@
         "additionalProperties": false,
         "required": ["content", "construction_scheduling_hints"],
         "properties": {
-          "semantics_version": {"enum": ["svm-motion@0.1", "svm-motion@0.2"]},
+          "semantics_version": {"enum": ["svm-motion@0.1", "svm-motion@0.2", "svm-motion@0.3"]},
           "timebase": {
             "type": "object",
             "additionalProperties": false,
@@ -279,13 +279,26 @@
         "properties": {
           "id": {"type": "string", "pattern": "^track:.+"},
           "target": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["operation", "parameter"],
-            "properties": {
-              "operation": {"$ref": "#/$defs/operationId"},
-              "parameter": {"type": "string", "minLength": 1}
-            }
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["operation", "parameter"],
+                "properties": {
+                  "operation": {"$ref": "#/$defs/operationId"},
+                  "parameter": {"type": "string", "minLength": 1}
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["group", "property"],
+                "properties": {
+                  "group": {"type": "string", "pattern": "^group:[0-9a-f]{64}$"},
+                  "property": {"enum": ["translate.x", "translate.y", "rotation_degrees", "scale"]}
+                }
+              }
+            ]
           },
           "value_type": {"const": "number"},
           "interpolation": {"const": "linear"},

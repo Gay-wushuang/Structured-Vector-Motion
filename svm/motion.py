@@ -13,7 +13,17 @@ from .scene import EvaluatedScene, build_evaluated_scene
 
 MOTION_SEMANTICS_V1_IDENTITY = "svm-motion@0.1"
 MOTION_SEMANTICS_IDENTITY = "svm-motion@0.2"
-SUPPORTED_MOTION_SEMANTICS = frozenset({MOTION_SEMANTICS_V1_IDENTITY, MOTION_SEMANTICS_IDENTITY})
+GROUP_MOTION_SEMANTICS_IDENTITY = "svm-motion@0.3"
+SUPPORTED_MOTION_SEMANTICS = frozenset(
+    {
+        MOTION_SEMANTICS_V1_IDENTITY,
+        MOTION_SEMANTICS_IDENTITY,
+        GROUP_MOTION_SEMANTICS_IDENTITY,
+    }
+)
+GROUP_TRANSFORM_TRACK_PROPERTIES = frozenset(
+    {"translate.x", "translate.y", "rotation_degrees", "scale"}
+)
 
 
 @dataclass(frozen=True)
@@ -57,7 +67,7 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
         raise DocumentError(f"Unsupported Motion semantics {semantics_version!r}")
     _ticks_per_second(timebase)
     track_ids: set[str] = set()
-    targets: set[tuple[str, str]] = set()
+    targets: set[tuple[str, str, str]] = set()
     for track in tracks:
         if not isinstance(track, dict):
             raise DocumentError("Animation Track must be an object")
@@ -69,29 +79,11 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
         track_ids.add(track_id)
         if track.get("value_type") != "number" or track.get("interpolation") != "linear":
             raise DocumentError(f"Track {track_id} uses unsupported value/interpolation semantics")
-        target = track.get("target")
-        if not isinstance(target, dict) or set(target) != {"operation", "parameter"}:
-            raise DocumentError(f"Track {track_id} has invalid target")
-        operation_id = target["operation"]
-        parameter = target["parameter"]
-        if operation_id not in evaluator.operations:
-            raise DocumentError(f"Track {track_id} targets missing Operation {operation_id}")
-        operation = evaluator.operations[operation_id]
-        if parameter not in operation.get("parameters", {}):
-            raise DocumentError(f"Track {track_id} targets missing parameter {parameter}")
-        if (
-            semantics_version == MOTION_SEMANTICS_IDENTITY
-            and parameter not in evaluator.registry.animatable_parameters(operation)
-        ):
-            raise DocumentError(
-                f"Track {track_id} targets non-animatable parameter {operation_id}.{parameter}"
-            )
-        current = operation["parameters"][parameter]
-        if not _finite_number(current):
-            raise DocumentError(f"Track {track_id} target parameter is not numeric")
-        target_key = (operation_id, parameter)
+        target_key = _validate_track_target(
+            document, evaluator, semantics_version, track_id, track.get("target")
+        )
         if target_key in targets:
-            raise DocumentError(f"Multiple Tracks target {operation_id}.{parameter}")
+            raise DocumentError(f"Multiple Tracks target {'.'.join(target_key)}")
         targets.add(target_key)
         keyframes = track.get("keyframes")
         if not isinstance(keyframes, list) or not keyframes:
@@ -111,18 +103,99 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
                 raise DocumentError(f"Track {track_id} has invalid Keyframe tick")
             if not _finite_number(keyframe.get("value")):
                 raise DocumentError(f"Track {track_id} has non-finite Keyframe value")
-            candidate = copy.deepcopy(operation)
-            candidate["parameters"][parameter] = keyframe["value"]
-            try:
-                evaluator.registry.validate(candidate)
-            except OperationValidationError as exc:
-                raise DocumentError(
-                    f"Track {track_id} Keyframe {keyframe_id} violates target semantics: {exc}"
-                ) from exc
+            _validate_sampled_target_value(
+                evaluator, track_id, keyframe_id, track["target"], keyframe["value"]
+            )
             keyframe_ids.add(keyframe_id)
             ticks.append(tick)
         if ticks != sorted(set(ticks)):
             raise DocumentError(f"Track {track_id} Keyframes must have unique increasing ticks")
+
+
+def _validate_track_target(
+    document: dict[str, Any],
+    evaluator: Evaluator,
+    semantics_version: Any,
+    track_id: str,
+    target: Any,
+) -> tuple[str, str, str]:
+    if isinstance(target, dict) and set(target) == {"operation", "parameter"}:
+        operation_id = target["operation"]
+        parameter = target["parameter"]
+        if operation_id not in evaluator.operations:
+            raise DocumentError(f"Track {track_id} targets missing Operation {operation_id}")
+        operation = evaluator.operations[operation_id]
+        if parameter not in operation.get("parameters", {}):
+            raise DocumentError(f"Track {track_id} targets missing parameter {parameter}")
+        if semantics_version in {
+            MOTION_SEMANTICS_IDENTITY,
+            GROUP_MOTION_SEMANTICS_IDENTITY,
+        } and parameter not in evaluator.registry.animatable_parameters(operation):
+            raise DocumentError(
+                f"Track {track_id} targets non-animatable parameter {operation_id}.{parameter}"
+            )
+        current = operation["parameters"][parameter]
+        if not _finite_number(current):
+            raise DocumentError(f"Track {track_id} target parameter is not numeric")
+        return ("operation", operation_id, parameter)
+    if isinstance(target, dict) and set(target) == {"group", "property"}:
+        if semantics_version != GROUP_MOTION_SEMANTICS_IDENTITY:
+            raise DocumentError(f"Track {track_id} requires Group Motion semantics")
+        group_id = target["group"]
+        property_name = target["property"]
+        if property_name not in GROUP_TRANSFORM_TRACK_PROPERTIES:
+            raise DocumentError(f"Track {track_id} targets unsupported Group property")
+        group = next(
+            (item for item in document.get("groups", []) if item.get("id") == group_id), None
+        )
+        if group is None:
+            raise DocumentError(f"Track {track_id} targets missing Group {group_id}")
+        transform = group.get("transform")
+        if not isinstance(transform, dict):
+            raise DocumentError(f"Track {track_id} requires an existing Group Transform")
+        _group_transform_property(transform, property_name)
+        return ("group", group_id, property_name)
+    raise DocumentError(f"Track {track_id} has invalid target")
+
+
+def _validate_sampled_target_value(
+    evaluator: Evaluator,
+    track_id: str,
+    keyframe_id: str,
+    target: dict[str, Any],
+    value: Any,
+) -> None:
+    if "operation" in target:
+        operation = copy.deepcopy(evaluator.operations[target["operation"]])
+        operation["parameters"][target["parameter"]] = value
+        try:
+            evaluator.registry.validate(operation)
+        except OperationValidationError as exc:
+            raise DocumentError(
+                f"Track {track_id} Keyframe {keyframe_id} violates target semantics: {exc}"
+            ) from exc
+        return
+    if target["property"] == "scale" and value <= 0:
+        raise DocumentError(f"Track {track_id} Keyframe {keyframe_id} requires positive scale")
+
+
+def _group_transform_property(transform: dict[str, Any], property_name: str) -> int | float:
+    if property_name == "translate.x":
+        return transform["translate"][0]
+    if property_name == "translate.y":
+        return transform["translate"][1]
+    return transform[property_name]
+
+
+def _set_group_transform_property(
+    transform: dict[str, Any], property_name: str, value: int | float
+) -> None:
+    if property_name == "translate.x":
+        transform["translate"][0] = value
+    elif property_name == "translate.y":
+        transform["translate"][1] = value
+    else:
+        transform[property_name] = value
 
 
 class MotionEvaluator:
@@ -170,11 +243,16 @@ class MotionEvaluator:
         operations = {
             operation["id"]: operation for operation in sampled["construction"]["operations"]
         }
+        groups = {group["id"]: group for group in sampled.get("groups", [])}
         for track in sampled["animation"]["content"]:
             target = track["target"]
-            operations[target["operation"]]["parameters"][target["parameter"]] = _sample_track(
-                track, tick
-            )
+            value = _sample_track(track, tick)
+            if "operation" in target:
+                operations[target["operation"]]["parameters"][target["parameter"]] = value
+            else:
+                _set_group_transform_property(
+                    groups[target["group"]]["transform"], target["property"], value
+                )
         return sampled
 
     def set_keyframe_value(

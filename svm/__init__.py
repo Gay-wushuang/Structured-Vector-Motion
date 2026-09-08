@@ -21,6 +21,7 @@ from .artifacts import (
 from .backends import GeometryBackend, GeometryBackendError
 from .evaluator import EvaluationState, Evaluator, Quality
 from .motion import (
+    GROUP_MOTION_SEMANTICS_IDENTITY,
     MOTION_SEMANTICS_IDENTITY,
     MOTION_SEMANTICS_V1_IDENTITY,
     MotionEvaluator,
@@ -70,6 +71,7 @@ from .revisions import (
     AddKeyframeChange,
     AppendReferencesChange,
     AppendSceneFragmentChange,
+    CreateGroupTransformTrackChange,
     CreateTrackChange,
     ImportPrimitiveSequenceChange,
     ImportRasterLayerEvidenceChange,
@@ -119,6 +121,7 @@ __all__ = [
     "get_operation_registry",
     "MOTION_SEMANTICS_IDENTITY",
     "MOTION_SEMANTICS_V1_IDENTITY",
+    "GROUP_MOTION_SEMANTICS_IDENTITY",
     "MotionEvaluator",
     "MotionFrame",
     "MotionRevisionDelta",
@@ -133,6 +136,7 @@ __all__ = [
     "AddKeyframeChange",
     "AppendReferencesChange",
     "CreateTrackChange",
+    "CreateGroupTransformTrackChange",
     "ImportRasterLayerEvidenceChange",
     "ImportPrimitiveSequenceChange",
     "PromoteComponentsChange",

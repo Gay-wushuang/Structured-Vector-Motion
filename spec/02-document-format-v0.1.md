@@ -105,6 +105,9 @@ stage, or geometry Value identity.
 `constraints`, `evaluation_policies`, and `edit_permissions` are separate
 collections. `animation.content` and
 `animation.construction_scheduling_hints` remain separate time systems.
+Motion v0.1/v0.2 Tracks target explicit Operation parameters. Motion v0.3 also
+permits the closed Group Transform property set `translate.x`, `translate.y`,
+`rotation_degrees`, and `scale`; it does not permit animated Group origin.
 
 ## 4. Structural split semantics
 

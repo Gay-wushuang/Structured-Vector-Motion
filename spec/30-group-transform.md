@@ -44,8 +44,9 @@ group-composition order has yet been specified.
 transform atomically and rejects missing Groups, no-ops, non-finite values,
 non-positive scale, and ambiguous transformed membership.
 
-Group Transform Tracks, Keyframes, frame recovery, optical flow, and shape
-deformation remain outside Golden Q v3.
+Group Transform Tracks remain outside Golden Q v3 and are specified by the
+subsequent Authoring Motion Slice. Frame recovery, optical flow, and shape
+deformation remain deferred.
 
 `examples/022-group-transform.svm.json` is the minimal accepted Document for
 this contract.

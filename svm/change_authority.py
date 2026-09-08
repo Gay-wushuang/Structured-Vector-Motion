@@ -11,6 +11,7 @@ from .revisions import (
     AddKeyframeChange,
     AppendReferencesChange,
     AppendSceneFragmentChange,
+    CreateGroupTransformTrackChange,
     CreateTrackChange,
     ImportLayeredSceneChange,
     ImportPrimitiveSequenceChange,
@@ -164,6 +165,10 @@ def _create_track(change: Any) -> tuple[Intent, ...]:
     return (("create_track", change.operation_id, change.parameter),)
 
 
+def _create_group_transform_track(change: Any) -> tuple[Intent, ...]:
+    return (("create_group_transform_track", change.group_id, change.property_name),)
+
+
 def _add_keyframe(change: Any) -> tuple[Intent, ...]:
     return (("add_keyframe", change.track_id, change.keyframe_id),)
 
@@ -191,6 +196,11 @@ CHANGE_AUTHORITIES = {
             SetKeyframeValueChange, frozenset({"set_keyframe_value"}), _set_keyframe_value
         ),
         ChangeAuthority(CreateTrackChange, frozenset({"create_track"}), _create_track),
+        ChangeAuthority(
+            CreateGroupTransformTrackChange,
+            frozenset({"create_group_transform_track"}),
+            _create_group_transform_track,
+        ),
         ChangeAuthority(AddKeyframeChange, frozenset({"add_keyframe"}), _add_keyframe),
         ChangeAuthority(
             AppendSceneFragmentChange, frozenset({"import_scene"}), _single("import_scene")

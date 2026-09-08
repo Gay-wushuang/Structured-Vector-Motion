@@ -33,6 +33,7 @@ The v0.1 intents are:
 | `SetGroupTransformChange` | `set_group_transform` | Group ID | `transform` |
 | `SetKeyframeValueChange` | `set_keyframe_value` | Track ID | Keyframe ID |
 | `CreateTrackChange` | `create_track` | Operation ID | parameter name |
+| `CreateGroupTransformTrackChange` | `create_group_transform_track` | Group ID | transform property |
 | `AddKeyframeChange` | `add_keyframe` | Track ID | new Keyframe ID |
 | `SplitEntityChange` | `split_entity` | source Entity ID | none |
 | `AppendSceneFragmentChange` | `import_scene` | `document` | none |

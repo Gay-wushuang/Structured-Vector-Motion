@@ -101,3 +101,6 @@ proves endpoint numeric canonicalization.
 
 Golden N extends this model across immutable Revision snapshots; see
 `22-motion-revisions.md`.
+
+Motion v0.3 adds explicit Group Transform targets without changing the recorded
+v0.1/v0.2 Operation-target semantics; see `31-group-transform-motion.md`.

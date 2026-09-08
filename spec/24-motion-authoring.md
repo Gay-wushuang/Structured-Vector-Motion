@@ -64,3 +64,7 @@ select an untracked parameter declared animatable by the Operation Registry
 
 The browser never invents a private JS Track. Every displayed Track and
 Keyframe comes back from the accepted SVM Document projection.
+
+Group Transform Track authoring is a later, separate vertical slice specified
+by `31-group-transform-motion.md`; it does not reinterpret
+`CreateTrackChange` as Group authority.

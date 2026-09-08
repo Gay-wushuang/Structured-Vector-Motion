@@ -87,6 +87,10 @@ whose interpolated value may change.
 Operation's accepted semantics explicitly consume time. Static subtrees SHALL
 remain eligible for cross-time immutable Value cache reuse.
 
+**INV-TIME-007** A Group Transform Track SHALL sample only the recorded Group
+Transform property. It SHALL NOT animate `origin`, rewrite member-local state,
+or change member Entity and geometry Value identity.
+
 ## Transactions, proposals, and control
 
 **INV-TXN-001** One user-visible intent that changes multiple records SHALL

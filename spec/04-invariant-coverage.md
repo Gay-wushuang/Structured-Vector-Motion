@@ -28,12 +28,14 @@ Status values:
 | INV-REF-002 | covered | Artifact tests keep content identity separate from URI/provenance locators. |
 | INV-REF-003 | covered | Golden P snapshots a real stochastic POP continuation before acceptance; Golden Q consumes only its immutable accepted result. |
 | INV-REL-001 | covered | Example Documents keep hierarchy, render stack, and stages separate. |
+| INV-REL-002 | covered | Golden Q v3 composes Group Transform outside unchanged member-local geometry. |
 | INV-TIME-001 | covered | Golden M samples content animation without interpreting DAG order as time. |
 | INV-TIME-002 | covered | Golden M uses only `animation.content`; construction scheduling remains a separate untouched collection. |
 | INV-TIME-003 | covered | Golden M verifies integer Timebase, rational seconds, linear samples, and byte-stable SVG Frames. |
 | INV-TIME-004 | covered | Golden M preserves Entity, Operation, Track, and Keyframe IDs across samples and edits. |
 | INV-TIME-005 | covered | Golden M edits the middle Keyframe and retains cached neighbor Frames outside the affected tick interval. |
 | INV-TIME-006 | covered | Golden M proves a static Operation Value ID and evaluation cache entry are reused at three times. |
+| INV-TIME-007 | covered | Group Transform Motion tests preserve origin, member state, and geometry Value IDs while sampling four explicit channels. |
 | INV-TXN-001 | covered | Golden B verifies atomic success and failure. |
 | INV-PROP-001 | covered | Adapter snapshot isolation and explicit acceptance are tested. |
 | INV-PROP-002 | covered | Base conflicts plus supported Constraints and Edit Permissions are enforced by acceptance tests. |
@@ -99,3 +101,8 @@ non-mutation of primitive construction and presentation.
 Group Transform edits, outer evaluation-time composition, stable member and
 Value identity, unchanged local geometry and presentation, and fail-closed
 invalid or ambiguous group transforms.
+
+`tests/test_group_transform_motion.py` implements the Group Transform Motion
+Slice. It covers atomic four-channel Track authoring, deterministic sampling
+into effective Group transforms, static origin, stable member/local/Value
+identity, static-subtree reuse, and fail-closed unsupported or invalid targets.
