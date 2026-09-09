@@ -253,7 +253,7 @@
         "additionalProperties": false,
         "required": ["content", "construction_scheduling_hints"],
         "properties": {
-          "semantics_version": {"enum": ["svm-motion@0.1", "svm-motion@0.2", "svm-motion@0.3", "svm-motion@0.4"]},
+          "semantics_version": {"enum": ["svm-motion@0.1", "svm-motion@0.2", "svm-motion@0.3", "svm-motion@0.4", "svm-motion@0.5"]},
           "timebase": {
             "type": "object",
             "additionalProperties": false,
@@ -297,11 +297,20 @@
                   "group": {"type": "string", "pattern": "^group:[0-9a-f]{64}$"},
                   "property": {"enum": ["translate.x", "translate.y", "rotation_degrees", "scale"]}
                 }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["entity", "property"],
+                "properties": {
+                  "entity": {"$ref": "#/$defs/entityId"},
+                  "property": {"enum": ["opacity", "fill"]}
+                }
               }
             ]
           },
-          "value_type": {"const": "number"},
-          "interpolation": {"enum": ["linear", "ease-in-out"]},
+          "value_type": {"enum": ["number", "color"]},
+          "interpolation": {"enum": ["linear", "ease-in-out", "hold"]},
           "keyframes": {
             "type": "array",
             "minItems": 1,
@@ -316,7 +325,7 @@
         "properties": {
           "id": {"type": "string", "pattern": "^keyframe:.+"},
           "tick": {"type": "integer", "minimum": 0},
-          "value": {"type": "number"}
+          "value": {"oneOf": [{"type": "number"}, {"type": "string"}]}
         }
       },
     "structuralRelation": {

@@ -68,14 +68,14 @@ class SetGroupTransformChange:
 
 @dataclass(frozen=True)
 class SetKeyframeValueChange:
-    """Persist one numeric Keyframe edit without changing Track identity."""
+    """Persist one typed Keyframe edit without changing Track identity."""
 
     track_id: str
     keyframe_id: str
-    value: int | float
+    value: Any
 
     def apply(self, document: dict[str, Any]) -> None:
-        from .motion import canonical_motion_number
+        from .motion import canonical_track_value
 
         tracks = document.get("animation", {}).get("content", [])
         track = next((item for item in tracks if item.get("id") == self.track_id), None)
@@ -87,15 +87,15 @@ class SetKeyframeValueChange:
         )
         if keyframe is None:
             raise DocumentError(f"Cannot edit missing Keyframe {self.keyframe_id}")
-        value = canonical_motion_number(self.value)
-        if canonical_motion_number(keyframe.get("value")) == value:
+        value = canonical_track_value(track, self.value)
+        if canonical_track_value(track, keyframe.get("value")) == value:
             raise DocumentError("SetKeyframeValueChange must change the canonical value")
         keyframe["value"] = value
 
 
 @dataclass(frozen=True)
 class CreateTrackChange:
-    """Create one empty numeric linear Track inside an atomic authoring Transaction."""
+    """Create one numeric Track inside an atomic authoring Transaction."""
 
     track_id: str
     operation_id: str
@@ -108,6 +108,7 @@ class CreateTrackChange:
             EASING_MOTION_SEMANTICS_IDENTITY,
             GROUP_MOTION_SEMANTICS_IDENTITY,
             MOTION_SEMANTICS_IDENTITY,
+            STYLE_MOTION_SEMANTICS_IDENTITY,
             SUPPORTED_INTERPOLATIONS,
         )
         from .operations import get_operation_registry
@@ -156,11 +157,15 @@ class CreateTrackChange:
         timebase = animation.get("timebase")
         if timebase is not None and timebase.get("ticks_per_second") != self.ticks_per_second:
             raise DocumentError("CreateTrackChange timebase conflicts with the Document")
-        if self.interpolation == "ease-in-out":
+        if (
+            self.interpolation == "ease-in-out"
+            and animation.get("semantics_version") != STYLE_MOTION_SEMANTICS_IDENTITY
+        ):
             animation["semantics_version"] = EASING_MOTION_SEMANTICS_IDENTITY
         elif animation.get("semantics_version") not in {
             GROUP_MOTION_SEMANTICS_IDENTITY,
             EASING_MOTION_SEMANTICS_IDENTITY,
+            STYLE_MOTION_SEMANTICS_IDENTITY,
         }:
             animation["semantics_version"] = MOTION_SEMANTICS_IDENTITY
         animation["timebase"] = {"ticks_per_second": self.ticks_per_second}
@@ -177,7 +182,7 @@ class CreateTrackChange:
 
 @dataclass(frozen=True)
 class CreateGroupTransformTrackChange:
-    """Create one numeric linear Track for a supported Group Transform property."""
+    """Create one numeric Track for a supported Group Transform property."""
 
     track_id: str
     group_id: str
@@ -190,6 +195,7 @@ class CreateGroupTransformTrackChange:
             EASING_MOTION_SEMANTICS_IDENTITY,
             GROUP_MOTION_SEMANTICS_IDENTITY,
             GROUP_TRANSFORM_TRACK_PROPERTIES,
+            STYLE_MOTION_SEMANTICS_IDENTITY,
             SUPPORTED_INTERPOLATIONS,
         )
 
@@ -226,9 +232,15 @@ class CreateGroupTransformTrackChange:
         timebase = animation.get("timebase")
         if timebase is not None and timebase.get("ticks_per_second") != self.ticks_per_second:
             raise DocumentError("CreateGroupTransformTrackChange timebase conflicts with Document")
-        if self.interpolation == "ease-in-out":
+        if (
+            self.interpolation == "ease-in-out"
+            and animation.get("semantics_version") != STYLE_MOTION_SEMANTICS_IDENTITY
+        ):
             animation["semantics_version"] = EASING_MOTION_SEMANTICS_IDENTITY
-        elif animation.get("semantics_version") != EASING_MOTION_SEMANTICS_IDENTITY:
+        elif animation.get("semantics_version") not in {
+            EASING_MOTION_SEMANTICS_IDENTITY,
+            STYLE_MOTION_SEMANTICS_IDENTITY,
+        }:
             animation["semantics_version"] = GROUP_MOTION_SEMANTICS_IDENTITY
         animation["timebase"] = {"ticks_per_second": self.ticks_per_second}
         tracks.append(
@@ -243,16 +255,83 @@ class CreateGroupTransformTrackChange:
 
 
 @dataclass(frozen=True)
+class CreateStyleTrackChange:
+    """Create one Track for an existing Entity presentation Style property."""
+
+    track_id: str
+    entity_id: str
+    property_name: str
+    ticks_per_second: int
+    interpolation: str | None = None
+
+    def apply(self, document: dict[str, Any]) -> None:
+        from .motion import STYLE_MOTION_SEMANTICS_IDENTITY, SUPPORTED_INTERPOLATIONS
+
+        if not isinstance(self.track_id, str) or not self.track_id.startswith("track:"):
+            raise DocumentError("CreateStyleTrackChange requires a track: ID")
+        if (
+            not isinstance(self.ticks_per_second, int)
+            or isinstance(self.ticks_per_second, bool)
+            or self.ticks_per_second <= 0
+        ):
+            raise DocumentError("CreateStyleTrackChange requires a positive integer timebase")
+        if self.property_name not in {"opacity", "fill"}:
+            raise DocumentError("Unsupported Style Track property")
+        style = next(
+            (
+                item
+                for item in document.get("presentation", {}).get("styles", [])
+                if item.get("entity") == self.entity_id
+            ),
+            None,
+        )
+        if style is None:
+            raise DocumentError(f"Cannot animate missing Entity Style {self.entity_id}")
+        interpolation = self.interpolation or ("hold" if self.property_name == "fill" else "linear")
+        if self.property_name == "fill":
+            if interpolation != "hold":
+                raise DocumentError("Fill Track requires hold interpolation")
+            value_type = "color"
+        else:
+            if interpolation not in SUPPORTED_INTERPOLATIONS:
+                raise DocumentError("Opacity Track uses unsupported interpolation")
+            value_type = "number"
+        animation = document["animation"]
+        tracks = animation["content"]
+        if any(track.get("id") == self.track_id for track in tracks):
+            raise DocumentError(f"Animation Track already exists: {self.track_id}")
+        target = {"entity": self.entity_id, "property": self.property_name}
+        if any(track.get("target") == target for track in tracks):
+            raise DocumentError(
+                f"Animation Track already targets {self.entity_id}.{self.property_name}"
+            )
+        timebase = animation.get("timebase")
+        if timebase is not None and timebase.get("ticks_per_second") != self.ticks_per_second:
+            raise DocumentError("CreateStyleTrackChange timebase conflicts with the Document")
+        animation["semantics_version"] = STYLE_MOTION_SEMANTICS_IDENTITY
+        animation["timebase"] = {"ticks_per_second": self.ticks_per_second}
+        tracks.append(
+            {
+                "id": self.track_id,
+                "target": target,
+                "value_type": value_type,
+                "interpolation": interpolation,
+                "keyframes": [],
+            }
+        )
+
+
+@dataclass(frozen=True)
 class AddKeyframeChange:
-    """Insert one stable numeric Keyframe into an existing or transaction-created Track."""
+    """Insert one stable typed Keyframe into an existing or transaction-created Track."""
 
     track_id: str
     keyframe_id: str
     tick: int
-    value: int | float
+    value: Any
 
     def apply(self, document: dict[str, Any]) -> None:
-        from .motion import canonical_motion_number
+        from .motion import canonical_track_value
 
         tracks = document.get("animation", {}).get("content", [])
         track = next((item for item in tracks if item.get("id") == self.track_id), None)
@@ -271,7 +350,7 @@ class AddKeyframeChange:
             {
                 "id": self.keyframe_id,
                 "tick": self.tick,
-                "value": canonical_motion_number(self.value),
+                "value": canonical_track_value(track, self.value),
             }
         )
         keyframes.sort(key=lambda item: item["tick"])

@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:style-opacity-motion",
+  "references": [],
+  "entities": [{"id": "entity:accent", "name": "Accent"}],
+  "construction": {
+    "operations": [{"id": "op:accent", "type": "CreateEllipse", "inputs": {}, "parameters": {"cx": 0, "cy": 0, "rx": 0.5, "ry": 0.5}}],
+    "output_bindings": [{"entity": "entity:accent", "property": "geometry", "slot": "op:accent.geometry"}],
+    "refinement_stages": []
+  },
+  "presentation": {
+    "render_stack": ["entity:accent"],
+    "styles": [{"entity": "entity:accent", "fill": "#7C5CFC", "stroke": "none", "stroke_width": 0, "opacity": 1}]
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {
+    "semantics_version": "svm-motion@0.5",
+    "timebase": {"ticks_per_second": 24},
+    "content": [
+      {
+        "id": "track:accent-opacity",
+        "target": {"entity": "entity:accent", "property": "opacity"},
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {"id": "keyframe:accent-opacity-0000", "tick": 0, "value": 0.2},
+          {"id": "keyframe:accent-opacity-0012", "tick": 12, "value": 1},
+          {"id": "keyframe:accent-opacity-0024", "tick": 24, "value": 0.4}
+        ]
+      },
+      {
+        "id": "track:accent-fill",
+        "target": {"entity": "entity:accent", "property": "fill"},
+        "value_type": "color",
+        "interpolation": "hold",
+        "keyframes": [
+          {"id": "keyframe:accent-fill-0000", "tick": 0, "value": "#7C5CFC"},
+          {"id": "keyframe:accent-fill-0024", "tick": 24, "value": "#56C596"},
+          {"id": "keyframe:accent-fill-0048", "tick": 48, "value": "#FF6B8A"}
+        ]
+      }
+    ],
+    "construction_scheduling_hints": []
+  }
+}

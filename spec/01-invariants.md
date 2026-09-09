@@ -95,6 +95,10 @@ or change member Entity and geometry Value identity.
 sampling SHALL be deterministic from integer ticks and recorded Keyframes and
 SHALL preserve exact endpoint values.
 
+**INV-TIME-009** Style Track sampling SHALL modify only ephemeral presentation
+state. Opacity SHALL remain in `[0, 1]`; fill SHALL use discrete hold sampling;
+neither SHALL change Entity identity, construction, or geometry Value identity.
+
 ## Transactions, proposals, and control
 
 **INV-TXN-001** One user-visible intent that changes multiple records SHALL

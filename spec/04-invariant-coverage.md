@@ -112,3 +112,8 @@ invalidation, and fail-closed unsupported or invalid targets.
 `tests/test_easing_motion.py` implements Easing v0. It covers exact smoothstep
 sampling, linear compatibility, Group Track authoring, and rejection under old
 Motion identities.
+
+`tests/test_style_motion.py` implements Style / Opacity Motion v0. It covers
+numeric opacity easing, discrete fill holds, atomic Track authoring, ephemeral
+presentation sampling, static geometry reuse, hold-aware temporal cache
+invalidation, and fail-closed target/value combinations.

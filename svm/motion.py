@@ -4,7 +4,7 @@ import copy
 import math
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Any
+from typing import Any, cast
 
 from .backends import GeometryBackend
 from .evaluator import DocumentError, Evaluator, ImmutableValue, Quality
@@ -15,18 +15,21 @@ MOTION_SEMANTICS_V1_IDENTITY = "svm-motion@0.1"
 MOTION_SEMANTICS_IDENTITY = "svm-motion@0.2"
 GROUP_MOTION_SEMANTICS_IDENTITY = "svm-motion@0.3"
 EASING_MOTION_SEMANTICS_IDENTITY = "svm-motion@0.4"
+STYLE_MOTION_SEMANTICS_IDENTITY = "svm-motion@0.5"
 SUPPORTED_MOTION_SEMANTICS = frozenset(
     {
         MOTION_SEMANTICS_V1_IDENTITY,
         MOTION_SEMANTICS_IDENTITY,
         GROUP_MOTION_SEMANTICS_IDENTITY,
         EASING_MOTION_SEMANTICS_IDENTITY,
+        STYLE_MOTION_SEMANTICS_IDENTITY,
     }
 )
 GROUP_TRANSFORM_TRACK_PROPERTIES = frozenset(
     {"translate.x", "translate.y", "rotation_degrees", "scale"}
 )
 SUPPORTED_INTERPOLATIONS = frozenset({"linear", "ease-in-out"})
+STYLE_TRACK_PROPERTIES = frozenset({"opacity", "fill"})
 
 
 @dataclass(frozen=True)
@@ -81,16 +84,22 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
             raise DocumentError(f"Duplicate Animation Track ID {track_id}")
         track_ids.add(track_id)
         interpolation = track.get("interpolation")
-        allowed_interpolations = (
-            SUPPORTED_INTERPOLATIONS
-            if semantics_version == EASING_MOTION_SEMANTICS_IDENTITY
-            else frozenset({"linear"})
-        )
-        if track.get("value_type") != "number" or interpolation not in allowed_interpolations:
+        value_type = track.get("value_type")
+        if semantics_version == STYLE_MOTION_SEMANTICS_IDENTITY:
+            valid_track_shape = value_type in {"number", "color"} and interpolation in {
+                *SUPPORTED_INTERPOLATIONS,
+                "hold",
+            }
+        else:
+            allowed_interpolations = (
+                SUPPORTED_INTERPOLATIONS
+                if semantics_version == EASING_MOTION_SEMANTICS_IDENTITY
+                else frozenset({"linear"})
+            )
+            valid_track_shape = value_type == "number" and interpolation in allowed_interpolations
+        if not valid_track_shape:
             raise DocumentError(f"Track {track_id} uses unsupported value/interpolation semantics")
-        target_key = _validate_track_target(
-            document, evaluator, semantics_version, track_id, track.get("target")
-        )
+        target_key = _validate_track_target(document, evaluator, semantics_version, track_id, track)
         if target_key in targets:
             raise DocumentError(f"Multiple Tracks target {'.'.join(target_key)}")
         targets.add(target_key)
@@ -110,8 +119,7 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
                 raise DocumentError(f"Track {track_id} has duplicate Keyframe IDs")
             if not isinstance(tick, int) or isinstance(tick, bool) or tick < 0:
                 raise DocumentError(f"Track {track_id} has invalid Keyframe tick")
-            if not _finite_number(keyframe.get("value")):
-                raise DocumentError(f"Track {track_id} has non-finite Keyframe value")
+            canonical_track_value(track, keyframe.get("value"))
             _validate_sampled_target_value(
                 evaluator, track_id, keyframe_id, track["target"], keyframe["value"]
             )
@@ -126,8 +134,9 @@ def _validate_track_target(
     evaluator: Evaluator,
     semantics_version: Any,
     track_id: str,
-    target: Any,
+    track: dict[str, Any],
 ) -> tuple[str, str, str]:
+    target = track.get("target")
     if isinstance(target, dict) and set(target) == {"operation", "parameter"}:
         operation_id = target["operation"]
         parameter = target["parameter"]
@@ -140,6 +149,7 @@ def _validate_track_target(
             MOTION_SEMANTICS_IDENTITY,
             GROUP_MOTION_SEMANTICS_IDENTITY,
             EASING_MOTION_SEMANTICS_IDENTITY,
+            STYLE_MOTION_SEMANTICS_IDENTITY,
         } and parameter not in evaluator.registry.animatable_parameters(operation):
             raise DocumentError(
                 f"Track {track_id} targets non-animatable parameter {operation_id}.{parameter}"
@@ -147,11 +157,14 @@ def _validate_track_target(
         current = operation["parameters"][parameter]
         if not _finite_number(current):
             raise DocumentError(f"Track {track_id} target parameter is not numeric")
+        if track["value_type"] != "number" or track["interpolation"] == "hold":
+            raise DocumentError(f"Track {track_id} has invalid Operation Track semantics")
         return ("operation", operation_id, parameter)
     if isinstance(target, dict) and set(target) == {"group", "property"}:
         if semantics_version not in {
             GROUP_MOTION_SEMANTICS_IDENTITY,
             EASING_MOTION_SEMANTICS_IDENTITY,
+            STYLE_MOTION_SEMANTICS_IDENTITY,
         }:
             raise DocumentError(f"Track {track_id} requires Group Motion semantics")
         group_id = target["group"]
@@ -167,7 +180,32 @@ def _validate_track_target(
         if not isinstance(transform, dict):
             raise DocumentError(f"Track {track_id} requires an existing Group Transform")
         _group_transform_property(transform, property_name)
+        if track["value_type"] != "number" or track["interpolation"] == "hold":
+            raise DocumentError(f"Track {track_id} has invalid Group Track semantics")
         return ("group", group_id, property_name)
+    if isinstance(target, dict) and set(target) == {"entity", "property"}:
+        if semantics_version != STYLE_MOTION_SEMANTICS_IDENTITY:
+            raise DocumentError(f"Track {track_id} requires Style Motion semantics")
+        entity_id = target["entity"]
+        property_name = target["property"]
+        if property_name not in STYLE_TRACK_PROPERTIES:
+            raise DocumentError(f"Track {track_id} targets unsupported Style property")
+        style = next(
+            (
+                item
+                for item in document.get("presentation", {}).get("styles", [])
+                if item.get("entity") == entity_id
+            ),
+            None,
+        )
+        if style is None:
+            raise DocumentError(f"Track {track_id} targets missing Entity Style {entity_id}")
+        if property_name == "opacity":
+            if track["value_type"] != "number" or track["interpolation"] == "hold":
+                raise DocumentError(f"Track {track_id} has invalid opacity Track semantics")
+        elif track["value_type"] != "color" or track["interpolation"] != "hold":
+            raise DocumentError(f"Track {track_id} has invalid fill Track semantics")
+        return ("entity", entity_id, property_name)
     raise DocumentError(f"Track {track_id} has invalid target")
 
 
@@ -187,6 +225,12 @@ def _validate_sampled_target_value(
             raise DocumentError(
                 f"Track {track_id} Keyframe {keyframe_id} violates target semantics: {exc}"
             ) from exc
+        return
+    if "entity" in target:
+        if target["property"] == "opacity" and not 0 <= value <= 1:
+            raise DocumentError(
+                f"Track {track_id} Keyframe {keyframe_id} opacity must be between 0 and 1"
+            )
         return
     if target["property"] == "scale" and value <= 0:
         raise DocumentError(f"Track {track_id} Keyframe {keyframe_id} requires positive scale")
@@ -257,23 +301,28 @@ class MotionEvaluator:
             operation["id"]: operation for operation in sampled["construction"]["operations"]
         }
         groups = {group["id"]: group for group in sampled.get("groups", [])}
+        styles = {
+            style["entity"]: style for style in sampled.get("presentation", {}).get("styles", [])
+        }
         for track in sampled["animation"]["content"]:
             target = track["target"]
             value = _sample_track(track, tick)
             if "operation" in target:
                 operations[target["operation"]]["parameters"][target["parameter"]] = value
-            else:
+            elif "group" in target:
                 _set_group_transform_property(
-                    groups[target["group"]]["transform"], target["property"], value
+                    groups[target["group"]]["transform"],
+                    target["property"],
+                    cast(int | float, value),
                 )
+            else:
+                styles[target["entity"]][target["property"]] = value
         return sampled
 
     def set_keyframe_value(
-        self, track_id: str, keyframe_id: str, value: float
+        self, track_id: str, keyframe_id: str, value: Any
     ) -> TemporalInterval | None:
         """Exercise runtime invalidation; this is not a persistent Document edit API."""
-        if not _finite_number(value):
-            raise DocumentError("Keyframe value must be finite")
         track = next(
             (item for item in self.document["animation"]["content"] if item["id"] == track_id),
             None,
@@ -287,8 +336,10 @@ class MotionEvaluator:
         )
         if index is None:
             raise DocumentError(f"Missing Keyframe {keyframe_id}")
-        previous = keyframes[index]["value"]
-        if canonical_motion_number(previous) == canonical_motion_number(value):
+        value = canonical_track_value(track, value)
+        previous_raw = keyframes[index]["value"]
+        previous = canonical_track_value(track, previous_raw)
+        if previous == value:
             return None
         keyframes[index]["value"] = value
         try:
@@ -297,12 +348,9 @@ class MotionEvaluator:
                 Evaluator(self.document, geometry_backend=self.geometry_backend),
             )
         except DocumentError:
-            keyframes[index]["value"] = previous
+            keyframes[index]["value"] = previous_raw
             raise
-        interval = TemporalInterval(
-            start_tick=keyframes[index - 1]["tick"] + 1 if index > 0 else 0,
-            end_tick=(keyframes[index + 1]["tick"] - 1 if index + 1 < len(keyframes) else None),
-        )
+        interval = _keyframe_influence_interval(keyframes, index, track["interpolation"])
         self.frame_cache = {
             key: frame
             for key, frame in self.frame_cache.items()
@@ -359,15 +407,17 @@ def motion_revision_deltas(
                 key: value for key, value in new_keyframe.items() if key != "value"
             }:
                 raise DocumentError("Motion revision transition requires stable Keyframe identity")
-            if canonical_motion_number(old_keyframe["value"]) == canonical_motion_number(
-                new_keyframe["value"]
+            if canonical_track_value(old_track, old_keyframe["value"]) == canonical_track_value(
+                new_track, new_keyframe["value"]
             ):
                 continue
             deltas.append(
                 MotionRevisionDelta(
                     track_id=old_track["id"],
                     keyframe_id=old_keyframe["id"],
-                    interval=_keyframe_influence_interval(old_keyframes, index),
+                    interval=_keyframe_influence_interval(
+                        old_keyframes, index, old_track["interpolation"]
+                    ),
                 )
             )
     return tuple(deltas)
@@ -382,7 +432,14 @@ def _without_keyframe_values(document: dict[str, Any]) -> dict[str, Any]:
     return shape
 
 
-def _keyframe_influence_interval(keyframes: list[dict[str, Any]], index: int) -> TemporalInterval:
+def _keyframe_influence_interval(
+    keyframes: list[dict[str, Any]], index: int, interpolation: str = "linear"
+) -> TemporalInterval:
+    if interpolation == "hold":
+        return TemporalInterval(
+            start_tick=keyframes[index]["tick"] if index > 0 else 0,
+            end_tick=(keyframes[index + 1]["tick"] - 1 if index + 1 < len(keyframes) else None),
+        )
     return TemporalInterval(
         start_tick=keyframes[index - 1]["tick"] + 1 if index > 0 else 0,
         end_tick=keyframes[index + 1]["tick"] - 1 if index + 1 < len(keyframes) else None,
@@ -405,12 +462,21 @@ def _ticks_per_second(timebase: Any) -> int:
     return timebase["ticks_per_second"]
 
 
-def _sample_track(track: dict[str, Any], tick: int) -> int | float:
+def _sample_track(track: dict[str, Any], tick: int) -> int | float | str:
     keyframes = track["keyframes"]
     if tick <= keyframes[0]["tick"]:
-        return canonical_motion_number(keyframes[0]["value"])
+        return canonical_track_value(track, keyframes[0]["value"])
     if tick >= keyframes[-1]["tick"]:
-        return canonical_motion_number(keyframes[-1]["value"])
+        return canonical_track_value(track, keyframes[-1]["value"])
+    if track["interpolation"] == "hold":
+        return canonical_track_value(
+            track,
+            next(
+                keyframe["value"]
+                for keyframe, following in zip(keyframes, keyframes[1:], strict=False)
+                if keyframe["tick"] <= tick < following["tick"]
+            ),
+        )
     for left, right in zip(keyframes, keyframes[1:], strict=False):
         if left["tick"] <= tick <= right["tick"]:
             span = right["tick"] - left["tick"]
@@ -438,3 +504,21 @@ def canonical_motion_number(value: Any) -> int | float:
     else:
         raise DocumentError("Motion number must be finite")
     return number.numerator if number.denominator == 1 else float(number)
+
+
+def canonical_track_value(track: dict[str, Any], value: Any) -> int | float | str:
+    if track.get("value_type") == "number":
+        return canonical_motion_number(value)
+    if track.get("value_type") == "color" and isinstance(value, str) and _supported_color(value):
+        return value
+    raise DocumentError("Track value does not match its recorded value type")
+
+
+def _supported_color(value: str) -> bool:
+    if value == "none":
+        return True
+    return (
+        len(value) in {7, 9}
+        and value.startswith("#")
+        and all(character in "0123456789abcdefABCDEF" for character in value[1:])
+    )
