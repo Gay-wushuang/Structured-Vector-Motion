@@ -16,6 +16,19 @@
     "inference_type_selection": "highest predicted primitive-type probability"
   },
   "release_audit": {
+    "status": "NO_PUBLIC_RELEASE_FOUND",
+    "author_page": "https://sjtuchenye.github.io/",
+    "author_github": "https://github.com/sjtuchenye",
+    "author_page_npa_links": [
+      "https://openaccess.thecvf.com/content/ICCV2023/papers/Chen_Editable_Image_Geometric_Abstraction_via_Neural_Primitive_Assembly_ICCV_2023_paper.pdf"
+    ],
+    "paper_sha256": "8eea01c3cbefb60680fd1461ccdd552abf1bb23abf124fca9a8098dfb5fc35d9",
+    "queries": [
+      "exact paper title",
+      "Neural Primitive Assembly",
+      "ICCV 2023 NPA geometric abstraction",
+      "author public GitHub repository listing"
+    ],
     "local_repository": null,
     "official_repository": null,
     "checkpoint": null,
@@ -24,7 +37,13 @@
     "same_input_image_artifact": null
   },
   "fixture_status": "BLOCKED_NO_AUTHENTIC_OUTPUT",
-  "adapter_status": "NOT_STARTED",
+  "adapter_status": "BLOCKED_PENDING_AUTHENTIC_UPSTREAM_OUTPUT",
+  "unblock_with_any": [
+    "official repository URL",
+    "author-provided source archive and license",
+    "checkpoint plus inference entrypoint",
+    "raw unmodified inference output with producer identity"
+  ],
   "prohibited_shortcuts": [
     "invent output serialization",
     "treat paper-derived mock data as a real model fixture",
