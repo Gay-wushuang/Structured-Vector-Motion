@@ -1,0 +1,35 @@
+{
+  "identity": "svm-npa-contract-survey@0.1",
+  "survey_date": "2026-09-10",
+  "target": {
+    "title": "Editable Image Geometric Abstraction via Neural Primitive Assembly",
+    "venue": "ICCV 2023",
+    "doi": "10.1109/ICCV51070.2023.02149",
+    "paper_url": "https://openaccess.thecvf.com/content/ICCV2023/papers/Chen_Editable_Image_Geometric_Abstraction_via_Neural_Primitive_Assembly_ICCV_2023_paper.pdf"
+  },
+  "verified_paper_contract": {
+    "prediction_semantics": "image-to-set",
+    "primitive_types": ["triangle", "rectangle", "circle", "semicircle"],
+    "affine_parameters": ["rotation", "scale_x", "scale_y", "translate_x", "translate_y", "shear_x", "shear_y"],
+    "point_offsets": "2t values for t parametric primitive points",
+    "color": "RGB",
+    "inference_type_selection": "highest predicted primitive-type probability"
+  },
+  "release_audit": {
+    "local_repository": null,
+    "official_repository": null,
+    "checkpoint": null,
+    "inference_entrypoint": null,
+    "serialized_output_example": null,
+    "same_input_image_artifact": null
+  },
+  "fixture_status": "BLOCKED_NO_AUTHENTIC_OUTPUT",
+  "adapter_status": "NOT_STARTED",
+  "prohibited_shortcuts": [
+    "invent output serialization",
+    "treat paper-derived mock data as a real model fixture",
+    "infer render order from image-to-set output",
+    "materialize type probabilities as artwork semantics",
+    "extend SVM Core before inspecting authentic output"
+  ]
+}
