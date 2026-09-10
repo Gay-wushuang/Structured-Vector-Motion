@@ -6,6 +6,7 @@ authoring slices to a more deliberate music-video-style composition.
 It combines:
 
 - two persistent character Groups using eased translate, rotate, and scale;
+- repeated-value pauses plus authored overshoot and settle poses;
 - an eased signal and overlay rhythm;
 - held palette cuts on the background, characters, and overlay bars;
 - eased halo pulses and three short opacity flashes;
@@ -34,6 +35,8 @@ build output and intentionally ignored by Git.
    without requiring continuous color interpolation.
 3. Rigid Groups remain useful across palette cuts and flashes because visual
    presentation changes do not disturb primitive or Group identity.
+4. Pauses and overshoot can be authored entirely with ordinary Keyframes: no
+   numeric hold interpolation or new curve semantics are needed for this shot.
 
 The next Core capability should be chosen by viewing this result. This demo
 does not pre-authorize Camera, Mask, Clip, or Shape deformation work.
