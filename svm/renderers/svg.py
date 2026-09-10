@@ -44,6 +44,11 @@ class SVGRenderer:
         )
         defs = ET.SubElement(root, "defs")
         content = ET.SubElement(root, "g", {"data-svm-role": "render-stack"})
+        if scene.camera_transform is not None:
+            content.set(
+                "transform",
+                f"matrix({' '.join(_number(value) for value in scene.camera_transform)})",
+            )
         for entity in scene.entities:
             fill = entity.style.fill if entity.style else self.options.fill
             stroke = entity.style.stroke if entity.style else self.options.stroke

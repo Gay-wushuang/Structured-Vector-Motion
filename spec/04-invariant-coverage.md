@@ -117,3 +117,7 @@ Motion identities.
 numeric opacity easing, discrete fill holds, atomic Track authoring, ephemeral
 presentation sampling, static geometry reuse, hold-aware temporal cache
 invalidation, and fail-closed target/value combinations.
+
+`tests/test_camera_motion.py` implements Camera Motion v0. It covers the outer
+world-to-view matrix, stable geometry Values, numeric Camera Track sampling,
+and fail-closed invalid or non-positive Camera state.

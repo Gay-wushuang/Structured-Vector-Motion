@@ -62,8 +62,9 @@ Read these files before changing core behavior:
 30. `spec/31-group-transform-motion.md` — Group Transform Track authoring and sampling.
 31. `spec/32-easing-interpolation.md` — deterministic smoothstep interpolation.
 32. `spec/33-style-opacity-motion.md` — numeric opacity and discrete fill Tracks.
-33. `examples/001-head-basic.svm.json` — current example Document.
-34. `tests/test_golden_a.py` — executable expectations.
+33. `spec/34-camera-motion.md` — outer Camera transform and Camera Tracks.
+34. `examples/001-head-basic.svm.json` — current example Document.
+35. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an

@@ -16,6 +16,7 @@ MOTION_SEMANTICS_IDENTITY = "svm-motion@0.2"
 GROUP_MOTION_SEMANTICS_IDENTITY = "svm-motion@0.3"
 EASING_MOTION_SEMANTICS_IDENTITY = "svm-motion@0.4"
 STYLE_MOTION_SEMANTICS_IDENTITY = "svm-motion@0.5"
+CAMERA_MOTION_SEMANTICS_IDENTITY = "svm-motion@0.6"
 SUPPORTED_MOTION_SEMANTICS = frozenset(
     {
         MOTION_SEMANTICS_V1_IDENTITY,
@@ -23,6 +24,7 @@ SUPPORTED_MOTION_SEMANTICS = frozenset(
         GROUP_MOTION_SEMANTICS_IDENTITY,
         EASING_MOTION_SEMANTICS_IDENTITY,
         STYLE_MOTION_SEMANTICS_IDENTITY,
+        CAMERA_MOTION_SEMANTICS_IDENTITY,
     }
 )
 GROUP_TRANSFORM_TRACK_PROPERTIES = frozenset(
@@ -30,6 +32,7 @@ GROUP_TRANSFORM_TRACK_PROPERTIES = frozenset(
 )
 SUPPORTED_INTERPOLATIONS = frozenset({"linear", "ease-in-out"})
 STYLE_TRACK_PROPERTIES = frozenset({"opacity", "fill"})
+CAMERA_TRACK_PROPERTIES = frozenset({"position.x", "position.y", "rotation_degrees", "scale"})
 
 
 @dataclass(frozen=True)
@@ -85,7 +88,7 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
         track_ids.add(track_id)
         interpolation = track.get("interpolation")
         value_type = track.get("value_type")
-        if semantics_version == STYLE_MOTION_SEMANTICS_IDENTITY:
+        if semantics_version in {STYLE_MOTION_SEMANTICS_IDENTITY, CAMERA_MOTION_SEMANTICS_IDENTITY}:
             valid_track_shape = value_type in {"number", "color"} and interpolation in {
                 *SUPPORTED_INTERPOLATIONS,
                 "hold",
@@ -150,6 +153,7 @@ def _validate_track_target(
             GROUP_MOTION_SEMANTICS_IDENTITY,
             EASING_MOTION_SEMANTICS_IDENTITY,
             STYLE_MOTION_SEMANTICS_IDENTITY,
+            CAMERA_MOTION_SEMANTICS_IDENTITY,
         } and parameter not in evaluator.registry.animatable_parameters(operation):
             raise DocumentError(
                 f"Track {track_id} targets non-animatable parameter {operation_id}.{parameter}"
@@ -165,6 +169,7 @@ def _validate_track_target(
             GROUP_MOTION_SEMANTICS_IDENTITY,
             EASING_MOTION_SEMANTICS_IDENTITY,
             STYLE_MOTION_SEMANTICS_IDENTITY,
+            CAMERA_MOTION_SEMANTICS_IDENTITY,
         }:
             raise DocumentError(f"Track {track_id} requires Group Motion semantics")
         group_id = target["group"]
@@ -184,7 +189,10 @@ def _validate_track_target(
             raise DocumentError(f"Track {track_id} has invalid Group Track semantics")
         return ("group", group_id, property_name)
     if isinstance(target, dict) and set(target) == {"entity", "property"}:
-        if semantics_version != STYLE_MOTION_SEMANTICS_IDENTITY:
+        if semantics_version not in {
+            STYLE_MOTION_SEMANTICS_IDENTITY,
+            CAMERA_MOTION_SEMANTICS_IDENTITY,
+        }:
             raise DocumentError(f"Track {track_id} requires Style Motion semantics")
         entity_id = target["entity"]
         property_name = target["property"]
@@ -206,6 +214,19 @@ def _validate_track_target(
         elif track["value_type"] != "color" or track["interpolation"] != "hold":
             raise DocumentError(f"Track {track_id} has invalid fill Track semantics")
         return ("entity", entity_id, property_name)
+    if isinstance(target, dict) and set(target) == {"camera", "property"}:
+        if (
+            semantics_version != CAMERA_MOTION_SEMANTICS_IDENTITY
+            or target["camera"] != "presentation"
+        ):
+            raise DocumentError(f"Track {track_id} requires Camera Motion semantics")
+        if target["property"] not in CAMERA_TRACK_PROPERTIES:
+            raise DocumentError(f"Track {track_id} targets unsupported Camera property")
+        if not isinstance(document.get("presentation", {}).get("camera"), dict):
+            raise DocumentError(f"Track {track_id} requires an existing Camera")
+        if track["value_type"] != "number" or track["interpolation"] == "hold":
+            raise DocumentError(f"Track {track_id} has invalid Camera Track semantics")
+        return ("camera", "presentation", target["property"])
     raise DocumentError(f"Track {track_id} has invalid target")
 
 
@@ -232,6 +253,10 @@ def _validate_sampled_target_value(
                 f"Track {track_id} Keyframe {keyframe_id} opacity must be between 0 and 1"
             )
         return
+    if "camera" in target:
+        if target["property"] == "scale" and value <= 0:
+            raise DocumentError(f"Track {track_id} Keyframe {keyframe_id} requires positive scale")
+        return
     if target["property"] == "scale" and value <= 0:
         raise DocumentError(f"Track {track_id} Keyframe {keyframe_id} requires positive scale")
 
@@ -253,6 +278,15 @@ def _set_group_transform_property(
         transform["translate"][1] = value
     else:
         transform[property_name] = value
+
+
+def _set_camera_property(camera: dict[str, Any], property_name: str, value: int | float) -> None:
+    if property_name == "position.x":
+        camera["position"][0] = value
+    elif property_name == "position.y":
+        camera["position"][1] = value
+    else:
+        camera[property_name] = value
 
 
 class MotionEvaluator:
@@ -304,6 +338,7 @@ class MotionEvaluator:
         styles = {
             style["entity"]: style for style in sampled.get("presentation", {}).get("styles", [])
         }
+        camera = sampled["presentation"].get("camera")
         for track in sampled["animation"]["content"]:
             target = track["target"]
             value = _sample_track(track, tick)
@@ -315,8 +350,10 @@ class MotionEvaluator:
                     target["property"],
                     cast(int | float, value),
                 )
-            else:
+            elif "entity" in target:
                 styles[target["entity"]][target["property"]] = value
+            else:
+                _set_camera_property(camera, target["property"], cast(int | float, value))
         return sampled
 
     def set_keyframe_value(

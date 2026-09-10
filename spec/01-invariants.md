@@ -99,6 +99,9 @@ SHALL preserve exact endpoint values.
 state. Opacity SHALL remain in `[0, 1]`; fill SHALL use discrete hold sampling;
 neither SHALL change Entity identity, construction, or geometry Value identity.
 
+**INV-TIME-010** Camera evaluation SHALL be one outer world-to-view transform.
+Camera edits and sampling SHALL NOT rewrite Entity, Group, or construction state.
+
 ## Transactions, proposals, and control
 
 **INV-TXN-001** One user-visible intent that changes multiple records SHALL

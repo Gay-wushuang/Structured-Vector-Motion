@@ -21,6 +21,7 @@ from .artifacts import (
 from .backends import GeometryBackend, GeometryBackendError
 from .evaluator import EvaluationState, Evaluator, Quality
 from .motion import (
+    CAMERA_MOTION_SEMANTICS_IDENTITY,
     EASING_MOTION_SEMANTICS_IDENTITY,
     GROUP_MOTION_SEMANTICS_IDENTITY,
     MOTION_SEMANTICS_IDENTITY,
@@ -73,6 +74,7 @@ from .revisions import (
     AddKeyframeChange,
     AppendReferencesChange,
     AppendSceneFragmentChange,
+    CreateCameraTransformTrackChange,
     CreateGroupTransformTrackChange,
     CreateStyleTrackChange,
     CreateTrackChange,
@@ -85,6 +87,7 @@ from .revisions import (
     RasterLayerEvidence,
     ReplaceSceneFragmentChange,
     RevisionStore,
+    SetCameraTransformChange,
     SetGroupTransformChange,
     SetKeyframeValueChange,
     SetOperationParameterChange,
@@ -126,6 +129,7 @@ __all__ = [
     "MOTION_SEMANTICS_V1_IDENTITY",
     "GROUP_MOTION_SEMANTICS_IDENTITY",
     "EASING_MOTION_SEMANTICS_IDENTITY",
+    "CAMERA_MOTION_SEMANTICS_IDENTITY",
     "STYLE_MOTION_SEMANTICS_IDENTITY",
     "MotionEvaluator",
     "MotionFrame",
@@ -142,6 +146,7 @@ __all__ = [
     "AppendReferencesChange",
     "CreateTrackChange",
     "CreateGroupTransformTrackChange",
+    "CreateCameraTransformTrackChange",
     "CreateStyleTrackChange",
     "ImportRasterLayerEvidenceChange",
     "ImportPrimitiveSequenceChange",
@@ -154,6 +159,7 @@ __all__ = [
     "SetOperationParameterChange",
     "SetKeyframeValueChange",
     "SetGroupTransformChange",
+    "SetCameraTransformChange",
     "SplitEntityChange",
     "SplitPart",
     "Transaction",

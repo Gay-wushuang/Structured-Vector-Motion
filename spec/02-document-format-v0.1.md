@@ -113,6 +113,8 @@ earlier Motion identities remain linear-only.
 Motion v0.5 permits Entity `opacity` numeric Tracks using either v0.4 numeric
 interpolation and Entity `fill` color Tracks using discrete `hold` sampling.
 Style samples affect only the sampled presentation state.
+Motion v0.6 adds an optional presentation Camera and numeric Camera Tracks for
+position, rotation, and positive uniform scale.
 
 ## 4. Structural split semantics
 

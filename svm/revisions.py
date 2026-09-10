@@ -67,6 +67,16 @@ class SetGroupTransformChange:
 
 
 @dataclass(frozen=True)
+class SetCameraTransformChange:
+    camera: dict[str, Any]
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if document["presentation"].get("camera") == self.camera:
+            raise DocumentError("SetCameraTransformChange must change the Camera")
+        document["presentation"]["camera"] = copy.deepcopy(self.camera)
+
+
+@dataclass(frozen=True)
 class SetKeyframeValueChange:
     """Persist one typed Keyframe edit without changing Track identity."""
 
@@ -105,6 +115,7 @@ class CreateTrackChange:
 
     def apply(self, document: dict[str, Any]) -> None:
         from .motion import (
+            CAMERA_MOTION_SEMANTICS_IDENTITY,
             EASING_MOTION_SEMANTICS_IDENTITY,
             GROUP_MOTION_SEMANTICS_IDENTITY,
             MOTION_SEMANTICS_IDENTITY,
@@ -157,15 +168,16 @@ class CreateTrackChange:
         timebase = animation.get("timebase")
         if timebase is not None and timebase.get("ticks_per_second") != self.ticks_per_second:
             raise DocumentError("CreateTrackChange timebase conflicts with the Document")
-        if (
-            self.interpolation == "ease-in-out"
-            and animation.get("semantics_version") != STYLE_MOTION_SEMANTICS_IDENTITY
-        ):
+        if self.interpolation == "ease-in-out" and animation.get("semantics_version") not in {
+            STYLE_MOTION_SEMANTICS_IDENTITY,
+            CAMERA_MOTION_SEMANTICS_IDENTITY,
+        }:
             animation["semantics_version"] = EASING_MOTION_SEMANTICS_IDENTITY
         elif animation.get("semantics_version") not in {
             GROUP_MOTION_SEMANTICS_IDENTITY,
             EASING_MOTION_SEMANTICS_IDENTITY,
             STYLE_MOTION_SEMANTICS_IDENTITY,
+            CAMERA_MOTION_SEMANTICS_IDENTITY,
         }:
             animation["semantics_version"] = MOTION_SEMANTICS_IDENTITY
         animation["timebase"] = {"ticks_per_second": self.ticks_per_second}
@@ -192,6 +204,7 @@ class CreateGroupTransformTrackChange:
 
     def apply(self, document: dict[str, Any]) -> None:
         from .motion import (
+            CAMERA_MOTION_SEMANTICS_IDENTITY,
             EASING_MOTION_SEMANTICS_IDENTITY,
             GROUP_MOTION_SEMANTICS_IDENTITY,
             GROUP_TRANSFORM_TRACK_PROPERTIES,
@@ -232,14 +245,15 @@ class CreateGroupTransformTrackChange:
         timebase = animation.get("timebase")
         if timebase is not None and timebase.get("ticks_per_second") != self.ticks_per_second:
             raise DocumentError("CreateGroupTransformTrackChange timebase conflicts with Document")
-        if (
-            self.interpolation == "ease-in-out"
-            and animation.get("semantics_version") != STYLE_MOTION_SEMANTICS_IDENTITY
-        ):
+        if self.interpolation == "ease-in-out" and animation.get("semantics_version") not in {
+            STYLE_MOTION_SEMANTICS_IDENTITY,
+            CAMERA_MOTION_SEMANTICS_IDENTITY,
+        }:
             animation["semantics_version"] = EASING_MOTION_SEMANTICS_IDENTITY
         elif animation.get("semantics_version") not in {
             EASING_MOTION_SEMANTICS_IDENTITY,
             STYLE_MOTION_SEMANTICS_IDENTITY,
+            CAMERA_MOTION_SEMANTICS_IDENTITY,
         }:
             animation["semantics_version"] = GROUP_MOTION_SEMANTICS_IDENTITY
         animation["timebase"] = {"ticks_per_second": self.ticks_per_second}
@@ -265,7 +279,11 @@ class CreateStyleTrackChange:
     interpolation: str | None = None
 
     def apply(self, document: dict[str, Any]) -> None:
-        from .motion import STYLE_MOTION_SEMANTICS_IDENTITY, SUPPORTED_INTERPOLATIONS
+        from .motion import (
+            CAMERA_MOTION_SEMANTICS_IDENTITY,
+            STYLE_MOTION_SEMANTICS_IDENTITY,
+            SUPPORTED_INTERPOLATIONS,
+        )
 
         if not isinstance(self.track_id, str) or not self.track_id.startswith("track:"):
             raise DocumentError("CreateStyleTrackChange requires a track: ID")
@@ -308,7 +326,8 @@ class CreateStyleTrackChange:
         timebase = animation.get("timebase")
         if timebase is not None and timebase.get("ticks_per_second") != self.ticks_per_second:
             raise DocumentError("CreateStyleTrackChange timebase conflicts with the Document")
-        animation["semantics_version"] = STYLE_MOTION_SEMANTICS_IDENTITY
+        if animation.get("semantics_version") != CAMERA_MOTION_SEMANTICS_IDENTITY:
+            animation["semantics_version"] = STYLE_MOTION_SEMANTICS_IDENTITY
         animation["timebase"] = {"ticks_per_second": self.ticks_per_second}
         tracks.append(
             {
@@ -316,6 +335,60 @@ class CreateStyleTrackChange:
                 "target": target,
                 "value_type": value_type,
                 "interpolation": interpolation,
+                "keyframes": [],
+            }
+        )
+
+
+@dataclass(frozen=True)
+class CreateCameraTransformTrackChange:
+    track_id: str
+    property_name: str
+    ticks_per_second: int
+    interpolation: str = "linear"
+
+    def apply(self, document: dict[str, Any]) -> None:
+        from .motion import (
+            CAMERA_MOTION_SEMANTICS_IDENTITY,
+            CAMERA_TRACK_PROPERTIES,
+            SUPPORTED_INTERPOLATIONS,
+        )
+
+        if not isinstance(self.track_id, str) or not self.track_id.startswith("track:"):
+            raise DocumentError("CreateCameraTransformTrackChange requires a track: ID")
+        if self.property_name not in CAMERA_TRACK_PROPERTIES:
+            raise DocumentError("Unsupported Camera Track property")
+        if self.interpolation not in SUPPORTED_INTERPOLATIONS:
+            raise DocumentError("Camera Track uses unsupported interpolation")
+        if (
+            not isinstance(self.ticks_per_second, int)
+            or isinstance(self.ticks_per_second, bool)
+            or self.ticks_per_second <= 0
+        ):
+            raise DocumentError("Camera Track requires a positive integer timebase")
+        if not isinstance(document["presentation"].get("camera"), dict):
+            raise DocumentError("Camera Track requires an existing Camera")
+        animation, target = (
+            document["animation"],
+            {"camera": "presentation", "property": self.property_name},
+        )
+        if any(item.get("id") == self.track_id for item in animation["content"]):
+            raise DocumentError(f"Animation Track already exists: {self.track_id}")
+        if any(item.get("target") == target for item in animation["content"]):
+            raise DocumentError("Animation Track already targets Camera property")
+        if (
+            animation.get("timebase") is not None
+            and animation["timebase"].get("ticks_per_second") != self.ticks_per_second
+        ):
+            raise DocumentError("Camera Track timebase conflicts with the Document")
+        animation["semantics_version"] = CAMERA_MOTION_SEMANTICS_IDENTITY
+        animation["timebase"] = {"ticks_per_second": self.ticks_per_second}
+        animation["content"].append(
+            {
+                "id": self.track_id,
+                "target": target,
+                "value_type": "number",
+                "interpolation": self.interpolation,
                 "keyframes": [],
             }
         )

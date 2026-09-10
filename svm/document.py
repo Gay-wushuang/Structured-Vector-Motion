@@ -101,6 +101,10 @@ def validate_document(document: dict[str, Any]) -> None:
         if entity_id not in known_entities:
             raise DocumentError(f"Render stack references missing entity {entity_id}")
 
+    camera = document.get("presentation", {}).get("camera")
+    if camera is not None:
+        _validate_camera(camera)
+
     style_entities: set[str] = set()
     for style in document.get("presentation", {}).get("styles", []):
         entity_id = style.get("entity")
@@ -135,6 +139,37 @@ def validate_document(document: dict[str, Any]) -> None:
     from .motion import validate_motion
 
     validate_motion(document, evaluator)
+
+
+def _validate_camera(camera: Any) -> None:
+    if not isinstance(camera, dict) or set(camera) != {"position", "rotation_degrees", "scale"}:
+        raise DocumentError("Camera fields are invalid")
+    position = camera["position"]
+    if (
+        not isinstance(position, list)
+        or len(position) != 2
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            for value in position
+        )
+    ):
+        raise DocumentError("Camera position must contain two finite numbers")
+    rotation, scale = camera["rotation_degrees"], camera["scale"]
+    if (
+        isinstance(rotation, bool)
+        or not isinstance(rotation, (int, float))
+        or not math.isfinite(float(rotation))
+    ):
+        raise DocumentError("Camera rotation must be finite")
+    if (
+        isinstance(scale, bool)
+        or not isinstance(scale, (int, float))
+        or not math.isfinite(float(scale))
+        or scale <= 0
+    ):
+        raise DocumentError("Camera scale must be finite and positive")
 
 
 def _validate_groups(groups: Any, known_entities: set[str], reference_ids: set[str]) -> None:

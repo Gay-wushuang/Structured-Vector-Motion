@@ -29,6 +29,7 @@ class EvaluatedScene:
     document_id: str
     entities: tuple[EvaluatedEntity, ...]
     quality: Quality
+    camera_transform: tuple[float, float, float, float, float, float] | None = None
 
 
 def build_evaluated_scene(
@@ -98,6 +99,27 @@ def build_evaluated_scene(
         document_id=document["document_id"],
         entities=tuple(evaluated_entities),
         quality=quality,
+        camera_transform=_camera_transform_matrix(document["presentation"].get("camera")),
+    )
+
+
+def _camera_transform_matrix(
+    camera: dict[str, Any] | None,
+) -> tuple[float, float, float, float, float, float] | None:
+    if camera is None:
+        return None
+    x, y = (float(value) for value in camera["position"])
+    scale = float(camera["scale"])
+    radians = math.radians(-float(camera["rotation_degrees"]))
+    a, b = scale * math.cos(radians), scale * math.sin(radians)
+    c, d = -b, a
+    return (
+        _canonical_scene_number(a),
+        _canonical_scene_number(b),
+        _canonical_scene_number(c),
+        _canonical_scene_number(d),
+        _canonical_scene_number(-a * x - c * y),
+        _canonical_scene_number(-b * x - d * y),
     )
 
 

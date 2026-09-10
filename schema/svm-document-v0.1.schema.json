@@ -190,7 +190,18 @@
         "styles": {
           "type": "array",
           "items": {"$ref": "#/$defs/style"}
-        }
+        },
+        "camera": {"$ref": "#/$defs/camera"}
+      }
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "rotation_degrees", "scale"],
+      "properties": {
+        "position": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+        "rotation_degrees": {"type": "number"},
+        "scale": {"type": "number", "exclusiveMinimum": 0}
       }
     },
     "style": {
@@ -236,7 +247,9 @@
               "reconcile_scene",
               "attach_analysis",
                 "promote_components",
-                "set_keyframe_value"
+                "set_keyframe_value",
+                "set_camera_transform",
+                "create_camera_transform_track"
             ]
           }
         },
@@ -253,7 +266,7 @@
         "additionalProperties": false,
         "required": ["content", "construction_scheduling_hints"],
         "properties": {
-          "semantics_version": {"enum": ["svm-motion@0.1", "svm-motion@0.2", "svm-motion@0.3", "svm-motion@0.4", "svm-motion@0.5"]},
+          "semantics_version": {"enum": ["svm-motion@0.1", "svm-motion@0.2", "svm-motion@0.3", "svm-motion@0.4", "svm-motion@0.5", "svm-motion@0.6"]},
           "timebase": {
             "type": "object",
             "additionalProperties": false,
@@ -305,6 +318,15 @@
                 "properties": {
                   "entity": {"$ref": "#/$defs/entityId"},
                   "property": {"enum": ["opacity", "fill"]}
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["camera", "property"],
+                "properties": {
+                  "camera": {"const": "presentation"},
+                  "property": {"enum": ["position.x", "position.y", "rotation_degrees", "scale"]}
                 }
               }
             ]

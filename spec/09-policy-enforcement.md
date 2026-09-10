@@ -35,6 +35,8 @@ The v0.1 intents are:
 | `CreateTrackChange` | `create_track` | Operation ID | parameter name |
 | `CreateGroupTransformTrackChange` | `create_group_transform_track` | Group ID | transform property |
 | `CreateStyleTrackChange` | `create_style_track` | Entity ID | style property |
+| `SetCameraTransformChange` | `set_camera_transform` | `presentation` | `camera` |
+| `CreateCameraTransformTrackChange` | `create_camera_transform_track` | `presentation` | camera property |
 | `AddKeyframeChange` | `add_keyframe` | Track ID | new Keyframe ID |
 | `SplitEntityChange` | `split_entity` | source Entity ID | none |
 | `AppendSceneFragmentChange` | `import_scene` | `document` | none |

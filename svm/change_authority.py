@@ -11,6 +11,7 @@ from .revisions import (
     AddKeyframeChange,
     AppendReferencesChange,
     AppendSceneFragmentChange,
+    CreateCameraTransformTrackChange,
     CreateGroupTransformTrackChange,
     CreateStyleTrackChange,
     CreateTrackChange,
@@ -22,6 +23,7 @@ from .revisions import (
     PromotedGroup,
     PromoteGroupsChange,
     ReplaceSceneFragmentChange,
+    SetCameraTransformChange,
     SetGroupTransformChange,
     SetKeyframeValueChange,
     SetOperationParameterChange,
@@ -158,6 +160,10 @@ def _set_group_transform(change: Any) -> tuple[Intent, ...]:
     return (("set_group_transform", change.group_id, "transform"),)
 
 
+def _set_camera_transform(change: Any) -> tuple[Intent, ...]:
+    return (("set_camera_transform", "presentation", "camera"),)
+
+
 def _set_keyframe_value(change: Any) -> tuple[Intent, ...]:
     return (("set_keyframe_value", change.track_id, change.keyframe_id),)
 
@@ -168,6 +174,10 @@ def _create_track(change: Any) -> tuple[Intent, ...]:
 
 def _create_group_transform_track(change: Any) -> tuple[Intent, ...]:
     return (("create_group_transform_track", change.group_id, change.property_name),)
+
+
+def _create_camera_transform_track(change: Any) -> tuple[Intent, ...]:
+    return (("create_camera_transform_track", "presentation", change.property_name),)
 
 
 def _create_style_track(change: Any) -> tuple[Intent, ...]:
@@ -198,6 +208,9 @@ CHANGE_AUTHORITIES = {
             _set_group_transform,
         ),
         ChangeAuthority(
+            SetCameraTransformChange, frozenset({"set_camera_transform"}), _set_camera_transform
+        ),
+        ChangeAuthority(
             SetKeyframeValueChange, frozenset({"set_keyframe_value"}), _set_keyframe_value
         ),
         ChangeAuthority(CreateTrackChange, frozenset({"create_track"}), _create_track),
@@ -205,6 +218,11 @@ CHANGE_AUTHORITIES = {
             CreateGroupTransformTrackChange,
             frozenset({"create_group_transform_track"}),
             _create_group_transform_track,
+        ),
+        ChangeAuthority(
+            CreateCameraTransformTrackChange,
+            frozenset({"create_camera_transform_track"}),
+            _create_camera_transform_track,
         ),
         ChangeAuthority(
             CreateStyleTrackChange,
