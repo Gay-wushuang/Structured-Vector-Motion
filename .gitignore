@@ -8,3 +8,5 @@ dist/
 .ruff_cache/
 .pyright/
 .tmp-wheel/
+demo/*/frames/
+demo/*/frames-png/

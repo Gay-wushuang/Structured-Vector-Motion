@@ -1,0 +1,1531 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:authoring-ground-truth-demo-002",
+  "references": [
+    {
+      "id": "artifact:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "uri": "artifact://bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "content_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "media_type": "application/vnd.svm.pop-group-candidates+json;version=0.1",
+      "import_metadata": {
+        "fixture": "hand-authored-demo"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "entity:background",
+      "name": "Background"
+    },
+    {
+      "id": "entity:halo",
+      "name": "Halo"
+    },
+    {
+      "id": "entity:a-body",
+      "name": "A Body"
+    },
+    {
+      "id": "entity:a-face",
+      "name": "A Face"
+    },
+    {
+      "id": "entity:a-mark",
+      "name": "A Mark"
+    },
+    {
+      "id": "entity:b-body",
+      "name": "B Body"
+    },
+    {
+      "id": "entity:b-face",
+      "name": "B Face"
+    },
+    {
+      "id": "entity:b-mark",
+      "name": "B Mark"
+    },
+    {
+      "id": "entity:signal-left",
+      "name": "Signal Left"
+    },
+    {
+      "id": "entity:signal-right",
+      "name": "Signal Right"
+    },
+    {
+      "id": "entity:overlay-top",
+      "name": "Overlay Top"
+    },
+    {
+      "id": "entity:overlay-bottom",
+      "name": "Overlay Bottom"
+    },
+    {
+      "id": "entity:flash",
+      "name": "Flash"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group:1111111111111111111111111111111111111111111111111111111111111111",
+      "kind": "explicit-group",
+      "members": [
+        "entity:a-body",
+        "entity:a-face",
+        "entity:a-mark"
+      ],
+      "transform": {
+        "translate": [
+          0,
+          0
+        ],
+        "rotation_degrees": 0,
+        "scale": 1,
+        "origin": [
+          -0.72,
+          0.18
+        ]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:1111111111111111111111111111111111111111111111111111111111111111",
+        "inference_id": "inference:group:1111111111111111111111111111111111111111111111111111111111111111",
+        "inference_artifact_id": "artifact:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "id": "group:2222222222222222222222222222222222222222222222222222222222222222",
+      "kind": "explicit-group",
+      "members": [
+        "entity:b-body",
+        "entity:b-face",
+        "entity:b-mark"
+      ],
+      "transform": {
+        "translate": [
+          0,
+          0
+        ],
+        "rotation_degrees": 0,
+        "scale": 1,
+        "origin": [
+          0.72,
+          0.18
+        ]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:2222222222222222222222222222222222222222222222222222222222222222",
+        "inference_id": "inference:group:2222222222222222222222222222222222222222222222222222222222222222",
+        "inference_artifact_id": "artifact:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "id": "group:3333333333333333333333333333333333333333333333333333333333333333",
+      "kind": "explicit-group",
+      "members": [
+        "entity:signal-left",
+        "entity:signal-right"
+      ],
+      "transform": {
+        "translate": [
+          0,
+          0
+        ],
+        "rotation_degrees": 0,
+        "scale": 1,
+        "origin": [
+          0,
+          -0.83
+        ]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:3333333333333333333333333333333333333333333333333333333333333333",
+        "inference_id": "inference:group:3333333333333333333333333333333333333333333333333333333333333333",
+        "inference_artifact_id": "artifact:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "id": "group:4444444444444444444444444444444444444444444444444444444444444444",
+      "kind": "explicit-group",
+      "members": [
+        "entity:overlay-bottom",
+        "entity:overlay-top"
+      ],
+      "transform": {
+        "translate": [
+          0,
+          0
+        ],
+        "rotation_degrees": 0,
+        "scale": 1,
+        "origin": [
+          0,
+          0
+        ]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:4444444444444444444444444444444444444444444444444444444444444444",
+        "inference_id": "inference:group:4444444444444444444444444444444444444444444444444444444444444444",
+        "inference_artifact_id": "artifact:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  ],
+  "construction": {
+    "operations": [
+      {
+        "id": "op:background",
+        "type": "CreateRectangle",
+        "inputs": {},
+        "parameters": {
+          "x": -2,
+          "y": -1.125,
+          "width": 4,
+          "height": 2.25
+        }
+      },
+      {
+        "id": "op:halo",
+        "type": "CreateEllipse",
+        "inputs": {},
+        "parameters": {
+          "cx": 0,
+          "cy": -0.55,
+          "rx": 0.72,
+          "ry": 0.72
+        }
+      },
+      {
+        "id": "op:a-body",
+        "type": "CreateEllipse",
+        "inputs": {},
+        "parameters": {
+          "cx": -0.72,
+          "cy": 0.18,
+          "rx": 0.42,
+          "ry": 0.68
+        }
+      },
+      {
+        "id": "op:a-face",
+        "type": "CreateEllipse",
+        "inputs": {},
+        "parameters": {
+          "cx": -0.72,
+          "cy": -0.32,
+          "rx": 0.29,
+          "ry": 0.25
+        }
+      },
+      {
+        "id": "op:a-mark",
+        "type": "CreateRectangle",
+        "inputs": {},
+        "parameters": {
+          "x": -0.89,
+          "y": -0.37,
+          "width": 0.34,
+          "height": 0.08
+        }
+      },
+      {
+        "id": "op:b-body",
+        "type": "CreateEllipse",
+        "inputs": {},
+        "parameters": {
+          "cx": 0.72,
+          "cy": 0.18,
+          "rx": 0.42,
+          "ry": 0.68
+        }
+      },
+      {
+        "id": "op:b-face",
+        "type": "CreateEllipse",
+        "inputs": {},
+        "parameters": {
+          "cx": 0.72,
+          "cy": -0.32,
+          "rx": 0.29,
+          "ry": 0.25
+        }
+      },
+      {
+        "id": "op:b-mark",
+        "type": "CreateRectangle",
+        "inputs": {},
+        "parameters": {
+          "x": 0.55,
+          "y": -0.37,
+          "width": 0.34,
+          "height": 0.08
+        }
+      },
+      {
+        "id": "op:signal-left",
+        "type": "CreateRectangle",
+        "inputs": {},
+        "parameters": {
+          "x": -0.25,
+          "y": -1.03,
+          "width": 0.1,
+          "height": 0.4
+        }
+      },
+      {
+        "id": "op:signal-right",
+        "type": "CreateRectangle",
+        "inputs": {},
+        "parameters": {
+          "x": 0.15,
+          "y": -1.03,
+          "width": 0.1,
+          "height": 0.4
+        }
+      },
+      {
+        "id": "op:overlay-top",
+        "type": "CreateRectangle",
+        "inputs": {},
+        "parameters": {
+          "x": -2,
+          "y": -1.125,
+          "width": 4,
+          "height": 0.12
+        }
+      },
+      {
+        "id": "op:overlay-bottom",
+        "type": "CreateRectangle",
+        "inputs": {},
+        "parameters": {
+          "x": -2,
+          "y": 1.005,
+          "width": 4,
+          "height": 0.12
+        }
+      },
+      {
+        "id": "op:flash",
+        "type": "CreateRectangle",
+        "inputs": {},
+        "parameters": {
+          "x": -2,
+          "y": -1.125,
+          "width": 4,
+          "height": 2.25
+        }
+      }
+    ],
+    "output_bindings": [
+      {
+        "entity": "entity:background",
+        "property": "geometry",
+        "slot": "op:background.geometry"
+      },
+      {
+        "entity": "entity:halo",
+        "property": "geometry",
+        "slot": "op:halo.geometry"
+      },
+      {
+        "entity": "entity:a-body",
+        "property": "geometry",
+        "slot": "op:a-body.geometry"
+      },
+      {
+        "entity": "entity:a-face",
+        "property": "geometry",
+        "slot": "op:a-face.geometry"
+      },
+      {
+        "entity": "entity:a-mark",
+        "property": "geometry",
+        "slot": "op:a-mark.geometry"
+      },
+      {
+        "entity": "entity:b-body",
+        "property": "geometry",
+        "slot": "op:b-body.geometry"
+      },
+      {
+        "entity": "entity:b-face",
+        "property": "geometry",
+        "slot": "op:b-face.geometry"
+      },
+      {
+        "entity": "entity:b-mark",
+        "property": "geometry",
+        "slot": "op:b-mark.geometry"
+      },
+      {
+        "entity": "entity:signal-left",
+        "property": "geometry",
+        "slot": "op:signal-left.geometry"
+      },
+      {
+        "entity": "entity:signal-right",
+        "property": "geometry",
+        "slot": "op:signal-right.geometry"
+      },
+      {
+        "entity": "entity:overlay-top",
+        "property": "geometry",
+        "slot": "op:overlay-top.geometry"
+      },
+      {
+        "entity": "entity:overlay-bottom",
+        "property": "geometry",
+        "slot": "op:overlay-bottom.geometry"
+      },
+      {
+        "entity": "entity:flash",
+        "property": "geometry",
+        "slot": "op:flash.geometry"
+      }
+    ],
+    "refinement_stages": []
+  },
+  "presentation": {
+    "render_stack": [
+      "entity:background",
+      "entity:halo",
+      "entity:a-body",
+      "entity:a-face",
+      "entity:a-mark",
+      "entity:b-body",
+      "entity:b-face",
+      "entity:b-mark",
+      "entity:signal-left",
+      "entity:signal-right",
+      "entity:overlay-top",
+      "entity:overlay-bottom",
+      "entity:flash"
+    ],
+    "styles": [
+      {
+        "entity": "entity:background",
+        "fill": "#171427",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:halo",
+        "fill": "#332A55",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 0.7
+      },
+      {
+        "entity": "entity:a-body",
+        "fill": "#7C5CFC",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:a-face",
+        "fill": "#FFF0D6",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:a-mark",
+        "fill": "#171427",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:b-body",
+        "fill": "#56C596",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:b-face",
+        "fill": "#FFF0D6",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:b-mark",
+        "fill": "#171427",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:signal-left",
+        "fill": "#FF6B8A",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:signal-right",
+        "fill": "#FF6B8A",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:overlay-top",
+        "fill": "#FF6B8A",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 0.8
+      },
+      {
+        "entity": "entity:overlay-bottom",
+        "fill": "#56C596",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 0.8
+      },
+      {
+        "entity": "entity:flash",
+        "fill": "#FFF0D6",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 0
+      }
+    ]
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {
+    "semantics_version": "svm-motion@0.5",
+    "timebase": {
+      "ticks_per_second": 24
+    },
+    "content": [
+      {
+        "id": "track:g1-translate-x",
+        "target": {
+          "group": "group:1111111111111111111111111111111111111111111111111111111111111111",
+          "property": "translate.x"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:g1-translate-x-0000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:g1-translate-x-0024",
+            "tick": 24,
+            "value": 0.18
+          },
+          {
+            "id": "keyframe:g1-translate-x-0048",
+            "tick": 48,
+            "value": 0.6
+          },
+          {
+            "id": "keyframe:g1-translate-x-0072",
+            "tick": 72,
+            "value": 0.12
+          },
+          {
+            "id": "keyframe:g1-translate-x-0096",
+            "tick": 96,
+            "value": 0.82
+          },
+          {
+            "id": "keyframe:g1-translate-x-0120",
+            "tick": 120,
+            "value": 0.3
+          },
+          {
+            "id": "keyframe:g1-translate-x-0144",
+            "tick": 144,
+            "value": 0.62
+          },
+          {
+            "id": "keyframe:g1-translate-x-0168",
+            "tick": 168,
+            "value": 0.08
+          },
+          {
+            "id": "keyframe:g1-translate-x-0192",
+            "tick": 192,
+            "value": 0
+          }
+        ]
+      },
+      {
+        "id": "track:g1-translate-y",
+        "target": {
+          "group": "group:1111111111111111111111111111111111111111111111111111111111111111",
+          "property": "translate.y"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:g1-translate-y-0000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:g1-translate-y-0024",
+            "tick": 24,
+            "value": -0.08
+          },
+          {
+            "id": "keyframe:g1-translate-y-0048",
+            "tick": 48,
+            "value": 0.02
+          },
+          {
+            "id": "keyframe:g1-translate-y-0072",
+            "tick": 72,
+            "value": 0.12
+          },
+          {
+            "id": "keyframe:g1-translate-y-0096",
+            "tick": 96,
+            "value": -0.05
+          },
+          {
+            "id": "keyframe:g1-translate-y-0120",
+            "tick": 120,
+            "value": 0.08
+          },
+          {
+            "id": "keyframe:g1-translate-y-0144",
+            "tick": 144,
+            "value": -0.02
+          },
+          {
+            "id": "keyframe:g1-translate-y-0168",
+            "tick": 168,
+            "value": 0.04
+          },
+          {
+            "id": "keyframe:g1-translate-y-0192",
+            "tick": 192,
+            "value": 0
+          }
+        ]
+      },
+      {
+        "id": "track:g1-rotation-degrees",
+        "target": {
+          "group": "group:1111111111111111111111111111111111111111111111111111111111111111",
+          "property": "rotation_degrees"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:g1-rotation-degrees-0000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:g1-rotation-degrees-0024",
+            "tick": 24,
+            "value": -5
+          },
+          {
+            "id": "keyframe:g1-rotation-degrees-0048",
+            "tick": 48,
+            "value": 4
+          },
+          {
+            "id": "keyframe:g1-rotation-degrees-0072",
+            "tick": 72,
+            "value": -3
+          },
+          {
+            "id": "keyframe:g1-rotation-degrees-0096",
+            "tick": 96,
+            "value": -8
+          },
+          {
+            "id": "keyframe:g1-rotation-degrees-0120",
+            "tick": 120,
+            "value": 5
+          },
+          {
+            "id": "keyframe:g1-rotation-degrees-0144",
+            "tick": 144,
+            "value": -4
+          },
+          {
+            "id": "keyframe:g1-rotation-degrees-0168",
+            "tick": 168,
+            "value": 2
+          },
+          {
+            "id": "keyframe:g1-rotation-degrees-0192",
+            "tick": 192,
+            "value": 0
+          }
+        ]
+      },
+      {
+        "id": "track:g1-scale",
+        "target": {
+          "group": "group:1111111111111111111111111111111111111111111111111111111111111111",
+          "property": "scale"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:g1-scale-0000",
+            "tick": 0,
+            "value": 1
+          },
+          {
+            "id": "keyframe:g1-scale-0024",
+            "tick": 24,
+            "value": 1.08
+          },
+          {
+            "id": "keyframe:g1-scale-0048",
+            "tick": 48,
+            "value": 1.28
+          },
+          {
+            "id": "keyframe:g1-scale-0072",
+            "tick": 72,
+            "value": 0.94
+          },
+          {
+            "id": "keyframe:g1-scale-0096",
+            "tick": 96,
+            "value": 1.15
+          },
+          {
+            "id": "keyframe:g1-scale-0120",
+            "tick": 120,
+            "value": 1.02
+          },
+          {
+            "id": "keyframe:g1-scale-0144",
+            "tick": 144,
+            "value": 1.22
+          },
+          {
+            "id": "keyframe:g1-scale-0168",
+            "tick": 168,
+            "value": 0.98
+          },
+          {
+            "id": "keyframe:g1-scale-0192",
+            "tick": 192,
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "track:g2-translate-x",
+        "target": {
+          "group": "group:2222222222222222222222222222222222222222222222222222222222222222",
+          "property": "translate.x"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:g2-translate-x-0000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:g2-translate-x-0024",
+            "tick": 24,
+            "value": -0.14
+          },
+          {
+            "id": "keyframe:g2-translate-x-0048",
+            "tick": 48,
+            "value": -0.52
+          },
+          {
+            "id": "keyframe:g2-translate-x-0072",
+            "tick": 72,
+            "value": -0.08
+          },
+          {
+            "id": "keyframe:g2-translate-x-0096",
+            "tick": 96,
+            "value": -0.78
+          },
+          {
+            "id": "keyframe:g2-translate-x-0120",
+            "tick": 120,
+            "value": -0.24
+          },
+          {
+            "id": "keyframe:g2-translate-x-0144",
+            "tick": 144,
+            "value": -0.58
+          },
+          {
+            "id": "keyframe:g2-translate-x-0168",
+            "tick": 168,
+            "value": -0.06
+          },
+          {
+            "id": "keyframe:g2-translate-x-0192",
+            "tick": 192,
+            "value": 0
+          }
+        ]
+      },
+      {
+        "id": "track:g2-translate-y",
+        "target": {
+          "group": "group:2222222222222222222222222222222222222222222222222222222222222222",
+          "property": "translate.y"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:g2-translate-y-0000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:g2-translate-y-0024",
+            "tick": 24,
+            "value": 0.06
+          },
+          {
+            "id": "keyframe:g2-translate-y-0048",
+            "tick": 48,
+            "value": -0.04
+          },
+          {
+            "id": "keyframe:g2-translate-y-0072",
+            "tick": 72,
+            "value": 0.1
+          },
+          {
+            "id": "keyframe:g2-translate-y-0096",
+            "tick": 96,
+            "value": 0.02
+          },
+          {
+            "id": "keyframe:g2-translate-y-0120",
+            "tick": 120,
+            "value": -0.09
+          },
+          {
+            "id": "keyframe:g2-translate-y-0144",
+            "tick": 144,
+            "value": 0.04
+          },
+          {
+            "id": "keyframe:g2-translate-y-0168",
+            "tick": 168,
+            "value": -0.03
+          },
+          {
+            "id": "keyframe:g2-translate-y-0192",
+            "tick": 192,
+            "value": 0
+          }
+        ]
+      },
+      {
+        "id": "track:g2-rotation-degrees",
+        "target": {
+          "group": "group:2222222222222222222222222222222222222222222222222222222222222222",
+          "property": "rotation_degrees"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:g2-rotation-degrees-0000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:g2-rotation-degrees-0024",
+            "tick": 24,
+            "value": 4
+          },
+          {
+            "id": "keyframe:g2-rotation-degrees-0048",
+            "tick": 48,
+            "value": -5
+          },
+          {
+            "id": "keyframe:g2-rotation-degrees-0072",
+            "tick": 72,
+            "value": 3
+          },
+          {
+            "id": "keyframe:g2-rotation-degrees-0096",
+            "tick": 96,
+            "value": 8
+          },
+          {
+            "id": "keyframe:g2-rotation-degrees-0120",
+            "tick": 120,
+            "value": -4
+          },
+          {
+            "id": "keyframe:g2-rotation-degrees-0144",
+            "tick": 144,
+            "value": 5
+          },
+          {
+            "id": "keyframe:g2-rotation-degrees-0168",
+            "tick": 168,
+            "value": -2
+          },
+          {
+            "id": "keyframe:g2-rotation-degrees-0192",
+            "tick": 192,
+            "value": 0
+          }
+        ]
+      },
+      {
+        "id": "track:g2-scale",
+        "target": {
+          "group": "group:2222222222222222222222222222222222222222222222222222222222222222",
+          "property": "scale"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:g2-scale-0000",
+            "tick": 0,
+            "value": 1
+          },
+          {
+            "id": "keyframe:g2-scale-0024",
+            "tick": 24,
+            "value": 0.96
+          },
+          {
+            "id": "keyframe:g2-scale-0048",
+            "tick": 48,
+            "value": 1.2
+          },
+          {
+            "id": "keyframe:g2-scale-0072",
+            "tick": 72,
+            "value": 1.06
+          },
+          {
+            "id": "keyframe:g2-scale-0096",
+            "tick": 96,
+            "value": 1.12
+          },
+          {
+            "id": "keyframe:g2-scale-0120",
+            "tick": 120,
+            "value": 1.25
+          },
+          {
+            "id": "keyframe:g2-scale-0144",
+            "tick": 144,
+            "value": 0.97
+          },
+          {
+            "id": "keyframe:g2-scale-0168",
+            "tick": 168,
+            "value": 1.08
+          },
+          {
+            "id": "keyframe:g2-scale-0192",
+            "tick": 192,
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "track:g3-translate-y",
+        "target": {
+          "group": "group:3333333333333333333333333333333333333333333333333333333333333333",
+          "property": "translate.y"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:g3-translate-y-0000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:g3-translate-y-0024",
+            "tick": 24,
+            "value": -0.08
+          },
+          {
+            "id": "keyframe:g3-translate-y-0048",
+            "tick": 48,
+            "value": 0.07
+          },
+          {
+            "id": "keyframe:g3-translate-y-0072",
+            "tick": 72,
+            "value": -0.04
+          },
+          {
+            "id": "keyframe:g3-translate-y-0096",
+            "tick": 96,
+            "value": 0.09
+          },
+          {
+            "id": "keyframe:g3-translate-y-0120",
+            "tick": 120,
+            "value": -0.06
+          },
+          {
+            "id": "keyframe:g3-translate-y-0144",
+            "tick": 144,
+            "value": 0.08
+          },
+          {
+            "id": "keyframe:g3-translate-y-0168",
+            "tick": 168,
+            "value": -0.03
+          },
+          {
+            "id": "keyframe:g3-translate-y-0192",
+            "tick": 192,
+            "value": 0
+          }
+        ]
+      },
+      {
+        "id": "track:g3-rotation-degrees",
+        "target": {
+          "group": "group:3333333333333333333333333333333333333333333333333333333333333333",
+          "property": "rotation_degrees"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:g3-rotation-degrees-0000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:g3-rotation-degrees-0024",
+            "tick": 24,
+            "value": 25
+          },
+          {
+            "id": "keyframe:g3-rotation-degrees-0048",
+            "tick": 48,
+            "value": -32
+          },
+          {
+            "id": "keyframe:g3-rotation-degrees-0072",
+            "tick": 72,
+            "value": 42
+          },
+          {
+            "id": "keyframe:g3-rotation-degrees-0096",
+            "tick": 96,
+            "value": -48
+          },
+          {
+            "id": "keyframe:g3-rotation-degrees-0120",
+            "tick": 120,
+            "value": 38
+          },
+          {
+            "id": "keyframe:g3-rotation-degrees-0144",
+            "tick": 144,
+            "value": -28
+          },
+          {
+            "id": "keyframe:g3-rotation-degrees-0168",
+            "tick": 168,
+            "value": 18
+          },
+          {
+            "id": "keyframe:g3-rotation-degrees-0192",
+            "tick": 192,
+            "value": 0
+          }
+        ]
+      },
+      {
+        "id": "track:g3-scale",
+        "target": {
+          "group": "group:3333333333333333333333333333333333333333333333333333333333333333",
+          "property": "scale"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:g3-scale-0000",
+            "tick": 0,
+            "value": 1
+          },
+          {
+            "id": "keyframe:g3-scale-0024",
+            "tick": 24,
+            "value": 1.4
+          },
+          {
+            "id": "keyframe:g3-scale-0048",
+            "tick": 48,
+            "value": 0.78
+          },
+          {
+            "id": "keyframe:g3-scale-0072",
+            "tick": 72,
+            "value": 1.5
+          },
+          {
+            "id": "keyframe:g3-scale-0096",
+            "tick": 96,
+            "value": 0.86
+          },
+          {
+            "id": "keyframe:g3-scale-0120",
+            "tick": 120,
+            "value": 1.42
+          },
+          {
+            "id": "keyframe:g3-scale-0144",
+            "tick": 144,
+            "value": 0.82
+          },
+          {
+            "id": "keyframe:g3-scale-0168",
+            "tick": 168,
+            "value": 1.3
+          },
+          {
+            "id": "keyframe:g3-scale-0192",
+            "tick": 192,
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "track:g4-rotation-degrees",
+        "target": {
+          "group": "group:4444444444444444444444444444444444444444444444444444444444444444",
+          "property": "rotation_degrees"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:g4-rotation-degrees-0000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:g4-rotation-degrees-0024",
+            "tick": 24,
+            "value": 1
+          },
+          {
+            "id": "keyframe:g4-rotation-degrees-0048",
+            "tick": 48,
+            "value": -1
+          },
+          {
+            "id": "keyframe:g4-rotation-degrees-0072",
+            "tick": 72,
+            "value": 2
+          },
+          {
+            "id": "keyframe:g4-rotation-degrees-0096",
+            "tick": 96,
+            "value": -2
+          },
+          {
+            "id": "keyframe:g4-rotation-degrees-0120",
+            "tick": 120,
+            "value": 1
+          },
+          {
+            "id": "keyframe:g4-rotation-degrees-0144",
+            "tick": 144,
+            "value": -1
+          },
+          {
+            "id": "keyframe:g4-rotation-degrees-0168",
+            "tick": 168,
+            "value": 2
+          },
+          {
+            "id": "keyframe:g4-rotation-degrees-0192",
+            "tick": 192,
+            "value": 0
+          }
+        ]
+      },
+      {
+        "id": "track:g4-scale",
+        "target": {
+          "group": "group:4444444444444444444444444444444444444444444444444444444444444444",
+          "property": "scale"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:g4-scale-0000",
+            "tick": 0,
+            "value": 1
+          },
+          {
+            "id": "keyframe:g4-scale-0024",
+            "tick": 24,
+            "value": 1.03
+          },
+          {
+            "id": "keyframe:g4-scale-0048",
+            "tick": 48,
+            "value": 0.98
+          },
+          {
+            "id": "keyframe:g4-scale-0072",
+            "tick": 72,
+            "value": 1.05
+          },
+          {
+            "id": "keyframe:g4-scale-0096",
+            "tick": 96,
+            "value": 0.96
+          },
+          {
+            "id": "keyframe:g4-scale-0120",
+            "tick": 120,
+            "value": 1.04
+          },
+          {
+            "id": "keyframe:g4-scale-0144",
+            "tick": 144,
+            "value": 0.98
+          },
+          {
+            "id": "keyframe:g4-scale-0168",
+            "tick": 168,
+            "value": 1.02
+          },
+          {
+            "id": "keyframe:g4-scale-0192",
+            "tick": 192,
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "track:background-fill",
+        "target": {
+          "entity": "entity:background",
+          "property": "fill"
+        },
+        "value_type": "color",
+        "interpolation": "hold",
+        "keyframes": [
+          {
+            "id": "keyframe:background-fill-0000",
+            "tick": 0,
+            "value": "#171427"
+          },
+          {
+            "id": "keyframe:background-fill-0048",
+            "tick": 48,
+            "value": "#2B1746"
+          },
+          {
+            "id": "keyframe:background-fill-0096",
+            "tick": 96,
+            "value": "#102F34"
+          },
+          {
+            "id": "keyframe:background-fill-0144",
+            "tick": 144,
+            "value": "#3B1837"
+          },
+          {
+            "id": "keyframe:background-fill-0168",
+            "tick": 168,
+            "value": "#171427"
+          }
+        ]
+      },
+      {
+        "id": "track:a-body-fill",
+        "target": {
+          "entity": "entity:a-body",
+          "property": "fill"
+        },
+        "value_type": "color",
+        "interpolation": "hold",
+        "keyframes": [
+          {
+            "id": "keyframe:a-body-fill-0000",
+            "tick": 0,
+            "value": "#7C5CFC"
+          },
+          {
+            "id": "keyframe:a-body-fill-0048",
+            "tick": 48,
+            "value": "#FF6B8A"
+          },
+          {
+            "id": "keyframe:a-body-fill-0096",
+            "tick": 96,
+            "value": "#56C596"
+          },
+          {
+            "id": "keyframe:a-body-fill-0144",
+            "tick": 144,
+            "value": "#F7C948"
+          },
+          {
+            "id": "keyframe:a-body-fill-0168",
+            "tick": 168,
+            "value": "#7C5CFC"
+          }
+        ]
+      },
+      {
+        "id": "track:b-body-fill",
+        "target": {
+          "entity": "entity:b-body",
+          "property": "fill"
+        },
+        "value_type": "color",
+        "interpolation": "hold",
+        "keyframes": [
+          {
+            "id": "keyframe:b-body-fill-0000",
+            "tick": 0,
+            "value": "#56C596"
+          },
+          {
+            "id": "keyframe:b-body-fill-0048",
+            "tick": 48,
+            "value": "#F7C948"
+          },
+          {
+            "id": "keyframe:b-body-fill-0096",
+            "tick": 96,
+            "value": "#7C5CFC"
+          },
+          {
+            "id": "keyframe:b-body-fill-0144",
+            "tick": 144,
+            "value": "#FF6B8A"
+          },
+          {
+            "id": "keyframe:b-body-fill-0168",
+            "tick": 168,
+            "value": "#56C596"
+          }
+        ]
+      },
+      {
+        "id": "track:halo-opacity",
+        "target": {
+          "entity": "entity:halo",
+          "property": "opacity"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:halo-opacity-0000",
+            "tick": 0,
+            "value": 0.3
+          },
+          {
+            "id": "keyframe:halo-opacity-0024",
+            "tick": 24,
+            "value": 0.8
+          },
+          {
+            "id": "keyframe:halo-opacity-0048",
+            "tick": 48,
+            "value": 0.25
+          },
+          {
+            "id": "keyframe:halo-opacity-0072",
+            "tick": 72,
+            "value": 0.9
+          },
+          {
+            "id": "keyframe:halo-opacity-0096",
+            "tick": 96,
+            "value": 0.35
+          },
+          {
+            "id": "keyframe:halo-opacity-0120",
+            "tick": 120,
+            "value": 0.85
+          },
+          {
+            "id": "keyframe:halo-opacity-0144",
+            "tick": 144,
+            "value": 0.3
+          },
+          {
+            "id": "keyframe:halo-opacity-0168",
+            "tick": 168,
+            "value": 0.75
+          },
+          {
+            "id": "keyframe:halo-opacity-0192",
+            "tick": 192,
+            "value": 0.3
+          }
+        ]
+      },
+      {
+        "id": "track:flash-opacity",
+        "target": {
+          "entity": "entity:flash",
+          "property": "opacity"
+        },
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {
+            "id": "keyframe:flash-opacity-0000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:flash-opacity-0046",
+            "tick": 46,
+            "value": 0
+          },
+          {
+            "id": "keyframe:flash-opacity-0048",
+            "tick": 48,
+            "value": 0.46
+          },
+          {
+            "id": "keyframe:flash-opacity-0051",
+            "tick": 51,
+            "value": 0
+          },
+          {
+            "id": "keyframe:flash-opacity-0094",
+            "tick": 94,
+            "value": 0
+          },
+          {
+            "id": "keyframe:flash-opacity-0096",
+            "tick": 96,
+            "value": 0.6
+          },
+          {
+            "id": "keyframe:flash-opacity-0099",
+            "tick": 99,
+            "value": 0
+          },
+          {
+            "id": "keyframe:flash-opacity-0142",
+            "tick": 142,
+            "value": 0
+          },
+          {
+            "id": "keyframe:flash-opacity-0144",
+            "tick": 144,
+            "value": 0.5
+          },
+          {
+            "id": "keyframe:flash-opacity-0147",
+            "tick": 147,
+            "value": 0
+          },
+          {
+            "id": "keyframe:flash-opacity-0192",
+            "tick": 192,
+            "value": 0
+          }
+        ]
+      },
+      {
+        "id": "track:overlay-top-fill",
+        "target": {
+          "entity": "entity:overlay-top",
+          "property": "fill"
+        },
+        "value_type": "color",
+        "interpolation": "hold",
+        "keyframes": [
+          {
+            "id": "keyframe:overlay-top-fill-0000",
+            "tick": 0,
+            "value": "#FF6B8A"
+          },
+          {
+            "id": "keyframe:overlay-top-fill-0048",
+            "tick": 48,
+            "value": "#56C596"
+          },
+          {
+            "id": "keyframe:overlay-top-fill-0096",
+            "tick": 96,
+            "value": "#F7C948"
+          },
+          {
+            "id": "keyframe:overlay-top-fill-0144",
+            "tick": 144,
+            "value": "#7C5CFC"
+          }
+        ]
+      },
+      {
+        "id": "track:overlay-bottom-fill",
+        "target": {
+          "entity": "entity:overlay-bottom",
+          "property": "fill"
+        },
+        "value_type": "color",
+        "interpolation": "hold",
+        "keyframes": [
+          {
+            "id": "keyframe:overlay-bottom-fill-0000",
+            "tick": 0,
+            "value": "#56C596"
+          },
+          {
+            "id": "keyframe:overlay-bottom-fill-0048",
+            "tick": 48,
+            "value": "#7C5CFC"
+          },
+          {
+            "id": "keyframe:overlay-bottom-fill-0096",
+            "tick": 96,
+            "value": "#FF6B8A"
+          },
+          {
+            "id": "keyframe:overlay-bottom-fill-0144",
+            "tick": 144,
+            "value": "#F7C948"
+          }
+        ]
+      }
+    ],
+    "construction_scheduling_hints": []
+  }
+}
