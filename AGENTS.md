@@ -63,8 +63,9 @@ Read these files before changing core behavior:
 31. `spec/32-easing-interpolation.md` — deterministic smoothstep interpolation.
 32. `spec/33-style-opacity-motion.md` — numeric opacity and discrete fill Tracks.
 33. `spec/34-camera-motion.md` — outer Camera transform and Camera Tracks.
-34. `examples/001-head-basic.svm.json` — current example Document.
-35. `tests/test_golden_a.py` — executable expectations.
+34. `spec/35-temporal-correspondence.md` — abstaining cross-frame primitive evidence.
+35. `examples/001-head-basic.svm.json` — current example Document.
+36. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -346,6 +347,10 @@ Next milestones:
     after Demo 001 identified linear velocity changes as the first quality limit.
 26. Style / Opacity Motion v0 adds numeric Entity opacity and discrete held fill
     Tracks as the final small authoring-quality slice before Demo 002.
+27. Temporal Correspondence Evidence v0.1 consumes two frozen primitive
+    observation frames and attaches abstaining cross-frame matching evidence.
+    Acceptance does not create persistent Entities or Tracks and does not
+    propagate edits; those remain explicit later promotion and recovery slices.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.
