@@ -238,20 +238,11 @@ def _validate_motion_target_bindings(document: dict[str, Any]) -> None:
             value = provenance[key]
             if not isinstance(value, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", value) is None:
                 raise DocumentError("Motion target binding snapshot hash is invalid")
-        if not isinstance(provenance["source_revision_id"], str):
-            raise DocumentError("Motion target binding source revision is invalid")
-        identity = next(
-            item for item in document["temporal_identities"] if item["id"] == identity_id
-        )
         if (
-            provenance["temporal_identity_snapshot_hash"]
-            != "sha256:" + hashlib.sha256(canonical_bytes(identity)).hexdigest()
-            or provenance["group_snapshot_hash"]
-            != "sha256:" + hashlib.sha256(canonical_bytes(groups[group_id])).hexdigest()
+            not isinstance(provenance["source_revision_id"], str)
+            or re.fullmatch(r"revision:[0-9a-f]{64}", provenance["source_revision_id"]) is None
         ):
-            raise DocumentError(
-                "Motion target binding snapshot provenance does not match endpoints"
-            )
+            raise DocumentError("Motion target binding source revision is invalid")
 
 
 def _validate_temporal_identities(identities: Any, reference_ids: set[str]) -> None:

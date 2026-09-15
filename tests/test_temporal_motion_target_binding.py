@@ -5,7 +5,18 @@ import json
 import unittest
 from pathlib import Path
 
-from svm import AdapterRequest, ProposalAcceptor, ProposalArtifactError, RevisionStore
+from svm import (
+    AdapterRequest,
+    GeneratorProvenance,
+    PromotedTemporalCorrespondence,
+    PromoteTemporalIdentityChange,
+    Proposal,
+    ProposalAcceptor,
+    ProposalArtifactError,
+    RevisionStore,
+    SetGroupTransformChange,
+    Transaction,
+)
 from svm.adapters import (
     TemporalMotionTargetBindingAdapter,
     TemporalMotionTargetBindingError,
@@ -134,6 +145,78 @@ class TemporalMotionTargetBindingGoldenS1Test(unittest.TestCase):
         )
         with self.assertRaisesRegex(ProposalArtifactError, "Proposal base revision"):
             ProposalAcceptor().accept(self.store, proposal)
+
+    def test_binding_survives_later_temporal_identity_extension(self) -> None:
+        proposal = self.propose()
+        ProposalAcceptor().accept(self.store, proposal)
+        binding_before = copy.deepcopy(
+            self.store.get_document(self.store.head)["motion_target_bindings"][0]
+        )
+        extension = PromotedTemporalCorrespondence(
+            evidence_artifact_id="artifact:" + "0" * 64,
+            candidate_id="candidate:correspondence:" + "c" * 64,
+            inference_id="inference:correspondence:" + "c" * 64,
+            source_tick=1,
+            source_observation_id="observation:a-b",
+            target_tick=2,
+            target_observation_id="observation:a-c",
+            evidence_policy_identity="svm-bounds-correspondence-policy@0.1",
+            stable_identity_id=IDENTITY_A,
+        )
+        reference = next(
+            item
+            for item in self.store.get_document(self.store.head)["references"]
+            if item["id"] == extension.evidence_artifact_id
+        )
+        revision = self.store.commit(
+            self.store.head,
+            Transaction(
+                "transaction:extend-temporal-identity",
+                (PromoteTemporalIdentityChange((extension,), (reference,)),),
+            ),
+        )
+        after = self.store.get_document(revision.revision_id)
+        self.assertEqual(len(after["temporal_identities"][0]["bindings"]), 3)
+        self.assertEqual(after["motion_target_bindings"][0], binding_before)
+        self.assertEqual(after["motion_target_bindings"][0]["id"], binding_before["id"])
+
+    def test_binding_survives_later_group_transform_edit(self) -> None:
+        ProposalAcceptor().accept(self.store, self.propose())
+        binding_before = copy.deepcopy(
+            self.store.get_document(self.store.head)["motion_target_bindings"][0]
+        )
+        transform = {
+            "translate": [12, -4],
+            "rotation_degrees": 3,
+            "scale": 1.25,
+            "origin": [0, 0],
+        }
+        edit = Proposal(
+            "proposal:edit-bound-group",
+            self.store.head,
+            GeneratorProvenance("editor:group-transform", "0.1", "svm-core", "0.1"),
+            Transaction(
+                "transaction:edit-bound-group",
+                (SetGroupTransformChange(GROUP_A, transform),),
+            ),
+        )
+        revision = ProposalAcceptor().accept(self.store, edit)
+        after = self.store.get_document(revision.revision_id)
+        self.assertEqual(after["groups"][0]["transform"], transform)
+        self.assertEqual(after["motion_target_bindings"][0], binding_before)
+        self.assertEqual(after["motion_target_bindings"][0]["id"], binding_before["id"])
+
+    def test_original_change_rejects_identity_or_group_drift_at_apply_time(self) -> None:
+        for endpoint, message in (
+            ("temporal_identity", "STALE_TEMPORAL_IDENTITY"),
+            ("group", "STALE_GROUP"),
+        ):
+            proposal = self.propose()
+            evolved = self.store.get_document(self.store.head)
+            collection = "temporal_identities" if endpoint == "temporal_identity" else "groups"
+            evolved[collection][0]["post_proposal_change"] = True
+            with self.subTest(endpoint=endpoint), self.assertRaisesRegex(DocumentError, message):
+                proposal.transaction.apply(evolved)
 
 
 if __name__ == "__main__":

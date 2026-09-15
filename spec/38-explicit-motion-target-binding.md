@@ -32,6 +32,18 @@ record contains a canonical content-derived ID, `temporal_identity_id`, a
 `svm-explicit-motion-target-binding@0.1`, and provenance containing the source
 Revision ID plus exact hashes of both endpoint snapshots.
 
+The endpoint snapshot hashes are historical provenance describing the Temporal
+Identity and Group at binding creation. They are verified against the captured
+endpoint snapshots when the binding Proposal is accepted. Persistent Document
+validation verifies their fields and hash syntax, but does not compare them to
+the endpoints' current content: the validator does not own the historical
+Revision snapshot needed to make that claim.
+
+After acceptance, later valid extension of the same stable Temporal Identity or
+later valid edits to the bound Group do not invalidate or replace the binding.
+The binding follows their stable IDs, not frozen endpoint contents. Its ID
+therefore remains independent of both endpoint snapshots.
+
 Only Group targets are supported in v0.1. This reuses the Group Transform and
 `CreateGroupTransformTrackChange` target semantics already defined by the
 Animation system. Entity transform semantics and a second Animation target
