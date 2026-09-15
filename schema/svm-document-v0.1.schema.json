@@ -37,6 +37,10 @@
       "type": "array",
       "items": {"$ref": "#/$defs/temporalIdentity"}
     },
+    "motion_target_bindings": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/motionTargetBinding"}
+    },
     "construction": {"$ref": "#/$defs/construction"},
     "presentation": {"$ref": "#/$defs/presentation"},
     "constraints": {"type": "array", "items": {"$ref": "#/$defs/constraint"}},
@@ -189,6 +193,35 @@
         }
       }
     },
+    "motionTargetBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "temporal_identity_id", "target", "policy_identity", "provenance"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^motion-target-binding:[0-9a-f]{64}$"},
+        "temporal_identity_id": {"type": "string", "pattern": "^temporal-identity:[0-9a-f]{64}$"},
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "group_id"],
+          "properties": {
+            "kind": {"const": "group"},
+            "group_id": {"type": "string", "pattern": "^group:[0-9a-f]{64}$"}
+          }
+        },
+        "policy_identity": {"const": "svm-explicit-motion-target-binding@0.1"},
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_revision_id", "temporal_identity_snapshot_hash", "group_snapshot_hash"],
+          "properties": {
+            "source_revision_id": {"type": "string", "pattern": "^revision:[0-9a-f]{64}$"},
+            "temporal_identity_snapshot_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+            "group_snapshot_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+          }
+        }
+      }
+    },
     "operation": {
       "type": "object",
       "additionalProperties": false,
@@ -295,6 +328,7 @@
                 "create_camera_transform_track",
               "promote_temporal_identity",
               "attach_observed_motion"
+              ,"bind_motion_target"
             ]
           }
         },

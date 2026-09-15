@@ -2,6 +2,13 @@
 
 The words SHALL, SHALL NOT, SHOULD, and MAY are normative.
 
+## Explicit motion-target boundaries
+
+- A Temporal Identity is not an Animation Target.
+- Observed Motion Evidence is not a Target Binding.
+- A Target Binding is not an Animation Track.
+- Motion target selection is explicit; Core and Adapters SHALL NOT infer a Group.
+
 ## Identity
 
 **INV-ID-001** Entity identity SHALL NOT depend on current geometry, style,

@@ -12,6 +12,7 @@ from .revisions import (
     AppendReferencesChange,
     AppendSceneFragmentChange,
     AttachObservedMotionEvidenceChange,
+    BindTemporalMotionTargetChange,
     CreateCameraTransformTrackChange,
     CreateGroupTransformTrackChange,
     CreateStyleTrackChange,
@@ -35,6 +36,7 @@ from .revisions import (
 ArtifactVerifier = Callable[[Any, dict[str, ArtifactSnapshot]], None]
 Intent = tuple[str, str, str | None]
 IntentResolver = Callable[[Any], tuple[Intent, ...]]
+SourceRevisionResolver = Callable[[Any], str]
 
 
 @dataclass(frozen=True)
@@ -43,6 +45,15 @@ class ChangeAuthority:
     actions: frozenset[str]
     intent_resolver: IntentResolver
     artifact_verifier: ArtifactVerifier | None = None
+    source_revision_resolver: SourceRevisionResolver | None = None
+
+
+def _source_revision(change: Any) -> str:
+    return change.source_revision_id
+
+
+def _bind_temporal_motion_target(change: Any) -> tuple[Intent, ...]:
+    return (("bind_motion_target", change.group["id"], change.temporal_identity["id"]),)
 
 
 def _verify_layered(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
@@ -325,6 +336,13 @@ CHANGE_AUTHORITIES = {
             frozenset({"attach_observed_motion"}),
             _single("attach_observed_motion"),
             _verify_observed_motion,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            BindTemporalMotionTargetChange,
+            frozenset({"bind_motion_target"}),
+            _bind_temporal_motion_target,
+            source_revision_resolver=_source_revision,
         ),
         ChangeAuthority(ReplaceSceneFragmentChange, frozenset({"reconcile_scene"}), _replace_scene),
         ChangeAuthority(SplitEntityChange, frozenset({"split_entity"}), _split_entity),

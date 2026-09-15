@@ -21,6 +21,10 @@ from .temporal_identity_promotion import (
     TemporalIdentityPromotionAdapter,
     TemporalIdentityPromotionError,
 )
+from .temporal_motion_target_binding import (
+    TemporalMotionTargetBindingAdapter,
+    TemporalMotionTargetBindingError,
+)
 
 __all__ = [
     "BitmapTraceAdapter",
@@ -53,4 +57,6 @@ __all__ = [
     "TemporalCorrespondenceError",
     "TemporalIdentityPromotionAdapter",
     "TemporalIdentityPromotionError",
+    "TemporalMotionTargetBindingAdapter",
+    "TemporalMotionTargetBindingError",
 ]

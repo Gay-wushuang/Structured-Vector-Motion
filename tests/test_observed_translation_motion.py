@@ -191,6 +191,30 @@ class ObservedTranslationMotionGoldenS0Test(unittest.TestCase):
         with self.assertRaisesRegex(ProposalArtifactError, "does not match R0 displacement"):
             ProposalAcceptor().accept(self.store, forged, self.artifacts)
 
+    def test_forged_source_revision_and_matching_artifact_are_rejected(self) -> None:
+        evidence, candidate = self.correspondence(
+            0, "observation:a", [10, 10, 20, 20], 1, "observation:b", [30, 15, 40, 25]
+        )
+        identity_id = self.promote(evidence, candidate["inference_id"])
+        proposal = self.propose_motion(identity_id, [evidence], [candidate["inference_id"]])
+        original = self.artifacts.get(proposal.preview_artifacts[0].artifact_id)
+        forged_revision = "revision:" + "f" * 64
+        payload = json.loads(original.content)
+        payload["source_revision_id"] = forged_revision
+        forged_artifact = self.artifacts.import_bytes(
+            canonical_bytes(payload),
+            media_type=original.media_type,
+            kind=ArtifactKind.DERIVED,
+            provenance=original.provenance,
+        )
+        forged = copy.deepcopy(proposal)
+        change = forged.transaction.changes[0]
+        object.__setattr__(change, "source_revision_id", forged_revision)
+        object.__setattr__(change, "evidence_reference", forged_artifact.document_reference())
+        object.__setattr__(forged, "required_artifact_ids", (forged_artifact.artifact_id, evidence))
+        with self.assertRaisesRegex(ProposalArtifactError, "Proposal base revision"):
+            ProposalAcceptor().accept(self.store, forged, self.artifacts)
+
     def test_generation_is_content_deterministic(self) -> None:
         evidence, candidate = self.correspondence(
             0, "observation:a", [10, 10, 20, 20], 1, "observation:b", [30, 15, 40, 25]

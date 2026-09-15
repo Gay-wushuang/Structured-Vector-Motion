@@ -46,6 +46,7 @@ The v0.1 intents are:
 | `PromoteGroupsChange` | `promote_group` | `document` | none |
 | `PromoteTemporalIdentityChange` | `promote_temporal_identity` | `document` | candidate ID |
 | `AttachObservedMotionEvidenceChange` | `attach_observed_motion` | `document` | none |
+| `BindTemporalMotionTargetChange` | `bind_motion_target` | Group ID | Temporal Identity ID |
 | `ImportLayeredSceneChange` | `import_scene` | `document` | none |
 | `ImportRasterLayerEvidenceChange` | `import_scene` | `document` | none |
 | `ImportPrimitiveSequenceChange` | `import_scene` | `document` | none |

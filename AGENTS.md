@@ -66,8 +66,9 @@ Read these files before changing core behavior:
 34. `spec/35-temporal-correspondence.md` — abstaining cross-frame primitive evidence.
 35. `spec/36-temporal-identity-promotion.md` — explicit stable observation identity binding.
 36. `spec/37-observed-translation-motion.md` — verified observation-only translation evidence.
-37. `examples/001-head-basic.svm.json` — current example Document.
-38. `tests/test_golden_a.py` — executable expectations.
+37. `spec/38-explicit-motion-target-binding.md` — explicit Temporal Identity to Group binding.
+38. `examples/001-head-basic.svm.json` — current example Document.
+39. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -360,6 +361,8 @@ Next milestones:
 29. Golden S0 derives verified translation intervals from exact R0 displacement
     and R1 provenance while remaining evidence-only. Motion target binding is a
     later Golden S1 milestone.
+30. Golden S1 explicitly binds one stable Temporal Identity to one existing
+    transformable Group without creating Tracks or Keyframes.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

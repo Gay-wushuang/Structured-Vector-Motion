@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 from typing import Any
 
-from .evaluator import DocumentError, Evaluator
+from .evaluator import DocumentError, Evaluator, canonical_bytes
 from .policies import PolicyDefinitionError, validate_policy_definitions
 from .structural_relations import (
     materialize_promoted_relations,
@@ -50,6 +51,7 @@ def validate_document(document: dict[str, Any]) -> None:
 
     _validate_groups(document.get("groups", []), known_entities, reference_ids)
     _validate_temporal_identities(document.get("temporal_identities", []), reference_ids)
+    _validate_motion_target_bindings(document)
 
     parents: dict[str, str] = {}
     for entity in entities:
@@ -171,6 +173,85 @@ def _validate_camera(camera: Any) -> None:
         or scale <= 0
     ):
         raise DocumentError("Camera scale must be finite and positive")
+
+
+def _validate_motion_target_bindings(document: dict[str, Any]) -> None:
+    bindings = document.get("motion_target_bindings", [])
+    if not isinstance(bindings, list):
+        raise DocumentError("Document motion target bindings must be an array")
+    identities = {item.get("id") for item in document.get("temporal_identities", [])}
+    groups = {item.get("id"): item for item in document.get("groups", [])}
+    binding_ids: set[str] = set()
+    identity_owners: set[str] = set()
+    group_owners: set[str] = set()
+    for binding in bindings:
+        if not isinstance(binding, dict) or set(binding) != {
+            "id",
+            "temporal_identity_id",
+            "target",
+            "policy_identity",
+            "provenance",
+        }:
+            raise DocumentError("Motion target binding fields are invalid")
+        identity_id = binding["temporal_identity_id"]
+        target = binding["target"]
+        provenance = binding["provenance"]
+        if (
+            not isinstance(target, dict)
+            or set(target) != {"kind", "group_id"}
+            or target["kind"] != "group"
+        ):
+            raise DocumentError("Motion target binding target is invalid")
+        group_id = target["group_id"]
+        if identity_id not in identities or group_id not in groups:
+            raise DocumentError("Motion target binding endpoint is missing")
+        if not isinstance(groups[group_id].get("transform"), dict):
+            raise DocumentError("Motion target Group requires a static transform")
+        if identity_id in identity_owners or group_id in group_owners:
+            raise DocumentError("Motion target bindings must be one-to-one")
+        identity_owners.add(identity_id)
+        group_owners.add(group_id)
+        expected_id = (
+            "motion-target-binding:"
+            + hashlib.sha256(
+                canonical_bytes(
+                    {
+                        "policy_identity": binding["policy_identity"],
+                        "temporal_identity_id": identity_id,
+                        "target": target,
+                    }
+                )
+            ).hexdigest()
+        )
+        if binding["id"] != expected_id or binding["id"] in binding_ids:
+            raise DocumentError("Motion target binding ID is invalid or duplicated")
+        binding_ids.add(binding["id"])
+        if binding["policy_identity"] != "svm-explicit-motion-target-binding@0.1":
+            raise DocumentError("Motion target binding policy is unsupported")
+        if not isinstance(provenance, dict) or set(provenance) != {
+            "source_revision_id",
+            "temporal_identity_snapshot_hash",
+            "group_snapshot_hash",
+        }:
+            raise DocumentError("Motion target binding provenance is invalid")
+        for key in ("temporal_identity_snapshot_hash", "group_snapshot_hash"):
+            value = provenance[key]
+            if not isinstance(value, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", value) is None:
+                raise DocumentError("Motion target binding snapshot hash is invalid")
+        if not isinstance(provenance["source_revision_id"], str):
+            raise DocumentError("Motion target binding source revision is invalid")
+        identity = next(
+            item for item in document["temporal_identities"] if item["id"] == identity_id
+        )
+        if (
+            provenance["temporal_identity_snapshot_hash"]
+            != "sha256:" + hashlib.sha256(canonical_bytes(identity)).hexdigest()
+            or provenance["group_snapshot_hash"]
+            != "sha256:" + hashlib.sha256(canonical_bytes(groups[group_id])).hexdigest()
+        ):
+            raise DocumentError(
+                "Motion target binding snapshot provenance does not match endpoints"
+            )
 
 
 def _validate_temporal_identities(identities: Any, reference_ids: set[str]) -> None:

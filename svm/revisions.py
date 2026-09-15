@@ -792,6 +792,78 @@ class AttachObservedMotionEvidenceChange:
         identities.sort(key=lambda item: item["id"])
 
 
+MOTION_TARGET_BINDING_POLICY_IDENTITY = "svm-explicit-motion-target-binding@0.1"
+
+
+def motion_target_binding_id(temporal_identity_id: str, group_id: str) -> str:
+    digest = hashlib.sha256(
+        canonical_bytes(
+            {
+                "policy_identity": MOTION_TARGET_BINDING_POLICY_IDENTITY,
+                "temporal_identity_id": temporal_identity_id,
+                "target": {"kind": "group", "group_id": group_id},
+            }
+        )
+    ).hexdigest()
+    return f"motion-target-binding:{digest}"
+
+
+@dataclass(frozen=True)
+class BindTemporalMotionTargetChange:
+    """Bind one stable observation identity to one existing Group."""
+
+    binding: dict[str, Any]
+    temporal_identity: dict[str, Any]
+    group: dict[str, Any]
+    source_revision_id: str
+
+    def apply(self, document: dict[str, Any]) -> None:
+        identities = [
+            item
+            for item in document.get("temporal_identities", [])
+            if item.get("id") == self.temporal_identity.get("id")
+        ]
+        if len(identities) != 1 or identities[0] != self.temporal_identity:
+            raise DocumentError("STALE_TEMPORAL_IDENTITY: motion target source changed")
+        groups = [
+            item for item in document.get("groups", []) if item.get("id") == self.group.get("id")
+        ]
+        if len(groups) != 1 or groups[0] != self.group:
+            raise DocumentError("STALE_GROUP: motion target Group changed")
+        if not isinstance(groups[0].get("transform"), dict):
+            raise DocumentError("Motion target Group requires a static transform")
+        provenance = self.binding.get("provenance")
+        if (
+            not isinstance(provenance, dict)
+            or provenance.get("source_revision_id") != self.source_revision_id
+        ):
+            raise DocumentError("Motion target binding source revision is inconsistent")
+        expected_identity_hash = (
+            "sha256:" + hashlib.sha256(canonical_bytes(self.temporal_identity)).hexdigest()
+        )
+        expected_group_hash = "sha256:" + hashlib.sha256(canonical_bytes(self.group)).hexdigest()
+        if (
+            provenance.get("temporal_identity_snapshot_hash") != expected_identity_hash
+            or provenance.get("group_snapshot_hash") != expected_group_hash
+        ):
+            raise DocumentError("Motion target binding snapshot provenance is inconsistent")
+
+        bindings = document.setdefault("motion_target_bindings", [])
+        identity_id = self.temporal_identity["id"]
+        group_id = self.group["id"]
+        for existing in bindings:
+            existing_identity = existing["temporal_identity_id"]
+            existing_group = existing["target"]["group_id"]
+            if existing_identity == identity_id and existing_group == group_id:
+                return
+            if existing_identity == identity_id:
+                raise DocumentError("MOTION_TARGET_CONFLICT: identity is already bound")
+            if existing_group == group_id:
+                raise DocumentError("MOTION_TARGET_CONFLICT: Group is already bound")
+        bindings.append(copy.deepcopy(self.binding))
+        bindings.sort(key=lambda item: item["id"])
+
+
 @dataclass(frozen=True)
 class PromotedComponent:
     artifact_id: str

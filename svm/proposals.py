@@ -115,6 +115,15 @@ class GroupDefinitionPreview:
 
 
 @dataclass(frozen=True)
+class MotionTargetBindingPreview:
+    binding_id: str
+    temporal_identity_id: str
+    target_kind: str
+    group_id: str
+    policy_identity: str
+
+
+@dataclass(frozen=True)
 class ProposalPreview:
     entity_diffs: tuple[EntityDiffPreview, ...] = ()
     proposed_render_stack: tuple[str, ...] = ()
@@ -122,6 +131,7 @@ class ProposalPreview:
     structural_relations: tuple[StructuralRelationPreview, ...] = ()
     group_candidates: tuple[GroupCandidatePreview, ...] = ()
     group_definitions: tuple[GroupDefinitionPreview, ...] = ()
+    motion_target_bindings: tuple[MotionTargetBindingPreview, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -324,6 +334,16 @@ class ProposalAcceptor:
                     "source_layer is reserved for a trusted Artifact-bound Change"
                 )
             authority = change_authority(change)
+            revision_resolver = (
+                authority.source_revision_resolver if authority is not None else None
+            )
+            if (
+                revision_resolver is not None
+                and revision_resolver(change) != proposal.base_revision_id
+            ):
+                raise ProposalArtifactError(
+                    "Change source revision does not match Proposal base revision"
+                )
             verifier = authority.artifact_verifier if authority is not None else None
             if verifier is not None:
                 try:
