@@ -11,6 +11,7 @@ from .revisions import (
     AddKeyframeChange,
     AppendReferencesChange,
     AppendSceneFragmentChange,
+    AttachObservedMotionEvidenceChange,
     CreateCameraTransformTrackChange,
     CreateGroupTransformTrackChange,
     CreateStyleTrackChange,
@@ -200,6 +201,12 @@ def _verify_temporal_identity_promotion(change: Any, resolved: dict[str, Artifac
             raise ValueError("Promoted temporal identity does not match R0 evidence")
 
 
+def _verify_observed_motion(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.observed_translation_motion import verify_observed_motion_change
+
+    verify_observed_motion_change(change, resolved)
+
+
 def _single(action: str) -> IntentResolver:
     return lambda change: ((action, "document", None),)
 
@@ -312,6 +319,12 @@ CHANGE_AUTHORITIES = {
             frozenset({"promote_temporal_identity"}),
             _promote_temporal_identity,
             _verify_temporal_identity_promotion,
+        ),
+        ChangeAuthority(
+            AttachObservedMotionEvidenceChange,
+            frozenset({"attach_observed_motion"}),
+            _single("attach_observed_motion"),
+            _verify_observed_motion,
         ),
         ChangeAuthority(ReplaceSceneFragmentChange, frozenset({"reconcile_scene"}), _replace_scene),
         ChangeAuthority(SplitEntityChange, frozenset({"split_entity"}), _split_entity),

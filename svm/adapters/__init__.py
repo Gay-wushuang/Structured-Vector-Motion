@@ -3,6 +3,10 @@ from .bitmap_trace import BitmapTraceAdapter, BitmapTraceError, BitmapTracer, Po
 from .component_promotion import ComponentPromotionAdapter, ComponentPromotionError
 from .layerd_output import LayerDOutputAdapter, LayerDOutputError
 from .layerpeeler_output import LayerPeelerOutputAdapter, LayerPeelerOutputError
+from .observed_translation_motion import (
+    ObservedTranslationMotionAdapter,
+    ObservedTranslationMotionError,
+)
 from .opencv_analysis import OpenCVAnalysisAdapter, OpenCVAnalysisError
 from .pop_group_candidates import POPGroupCandidateAdapter, POPGroupCandidateError
 from .pop_group_promotion import POPGroupPromotionAdapter, POPGroupPromotionError
@@ -32,6 +36,8 @@ __all__ = [
     "PotracerEngine",
     "OpenCVAnalysisAdapter",
     "OpenCVAnalysisError",
+    "ObservedTranslationMotionAdapter",
+    "ObservedTranslationMotionError",
     "POPOutputAdapter",
     "POPOutputError",
     "POPTokenExporter",

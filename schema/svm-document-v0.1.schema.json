@@ -289,11 +289,12 @@
               "import_scene",
               "reconcile_scene",
               "attach_analysis",
-                "promote_components",
+              "promote_components",
                 "set_keyframe_value",
                 "set_camera_transform",
                 "create_camera_transform_track",
-                "promote_temporal_identity"
+              "promote_temporal_identity",
+              "attach_observed_motion"
             ]
           }
         },

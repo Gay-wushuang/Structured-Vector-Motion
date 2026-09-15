@@ -76,6 +76,7 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
                     "create_track",
                     "add_keyframe",
                     "promote_temporal_identity",
+                    "attach_observed_motion",
                 }
                 for action in actions
             )

@@ -17,6 +17,7 @@ COMPONENT_PROMOTION_IDENTITY = f"svm-component-promotion@{COMPONENT_PROMOTION_AD
 PROMOTED_ENTITY_IDENTITY = "svm-component-promotion@0.4"
 GROUP_PROMOTION_IDENTITY = "svm-explicit-group-promotion@0.1"
 TEMPORAL_IDENTITY_PROMOTION_IDENTITY = "svm-explicit-temporal-identity-promotion@0.1"
+OBSERVED_TRANSLATION_MOTION_IDENTITY = "svm-observed-translation-motion@0.1"
 
 
 class Change(Protocol):
@@ -758,6 +759,36 @@ class PromoteTemporalIdentityChange:
                         item["inference_id"],
                     )
                 )
+        identities.sort(key=lambda item: item["id"])
+
+
+@dataclass(frozen=True)
+class AttachObservedMotionEvidenceChange:
+    """Attach verified observation motion without creating animation state."""
+
+    evidence_reference: dict[str, Any]
+    source_references: tuple[dict[str, Any], ...]
+    temporal_identity: dict[str, Any]
+    inference_ids: tuple[str, ...]
+    source_revision_id: str
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (self.evidence_reference, *self.source_references)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        identities = [
+            item
+            for item in document.get("temporal_identities", [])
+            if item.get("id") == self.temporal_identity.get("id")
+        ]
+        if len(identities) != 1 or identities[0] != self.temporal_identity:
+            raise DocumentError("STALE_TEMPORAL_IDENTITY: observed motion source changed")
+        accepted = {item["id"]: item for item in document["references"]}
+        if any(accepted.get(item.get("id")) != item for item in self.source_references):
+            raise DocumentError("Observed motion requires accepted R0 evidence")
+        if self.evidence_reference["id"] not in accepted:
+            document["references"].append(copy.deepcopy(self.evidence_reference))
         identities.sort(key=lambda item: item["id"])
 
 
