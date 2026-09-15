@@ -83,7 +83,9 @@ from .revisions import (
     PromoteComponentsChange,
     PromotedComponent,
     PromotedGroup,
+    PromotedTemporalCorrespondence,
     PromoteGroupsChange,
+    PromoteTemporalIdentityChange,
     RasterLayerEvidence,
     ReplaceSceneFragmentChange,
     RevisionStore,
@@ -95,6 +97,7 @@ from .revisions import (
     SplitPart,
     Transaction,
     promoted_component_entity_id,
+    temporal_identity_id,
 )
 from .scene import EvaluatedEntity, EvaluatedScene, EvaluatedStyle, build_evaluated_scene
 from .structural_relations import STRUCTURAL_RELATIONS_IDENTITY
@@ -152,8 +155,10 @@ __all__ = [
     "ImportPrimitiveSequenceChange",
     "PromoteComponentsChange",
     "PromoteGroupsChange",
+    "PromoteTemporalIdentityChange",
     "PromotedComponent",
     "PromotedGroup",
+    "PromotedTemporalCorrespondence",
     "ReplaceSceneFragmentChange",
     "RasterLayerEvidence",
     "SetOperationParameterChange",
@@ -164,6 +169,7 @@ __all__ = [
     "SplitPart",
     "Transaction",
     "promoted_component_entity_id",
+    "temporal_identity_id",
     "EvaluatedEntity",
     "EvaluatedScene",
     "EvaluatedStyle",

@@ -102,6 +102,11 @@ neither SHALL change Entity identity, construction, or geometry Value identity.
 **INV-TIME-010** Camera evaluation SHALL be one outer world-to-view transform.
 Camera edits and sampling SHALL NOT rewrite Entity, Group, or construction state.
 
+**INV-TIME-011** A temporal correspondence hypothesis SHALL NOT become a stable
+cross-frame identity without explicit promotion. Promotion SHALL preserve its
+exact evidence provenance, SHALL NOT merge conflicting stable identities, and
+SHALL NOT create animation or modify geometry, style, or presentation.
+
 ## Transactions, proposals, and control
 
 **INV-TXN-001** One user-visible intent that changes multiple records SHALL

@@ -13,6 +13,10 @@ from .temporal_correspondence import (
     TemporalCorrespondenceAdapter,
     TemporalCorrespondenceError,
 )
+from .temporal_identity_promotion import (
+    TemporalIdentityPromotionAdapter,
+    TemporalIdentityPromotionError,
+)
 
 __all__ = [
     "BitmapTraceAdapter",
@@ -41,4 +45,6 @@ __all__ = [
     "SVGImportError",
     "TemporalCorrespondenceAdapter",
     "TemporalCorrespondenceError",
+    "TemporalIdentityPromotionAdapter",
+    "TemporalIdentityPromotionError",
 ]

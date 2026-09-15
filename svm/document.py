@@ -49,6 +49,7 @@ def validate_document(document: dict[str, Any]) -> None:
     known_entities = set(entity_ids)
 
     _validate_groups(document.get("groups", []), known_entities, reference_ids)
+    _validate_temporal_identities(document.get("temporal_identities", []), reference_ids)
 
     parents: dict[str, str] = {}
     for entity in entities:
@@ -170,6 +171,91 @@ def _validate_camera(camera: Any) -> None:
         or scale <= 0
     ):
         raise DocumentError("Camera scale must be finite and positive")
+
+
+def _validate_temporal_identities(identities: Any, reference_ids: set[str]) -> None:
+    if not isinstance(identities, list):
+        raise DocumentError("Document temporal identities must be an array")
+    identity_ids: set[str] = set()
+    observation_owners: dict[tuple[int, str], str] = {}
+    for identity in identities:
+        if not isinstance(identity, dict) or set(identity) != {"id", "bindings", "provenance"}:
+            raise DocumentError("Temporal identity fields are invalid")
+        identity_id = identity["id"]
+        if (
+            not isinstance(identity_id, str)
+            or re.fullmatch(r"temporal-identity:[0-9a-f]{64}", identity_id) is None
+            or identity_id in identity_ids
+        ):
+            raise DocumentError("Temporal identity ID is invalid or duplicated")
+        identity_ids.add(identity_id)
+        bindings = identity["bindings"]
+        if not isinstance(bindings, list) or len(bindings) < 2:
+            raise DocumentError("Temporal identity requires at least two bindings")
+        binding_keys: list[tuple[int, str]] = []
+        for binding in bindings:
+            if not isinstance(binding, dict) or set(binding) != {"tick", "observation_id"}:
+                raise DocumentError("Temporal identity binding fields are invalid")
+            tick, observation_id = binding["tick"], binding["observation_id"]
+            if (
+                not isinstance(tick, int)
+                or isinstance(tick, bool)
+                or tick < 0
+                or not isinstance(observation_id, str)
+                or not observation_id.startswith("observation:")
+            ):
+                raise DocumentError("Temporal identity binding is invalid")
+            key = (tick, observation_id)
+            owner = observation_owners.get(key)
+            if owner is not None and owner != identity_id:
+                raise DocumentError("Observation cannot belong to different temporal identities")
+            observation_owners[key] = identity_id
+            binding_keys.append(key)
+        if binding_keys != sorted(set(binding_keys)):
+            raise DocumentError("Temporal identity bindings must be canonical and unique")
+        provenance = identity["provenance"]
+        if not isinstance(provenance, list) or not provenance:
+            raise DocumentError("Temporal identity requires promotion provenance")
+        provenance_keys: list[tuple[str, str, str]] = []
+        for record in provenance:
+            if not isinstance(record, dict) or set(record) != {
+                "candidate_id",
+                "inference_id",
+                "evidence_artifact_id",
+                "evidence_policy_identity",
+                "promotion_policy_identity",
+            }:
+                raise DocumentError("Temporal identity provenance fields are invalid")
+            if record["evidence_artifact_id"] not in reference_ids:
+                raise DocumentError("Temporal identity provenance references missing evidence")
+            if record["evidence_policy_identity"] != "svm-bounds-correspondence-policy@0.1":
+                raise DocumentError("Temporal identity evidence policy is unsupported")
+            if (
+                record["promotion_policy_identity"]
+                != "svm-explicit-temporal-identity-promotion@0.1"
+            ):
+                raise DocumentError("Temporal identity promotion policy is unsupported")
+            if (
+                re.fullmatch(r"candidate:correspondence:[0-9a-f]{64}", record["candidate_id"])
+                is None
+            ):
+                raise DocumentError("Temporal identity candidate ID is invalid")
+            if (
+                re.fullmatch(r"inference:correspondence:[0-9a-f]{64}", record["inference_id"])
+                is None
+            ):
+                raise DocumentError("Temporal identity inference ID is invalid")
+            provenance_keys.append(
+                (
+                    record["evidence_artifact_id"],
+                    record["candidate_id"],
+                    record["inference_id"],
+                )
+            )
+        if provenance_keys != sorted(set(provenance_keys)):
+            raise DocumentError("Temporal identity provenance must be canonical and unique")
+    if [identity["id"] for identity in identities] != sorted(identity_ids):
+        raise DocumentError("Temporal identities must be sorted by ID")
 
 
 def _validate_groups(groups: Any, known_entities: set[str], reference_ids: set[str]) -> None:

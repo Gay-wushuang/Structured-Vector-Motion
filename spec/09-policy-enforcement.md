@@ -44,6 +44,7 @@ The v0.1 intents are:
 | `AppendReferencesChange` | `attach_analysis` | `document` | none |
 | `PromoteComponentsChange` | `promote_components` | `document` | none |
 | `PromoteGroupsChange` | `promote_group` | `document` | none |
+| `PromoteTemporalIdentityChange` | `promote_temporal_identity` | `document` | candidate ID |
 | `ImportLayeredSceneChange` | `import_scene` | `document` | none |
 | `ImportRasterLayerEvidenceChange` | `import_scene` | `document` | none |
 | `ImportPrimitiveSequenceChange` | `import_scene` | `document` | none |

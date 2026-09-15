@@ -16,6 +16,7 @@ COMPONENT_PROMOTION_ADAPTER_VERSION = "0.5"
 COMPONENT_PROMOTION_IDENTITY = f"svm-component-promotion@{COMPONENT_PROMOTION_ADAPTER_VERSION}"
 PROMOTED_ENTITY_IDENTITY = "svm-component-promotion@0.4"
 GROUP_PROMOTION_IDENTITY = "svm-explicit-group-promotion@0.1"
+TEMPORAL_IDENTITY_PROMOTION_IDENTITY = "svm-explicit-temporal-identity-promotion@0.1"
 
 
 class Change(Protocol):
@@ -637,6 +638,127 @@ class PromoteGroupsChange:
         if any(item["id"] in ids for item in definitions):
             raise DocumentError("Promoted Group ID collision")
         existing.extend(definitions)
+
+
+@dataclass(frozen=True)
+class PromotedTemporalCorrespondence:
+    evidence_artifact_id: str
+    candidate_id: str
+    inference_id: str
+    source_tick: int
+    source_observation_id: str
+    target_tick: int
+    target_observation_id: str
+    evidence_policy_identity: str
+    stable_identity_id: str
+
+    def bindings(self) -> tuple[dict[str, Any], ...]:
+        return tuple(
+            sorted(
+                (
+                    {"tick": self.source_tick, "observation_id": self.source_observation_id},
+                    {"tick": self.target_tick, "observation_id": self.target_observation_id},
+                ),
+                key=lambda item: (item["tick"], item["observation_id"]),
+            )
+        )
+
+    def provenance(self) -> dict[str, Any]:
+        return {
+            "candidate_id": self.candidate_id,
+            "inference_id": self.inference_id,
+            "evidence_artifact_id": self.evidence_artifact_id,
+            "evidence_policy_identity": self.evidence_policy_identity,
+            "promotion_policy_identity": TEMPORAL_IDENTITY_PROMOTION_IDENTITY,
+        }
+
+
+def temporal_identity_id(evidence_artifact_id: str, candidate_id: str) -> str:
+    digest = hashlib.sha256(
+        canonical_bytes(
+            {
+                "promotion_identity": TEMPORAL_IDENTITY_PROMOTION_IDENTITY,
+                "evidence_artifact_id": evidence_artifact_id,
+                "candidate_id": candidate_id,
+            }
+        )
+    ).hexdigest()
+    return f"temporal-identity:{digest}"
+
+
+@dataclass(frozen=True)
+class PromoteTemporalIdentityChange:
+    """Promote verified correspondence evidence into stable observation bindings."""
+
+    correspondences: tuple[PromotedTemporalCorrespondence, ...]
+    references: tuple[dict[str, Any], ...]
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if not self.correspondences:
+            raise DocumentError("Temporal identity promotion requires a correspondence")
+        if any(type(item) is not PromotedTemporalCorrespondence for item in self.correspondences):
+            raise DocumentError("Temporal identity promotion has an invalid record")
+        if len(self.references) != 1:
+            raise DocumentError("Temporal identity promotion requires one evidence reference")
+        reference = self.references[0]
+        accepted = {item["id"]: item for item in document["references"]}
+        if accepted.get(reference.get("id")) != reference:
+            raise DocumentError("Temporal identity evidence must already be accepted")
+
+        identities = document.setdefault("temporal_identities", [])
+        by_id = {item["id"]: item for item in identities}
+        observation_owner = {
+            (binding["tick"], binding["observation_id"]): item["id"]
+            for item in identities
+            for binding in item["bindings"]
+        }
+        for promoted in self.correspondences:
+            if promoted.evidence_artifact_id != reference["id"]:
+                raise DocumentError("Promoted correspondence evidence Artifact mismatch")
+            binding_keys = tuple(
+                (binding["tick"], binding["observation_id"]) for binding in promoted.bindings()
+            )
+            owners = {observation_owner[key] for key in binding_keys if key in observation_owner}
+            if len(owners) > 1:
+                raise DocumentError("TEMPORAL_IDENTITY_CONFLICT: observations have different IDs")
+            if owners and owners != {promoted.stable_identity_id}:
+                raise DocumentError("Temporal identity promotion selected the wrong stable ID")
+            identity = by_id.get(promoted.stable_identity_id)
+            if identity is None:
+                if owners:
+                    raise DocumentError("Temporal identity binding owner is missing")
+                expected = temporal_identity_id(
+                    promoted.evidence_artifact_id, promoted.candidate_id
+                )
+                if promoted.stable_identity_id != expected:
+                    raise DocumentError("New temporal identity ID is not canonical")
+                identity = {
+                    "id": promoted.stable_identity_id,
+                    "bindings": [],
+                    "provenance": [],
+                }
+                identities.append(identity)
+                by_id[promoted.stable_identity_id] = identity
+            known_bindings = {
+                (item["tick"], item["observation_id"]) for item in identity["bindings"]
+            }
+            for binding, key in zip(promoted.bindings(), binding_keys, strict=True):
+                if key not in known_bindings:
+                    identity["bindings"].append(binding)
+                    known_bindings.add(key)
+                    observation_owner[key] = promoted.stable_identity_id
+            identity["bindings"].sort(key=lambda item: (item["tick"], item["observation_id"]))
+            provenance = promoted.provenance()
+            if provenance not in identity["provenance"]:
+                identity["provenance"].append(provenance)
+                identity["provenance"].sort(
+                    key=lambda item: (
+                        item["evidence_artifact_id"],
+                        item["candidate_id"],
+                        item["inference_id"],
+                    )
+                )
+        identities.sort(key=lambda item: item["id"])
 
 
 @dataclass(frozen=True)

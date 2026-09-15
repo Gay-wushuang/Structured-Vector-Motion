@@ -28,6 +28,7 @@ IDs are non-empty strings scoped by kind:
 - `document:*` — Document identity;
 - `entity:*` — persistent semantic entities;
 - `group:*` — persistent explicit Group Definitions;
+- `temporal-identity:*` — persistent promoted observation identities;
 - `op:*` — construction operations;
 - `artifact:*` — accepted external artifacts.
 
@@ -57,6 +58,14 @@ Render Stack order. A v0.1 Group records a canonical member Entity ID set,
 Transform composes at evaluation time without rewriting members. A Group
 carries no semantic label, motion-parent role, or occlusion meaning. See
 `29-explicit-group-promotion.md` and `30-group-transform.md`.
+
+### `temporal_identities`
+
+Optional persistent bindings between frozen per-frame observation IDs. Each
+record contains a canonical stable ID, at least two sorted `(tick,
+observation_id)` bindings, and exact R0 evidence plus R1 promotion provenance.
+These records are not Entities, do not imply geometry or presentation, and do
+not create animation. See `36-temporal-identity-promotion.md`.
 
 ### `construction.operations`
 

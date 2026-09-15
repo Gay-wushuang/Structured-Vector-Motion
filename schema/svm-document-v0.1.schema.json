@@ -33,6 +33,10 @@
       "type": "array",
       "items": {"$ref": "#/$defs/groupDefinition"}
     },
+    "temporal_identities": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/temporalIdentity"}
+    },
     "construction": {"$ref": "#/$defs/construction"},
     "presentation": {"$ref": "#/$defs/presentation"},
     "constraints": {"type": "array", "items": {"$ref": "#/$defs/constraint"}},
@@ -146,6 +150,45 @@
         }
       }
     },
+    "temporalIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "bindings", "provenance"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^temporal-identity:[0-9a-f]{64}$"},
+        "bindings": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tick", "observation_id"],
+            "properties": {
+              "tick": {"type": "integer", "minimum": 0},
+              "observation_id": {"type": "string", "pattern": "^observation:.+"}
+            }
+          }
+        },
+        "provenance": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["candidate_id", "inference_id", "evidence_artifact_id", "evidence_policy_identity", "promotion_policy_identity"],
+            "properties": {
+              "candidate_id": {"type": "string", "pattern": "^candidate:correspondence:[0-9a-f]{64}$"},
+              "inference_id": {"type": "string", "pattern": "^inference:correspondence:[0-9a-f]{64}$"},
+              "evidence_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+              "evidence_policy_identity": {"const": "svm-bounds-correspondence-policy@0.1"},
+              "promotion_policy_identity": {"const": "svm-explicit-temporal-identity-promotion@0.1"}
+            }
+          }
+        }
+      }
+    },
     "operation": {
       "type": "object",
       "additionalProperties": false,
@@ -249,7 +292,8 @@
                 "promote_components",
                 "set_keyframe_value",
                 "set_camera_transform",
-                "create_camera_transform_track"
+                "create_camera_transform_track",
+                "promote_temporal_identity"
             ]
           }
         },

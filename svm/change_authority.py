@@ -22,6 +22,7 @@ from .revisions import (
     PromotedComponent,
     PromotedGroup,
     PromoteGroupsChange,
+    PromoteTemporalIdentityChange,
     ReplaceSceneFragmentChange,
     SetCameraTransformChange,
     SetGroupTransformChange,
@@ -148,6 +149,57 @@ def _verify_group_promotion(change: Any, resolved: dict[str, ArtifactSnapshot]) 
             raise ValueError("Promoted Group does not match inference evidence")
 
 
+def _verify_temporal_identity_promotion(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.temporal_correspondence import (
+        EVIDENCE_MEDIA_TYPE,
+        INFERENCE_IDENTITY,
+        POLICY_IDENTITY,
+    )
+    from .revisions import PromotedTemporalCorrespondence
+
+    if len(change.references) != 1:
+        raise ValueError("Temporal identity promotion requires one evidence Artifact")
+    artifact_id = change.references[0].get("id")
+    snapshot = resolved.get(artifact_id)
+    if snapshot is None or snapshot.media_type != EVIDENCE_MEDIA_TYPE:
+        raise ValueError("Temporal correspondence evidence Artifact was not resolved")
+    try:
+        payload = json.loads(snapshot.content)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("Temporal correspondence evidence is invalid JSON") from exc
+    if (
+        not isinstance(payload, dict)
+        or canonical_bytes(payload) != snapshot.content
+        or payload.get("identity") != INFERENCE_IDENTITY
+        or payload.get("policy_identity") != POLICY_IDENTITY
+        or not isinstance(payload.get("candidates"), list)
+    ):
+        raise ValueError("Temporal identity promotion requires canonical R0 evidence")
+    candidates = {
+        item.get("inference_id"): item
+        for item in payload["candidates"]
+        if isinstance(item, dict) and isinstance(item.get("inference_id"), str)
+    }
+    if len(candidates) != len(payload["candidates"]):
+        raise ValueError("Temporal correspondence inference IDs must be unique")
+    for promoted in change.correspondences:
+        if type(promoted) is not PromotedTemporalCorrespondence:
+            raise ValueError("Temporal identity promotion record type is invalid")
+        candidate = candidates.get(promoted.inference_id)
+        if candidate is None or candidate.get("status") != "SUPPORTED":
+            raise ValueError("Only SUPPORTED temporal correspondence may be promoted")
+        if (
+            promoted.evidence_artifact_id != snapshot.artifact_id
+            or promoted.candidate_id != candidate.get("candidate_id")
+            or promoted.source_tick != candidate.get("source_tick")
+            or promoted.source_observation_id != candidate.get("source_observation_id")
+            or promoted.target_tick != candidate.get("target_tick")
+            or promoted.target_observation_id != candidate.get("target_observation_id")
+            or promoted.evidence_policy_identity != payload.get("policy_identity")
+        ):
+            raise ValueError("Promoted temporal identity does not match R0 evidence")
+
+
 def _single(action: str) -> IntentResolver:
     return lambda change: ((action, "document", None),)
 
@@ -182,6 +234,13 @@ def _create_camera_transform_track(change: Any) -> tuple[Intent, ...]:
 
 def _create_style_track(change: Any) -> tuple[Intent, ...]:
     return (("create_style_track", change.entity_id, change.property_name),)
+
+
+def _promote_temporal_identity(change: Any) -> tuple[Intent, ...]:
+    return tuple(
+        ("promote_temporal_identity", "document", item.candidate_id)
+        for item in change.correspondences
+    )
 
 
 def _add_keyframe(change: Any) -> tuple[Intent, ...]:
@@ -247,6 +306,12 @@ CHANGE_AUTHORITIES = {
             frozenset({"promote_group"}),
             _single("promote_group"),
             _verify_group_promotion,
+        ),
+        ChangeAuthority(
+            PromoteTemporalIdentityChange,
+            frozenset({"promote_temporal_identity"}),
+            _promote_temporal_identity,
+            _verify_temporal_identity_promotion,
         ),
         ChangeAuthority(ReplaceSceneFragmentChange, frozenset({"reconcile_scene"}), _replace_scene),
         ChangeAuthority(SplitEntityChange, frozenset({"split_entity"}), _split_entity),
