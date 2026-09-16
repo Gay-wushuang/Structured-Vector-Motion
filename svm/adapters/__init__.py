@@ -7,6 +7,10 @@ from .observed_translation_motion import (
     ObservedTranslationMotionAdapter,
     ObservedTranslationMotionError,
 )
+from .observed_translation_tracks import (
+    ObservedTranslationTracksAdapter,
+    ObservedTranslationTracksError,
+)
 from .opencv_analysis import OpenCVAnalysisAdapter, OpenCVAnalysisError
 from .pop_group_candidates import POPGroupCandidateAdapter, POPGroupCandidateError
 from .pop_group_promotion import POPGroupPromotionAdapter, POPGroupPromotionError
@@ -42,6 +46,8 @@ __all__ = [
     "OpenCVAnalysisError",
     "ObservedTranslationMotionAdapter",
     "ObservedTranslationMotionError",
+    "ObservedTranslationTracksAdapter",
+    "ObservedTranslationTracksError",
     "POPOutputAdapter",
     "POPOutputError",
     "POPTokenExporter",

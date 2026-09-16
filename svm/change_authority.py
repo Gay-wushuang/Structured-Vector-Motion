@@ -31,6 +31,7 @@ from .revisions import (
     SetKeyframeValueChange,
     SetOperationParameterChange,
     SplitEntityChange,
+    VerifyObservedTranslationTrackSourceChange,
 )
 
 ArtifactVerifier = Callable[[Any, dict[str, ArtifactSnapshot]], None]
@@ -218,6 +219,14 @@ def _verify_observed_motion(change: Any, resolved: dict[str, ArtifactSnapshot]) 
     verify_observed_motion_change(change, resolved)
 
 
+def _verify_observed_translation_tracks(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.observed_translation_tracks import (
+        verify_observed_translation_track_source,
+    )
+
+    verify_observed_translation_track_source(change, resolved)
+
+
 def _single(action: str) -> IntentResolver:
     return lambda change: ((action, "document", None),)
 
@@ -343,6 +352,13 @@ CHANGE_AUTHORITIES = {
             frozenset({"bind_motion_target"}),
             _bind_temporal_motion_target,
             source_revision_resolver=_source_revision,
+        ),
+        ChangeAuthority(
+            VerifyObservedTranslationTrackSourceChange,
+            frozenset({"author_observed_translation"}),
+            _single("author_observed_translation"),
+            _verify_observed_translation_tracks,
+            _source_revision,
         ),
         ChangeAuthority(ReplaceSceneFragmentChange, frozenset({"reconcile_scene"}), _replace_scene),
         ChangeAuthority(SplitEntityChange, frozenset({"split_entity"}), _split_entity),

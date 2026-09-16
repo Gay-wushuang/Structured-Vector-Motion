@@ -77,6 +77,8 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
                     "add_keyframe",
                     "promote_temporal_identity",
                     "attach_observed_motion",
+                    "bind_motion_target",
+                    "author_observed_translation",
                 }
                 for action in actions
             )
