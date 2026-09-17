@@ -18,6 +18,7 @@ PROMOTED_ENTITY_IDENTITY = "svm-component-promotion@0.4"
 GROUP_PROMOTION_IDENTITY = "svm-explicit-group-promotion@0.1"
 TEMPORAL_IDENTITY_PROMOTION_IDENTITY = "svm-explicit-temporal-identity-promotion@0.1"
 OBSERVED_TRANSLATION_MOTION_IDENTITY = "svm-observed-translation-motion@0.1"
+OBSERVED_SIMILARITY_MOTION_IDENTITY = "svm-observed-similarity-motion@0.1"
 
 
 class Change(Protocol):
@@ -790,6 +791,40 @@ class AttachObservedMotionEvidenceChange:
         if self.evidence_reference["id"] not in accepted:
             document["references"].append(copy.deepcopy(self.evidence_reference))
         identities.sort(key=lambda item: item["id"])
+
+
+@dataclass(frozen=True)
+class AttachObservedSimilarityEvidenceChange:
+    """Attach verified geometry-aware similarity evidence only."""
+
+    evidence_reference: dict[str, Any]
+    correspondence_references: tuple[dict[str, Any], ...]
+    geometry_references: tuple[dict[str, Any], ...]
+    temporal_identity: dict[str, Any]
+    inference_ids: tuple[str, ...]
+    source_revision_id: str
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (
+            self.evidence_reference,
+            *self.correspondence_references,
+            *self.geometry_references,
+        )
+
+    def apply(self, document: dict[str, Any]) -> None:
+        identities = [
+            item
+            for item in document.get("temporal_identities", [])
+            if item.get("id") == self.temporal_identity.get("id")
+        ]
+        if len(identities) != 1 or identities[0] != self.temporal_identity:
+            raise DocumentError("STALE_TEMPORAL_IDENTITY: observed similarity source changed")
+        accepted = {item["id"]: item for item in document["references"]}
+        if any(accepted.get(item.get("id")) != item for item in self.correspondence_references):
+            raise DocumentError("Observed similarity requires accepted R0 evidence")
+        if self.evidence_reference["id"] not in accepted:
+            document["references"].append(copy.deepcopy(self.evidence_reference))
 
 
 MOTION_TARGET_BINDING_POLICY_IDENTITY = "svm-explicit-motion-target-binding@0.1"

@@ -20,6 +20,12 @@ The input records canvas size and, for each observation, an ID, provider-native
 primitive type, axis-aligned bounds, and six-digit RGB fill. Observation IDs are
 unique within the Artifact and do not become Entity IDs.
 
+R0 also accepts the backward-compatible `svm-primitive-observations-0.2`
+Artifact defined by Golden S4. Its additional ordered landmark geometry and
+rotation-symmetry declaration do not alter R0 scoring: correspondence v0.1
+continues to use only the frozen bounds, fill, and primitive type. Version 0.1
+remains readable and retains its exact meaning.
+
 ## Evidence policy
 
 `svm-bounds-correspondence-policy@0.1` compares every primitive across the two

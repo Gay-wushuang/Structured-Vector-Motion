@@ -3,6 +3,10 @@ from .bitmap_trace import BitmapTraceAdapter, BitmapTraceError, BitmapTracer, Po
 from .component_promotion import ComponentPromotionAdapter, ComponentPromotionError
 from .layerd_output import LayerDOutputAdapter, LayerDOutputError
 from .layerpeeler_output import LayerPeelerOutputAdapter, LayerPeelerOutputError
+from .observed_similarity_motion import (
+    ObservedSimilarityMotionAdapter,
+    ObservedSimilarityMotionError,
+)
 from .observed_translation_motion import (
     ObservedTranslationMotionAdapter,
     ObservedTranslationMotionError,
@@ -46,6 +50,8 @@ __all__ = [
     "OpenCVAnalysisError",
     "ObservedTranslationMotionAdapter",
     "ObservedTranslationMotionError",
+    "ObservedSimilarityMotionAdapter",
+    "ObservedSimilarityMotionError",
     "ObservedTranslationTracksAdapter",
     "ObservedTranslationTracksError",
     "POPOutputAdapter",

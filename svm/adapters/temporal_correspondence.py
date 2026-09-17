@@ -19,6 +19,7 @@ from ..proposals import (
 from ..revisions import AppendReferencesChange, Transaction
 
 OBSERVATION_MEDIA_TYPE = "application/vnd.svm.primitive-observations+json;version=0.1"
+OBSERVATION_MEDIA_TYPE_V2 = "application/vnd.svm.primitive-observations+json;version=0.2"
 EVIDENCE_MEDIA_TYPE = "application/vnd.svm.temporal-correspondence+json;version=0.1"
 INFERENCE_IDENTITY = "svm-temporal-correspondence@0.1"
 POLICY_IDENTITY = "svm-bounds-correspondence-policy@0.1"
@@ -46,9 +47,9 @@ class TemporalCorrespondenceAdapter:
         source = artifacts.resolve_as(
             request.artifact_ids,
             kind=ArtifactKind.REFERENCE,
-            media_types=frozenset({OBSERVATION_MEDIA_TYPE}),
+            media_types=frozenset({OBSERVATION_MEDIA_TYPE, OBSERVATION_MEDIA_TYPE_V2}),
         )[0]
-        payload = _read_observations(source.content)
+        payload = read_primitive_observations(source.content)
         candidates = _infer(payload, source.artifact_id)
         evidence_payload = {
             "schema_version": "svm-temporal-correspondence-0.1",
@@ -122,14 +123,18 @@ class TemporalCorrespondenceAdapter:
         )
 
 
-def _read_observations(content: bytes) -> dict[str, Any]:
+def read_primitive_observations(content: bytes) -> dict[str, Any]:
     try:
         payload = json.loads(content)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise TemporalCorrespondenceError("Primitive observations are not valid JSON") from exc
     if not isinstance(payload, dict) or canonical_bytes(payload) != content:
         raise TemporalCorrespondenceError("Primitive observations must be canonical JSON")
-    if payload.get("schema_version") != "svm-primitive-observations-0.1":
+    schema_version = payload.get("schema_version")
+    if schema_version not in {
+        "svm-primitive-observations-0.1",
+        "svm-primitive-observations-0.2",
+    }:
         raise TemporalCorrespondenceError("Primitive observation schema is unsupported")
     canvas = payload.get("canvas")
     if (
@@ -154,19 +159,22 @@ def _read_observations(content: bytes) -> dict[str, Any]:
         if not isinstance(primitives, list):
             raise TemporalCorrespondenceError("Frame primitives must be an array")
         for primitive in primitives:
-            _validate_primitive(primitive, observation_ids)
+            _validate_primitive(primitive, observation_ids, schema_version)
     if ticks != sorted(set(ticks)):
         raise TemporalCorrespondenceError("Frame ticks must be unique and increasing")
     return payload
 
 
-def _validate_primitive(primitive: Any, observation_ids: set[str]) -> None:
-    if not isinstance(primitive, dict) or set(primitive) != {
+def _validate_primitive(primitive: Any, observation_ids: set[str], schema_version: str) -> None:
+    fields = {
         "observation_id",
         "primitive_type",
         "bounds",
         "fill",
-    }:
+    }
+    if schema_version == "svm-primitive-observations-0.2":
+        fields.add("geometry")
+    if not isinstance(primitive, dict) or set(primitive) != fields:
         raise TemporalCorrespondenceError("Primitive observation has invalid fields")
     observation_id = primitive["observation_id"]
     if (
@@ -193,6 +201,36 @@ def _validate_primitive(primitive: Any, observation_ids: set[str]) -> None:
         int(fill[1:], 16)
     except ValueError as exc:
         raise TemporalCorrespondenceError("Primitive fill must be six-digit hex") from exc
+    if schema_version == "svm-primitive-observations-0.2":
+        _validate_observed_geometry(primitive["geometry"])
+
+
+def _validate_observed_geometry(geometry: Any) -> None:
+    if not isinstance(geometry, dict) or set(geometry) != {
+        "type",
+        "points",
+        "rotation_symmetry",
+    }:
+        raise TemporalCorrespondenceError("Primitive observed geometry fields are invalid")
+    if geometry["type"] != "ordered-landmarks" or geometry["rotation_symmetry"] not in {
+        "none",
+        "half-turn",
+        "quarter-turn",
+        "continuous",
+    }:
+        raise TemporalCorrespondenceError("Primitive observed geometry semantics are unsupported")
+    points = geometry["points"]
+    if (
+        not isinstance(points, list)
+        or len(points) < 3
+        or any(
+            not isinstance(point, list)
+            or len(point) != 2
+            or any(not _finite_number(value) for value in point)
+            for point in points
+        )
+    ):
+        raise TemporalCorrespondenceError("Primitive observed landmarks are invalid")
 
 
 def _infer(payload: dict[str, Any], source_artifact_id: str) -> list[dict[str, Any]]:

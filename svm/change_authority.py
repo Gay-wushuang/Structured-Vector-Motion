@@ -12,6 +12,7 @@ from .revisions import (
     AppendReferencesChange,
     AppendSceneFragmentChange,
     AttachObservedMotionEvidenceChange,
+    AttachObservedSimilarityEvidenceChange,
     BindTemporalMotionTargetChange,
     CreateCameraTransformTrackChange,
     CreateGroupTransformTrackChange,
@@ -220,6 +221,12 @@ def _verify_observed_motion(change: Any, resolved: dict[str, ArtifactSnapshot]) 
     verify_observed_motion_change(change, resolved)
 
 
+def _verify_observed_similarity(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.observed_similarity_motion import verify_observed_similarity_change
+
+    verify_observed_similarity_change(change, resolved)
+
+
 def _verify_observed_translation_tracks(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
     from .adapters.observed_translation_tracks import (
         verify_observed_translation_track_source,
@@ -353,6 +360,13 @@ CHANGE_AUTHORITIES = {
             frozenset({"attach_observed_motion"}),
             _single("attach_observed_motion"),
             _verify_observed_motion,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            AttachObservedSimilarityEvidenceChange,
+            frozenset({"attach_observed_similarity"}),
+            _single("attach_observed_similarity"),
+            _verify_observed_similarity,
             _source_revision,
         ),
         ChangeAuthority(
