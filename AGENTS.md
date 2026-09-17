@@ -70,8 +70,9 @@ Read these files before changing core behavior:
 38. `spec/39-verified-observed-translation-tracks.md` — explicit evidence-to-Track authoring.
 39. `spec/40-observed-translation-track-reauthoring.md` — explicit owned Track replacement.
 40. `spec/41-geometry-aware-similarity-motion.md` — conservative rotation/scale evidence.
-41. `examples/001-head-basic.svm.json` — current example Document.
-42. `tests/test_golden_a.py` — executable expectations.
+41. `spec/42-pop-geometry-observations.md` — real POP geometry observation producer.
+42. `examples/001-head-basic.svm.json` — current example Document.
+43. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -372,6 +373,8 @@ Next milestones:
     Track pairs through previewed, stale-safe, atomic replacement.
 33. Golden S4 derives conservative rotation and uniform-scale observations from
     frozen ordered landmark geometry without creating Tracks or changing Groups.
+34. Golden S4.1 deterministically derives ordered landmarks and visual symmetry
+    from exact frozen POP rectangle/ellipse geometry without using AABB corners.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

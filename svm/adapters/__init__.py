@@ -16,6 +16,10 @@ from .observed_translation_tracks import (
     ObservedTranslationTracksError,
 )
 from .opencv_analysis import OpenCVAnalysisAdapter, OpenCVAnalysisError
+from .pop_geometry_observations import (
+    POPGeometryObservationAdapter,
+    POPGeometryObservationError,
+)
 from .pop_group_candidates import POPGroupCandidateAdapter, POPGroupCandidateError
 from .pop_group_promotion import POPGroupPromotionAdapter, POPGroupPromotionError
 from .pop_output import POPOutputAdapter, POPOutputError, POPTokenExporter
@@ -57,6 +61,8 @@ __all__ = [
     "POPOutputAdapter",
     "POPOutputError",
     "POPTokenExporter",
+    "POPGeometryObservationAdapter",
+    "POPGeometryObservationError",
     "POPStructureAdapter",
     "POPStructureError",
     "POPGroupCandidateAdapter",

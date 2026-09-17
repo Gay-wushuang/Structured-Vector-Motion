@@ -67,6 +67,16 @@ class POPOutputError(ValueError):
     pass
 
 
+def read_validated_pop_output(
+    snapshot: ArtifactSnapshot, prefix: ArtifactSnapshot
+) -> dict[str, Any]:
+    """Return one canonical POP payload after verifying its frozen token source."""
+
+    payload = POPOutputAdapter._payload(snapshot)
+    POPOutputAdapter._validate(payload, snapshot, prefix)
+    return payload
+
+
 def pop_generation_config_identity(payload: dict[str, Any]) -> str:
     digest = hashlib.sha256(
         canonical_bytes(
@@ -160,8 +170,7 @@ class POPOutputAdapter:
             raise POPOutputError("POP import requires one prefix and one Derived output Artifact")
         snapshot = output_matches[0]
         prefix = prefix_matches[0]
-        payload = self._payload(snapshot)
-        self._validate(payload, snapshot, prefix)
+        payload = read_validated_pop_output(snapshot, prefix)
         namespace = self._namespace(request, snapshot)
         fragment = self._fragment(payload, (prefix, snapshot), namespace)
         self._check_collisions(request.document, fragment)
