@@ -68,8 +68,9 @@ Read these files before changing core behavior:
 36. `spec/37-observed-translation-motion.md` — verified observation-only translation evidence.
 37. `spec/38-explicit-motion-target-binding.md` — explicit Temporal Identity to Group binding.
 38. `spec/39-verified-observed-translation-tracks.md` — explicit evidence-to-Track authoring.
-39. `examples/001-head-basic.svm.json` — current example Document.
-40. `tests/test_golden_a.py` — executable expectations.
+39. `spec/40-observed-translation-track-reauthoring.md` — explicit owned Track replacement.
+40. `examples/001-head-basic.svm.json` — current example Document.
+41. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -366,6 +367,8 @@ Next milestones:
     transformable Group without creating Tracks or Keyframes.
 31. Golden S2 explicitly authors linear Group translate.x/y Tracks from verified
     S0 evidence through an accepted S1 binding.
+32. Golden S3 explicitly re-authors only trusted S2/S3 observed-translation
+    Track pairs through previewed, stale-safe, atomic replacement.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.

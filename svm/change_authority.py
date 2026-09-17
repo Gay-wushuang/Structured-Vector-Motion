@@ -25,6 +25,7 @@ from .revisions import (
     PromotedGroup,
     PromoteGroupsChange,
     PromoteTemporalIdentityChange,
+    ReplaceObservedTranslationTracksChange,
     ReplaceSceneFragmentChange,
     SetCameraTransformChange,
     SetGroupTransformChange,
@@ -227,6 +228,13 @@ def _verify_observed_translation_tracks(change: Any, resolved: dict[str, Artifac
     verify_observed_translation_track_source(change, resolved)
 
 
+def _replace_observed_translation_tracks(change: Any) -> tuple[Intent, ...]:
+    return tuple(
+        ("author_observed_translation", track["target"]["group"], track["target"]["property"])
+        for track in change.replacement_tracks
+    )
+
+
 def _single(action: str) -> IntentResolver:
     return lambda change: ((action, "document", None),)
 
@@ -357,6 +365,13 @@ CHANGE_AUTHORITIES = {
             VerifyObservedTranslationTrackSourceChange,
             frozenset({"author_observed_translation"}),
             _single("author_observed_translation"),
+            _verify_observed_translation_tracks,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            ReplaceObservedTranslationTracksChange,
+            frozenset({"author_observed_translation"}),
+            _replace_observed_translation_tracks,
             _verify_observed_translation_tracks,
             _source_revision,
         ),

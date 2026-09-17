@@ -866,7 +866,7 @@ class BindTemporalMotionTargetChange:
 
 @dataclass(frozen=True)
 class VerifyObservedTranslationTrackSourceChange:
-    """Verify S2 evidence and binding inputs without mutating the Document."""
+    """Verify S2 inputs and mark the created Tracks with trusted provenance."""
 
     evidence_reference: dict[str, Any]
     binding: dict[str, Any]
@@ -897,8 +897,69 @@ class VerifyObservedTranslationTrackSourceChange:
         ]
         if len(groups) != 1 or groups[0] != self.group:
             raise DocumentError("STALE_GROUP: translation authoring source changed")
+        tracks = document["animation"]["content"]
+        by_id = {item.get("id"): item for item in tracks}
+        for expected in self.authored_tracks:
+            actual = by_id.get(expected.get("id"))
+            without_provenance = copy.deepcopy(expected)
+            provenance = without_provenance.pop("provenance", None)
+            if actual is None or actual != without_provenance or not isinstance(provenance, dict):
+                raise DocumentError("Observed translation Tracks do not match verified evidence")
+            actual["provenance"] = copy.deepcopy(provenance)
         if document["animation"] != self.expected_animation:
             raise DocumentError("Observed translation Tracks do not match verified evidence")
+
+
+@dataclass(frozen=True)
+class ReplaceObservedTranslationTracksChange:
+    """Atomically replace one trusted observed-translation x/y Track pair."""
+
+    evidence_reference: dict[str, Any]
+    binding: dict[str, Any]
+    group: dict[str, Any]
+    source_revision_id: str
+    ticks_per_second: int
+    existing_tracks: tuple[dict[str, Any], ...]
+    replacement_tracks: tuple[dict[str, Any], ...]
+    animation_before: dict[str, Any]
+    expected_animation: dict[str, Any]
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (self.evidence_reference,)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        references = {item["id"]: item for item in document.get("references", [])}
+        if references.get(self.evidence_reference.get("id")) != self.evidence_reference:
+            raise DocumentError("Observed translation evidence must already be accepted")
+        bindings = [
+            item
+            for item in document.get("motion_target_bindings", [])
+            if item.get("id") == self.binding.get("id")
+        ]
+        if len(bindings) != 1 or bindings[0] != self.binding:
+            raise DocumentError("STALE_MOTION_TARGET_BINDING: translation target changed")
+        groups = [
+            item for item in document.get("groups", []) if item.get("id") == self.group.get("id")
+        ]
+        if len(groups) != 1 or groups[0] != self.group:
+            raise DocumentError("STALE_GROUP: translation authoring source changed")
+        if document.get("animation") != self.animation_before:
+            raise DocumentError("STALE_TRANSLATION_TRACKS: replacement source changed")
+        current = document["animation"]["content"]
+        indices = {track.get("id"): index for index, track in enumerate(current)}
+        if len(self.existing_tracks) != 2 or any(
+            indices.get(track.get("id")) is None or current[indices[track["id"]]] != track
+            for track in self.existing_tracks
+        ):
+            raise DocumentError("STALE_TRANSLATION_TRACKS: replacement source changed")
+        replacements = {
+            track["target"]["property"]: copy.deepcopy(track) for track in self.replacement_tracks
+        }
+        for old in self.existing_tracks:
+            current[indices[old["id"]]] = replacements[old["target"]["property"]]
+        if document["animation"] != self.expected_animation:
+            raise DocumentError("Observed translation replacement does not match verified evidence")
 
 
 @dataclass(frozen=True)

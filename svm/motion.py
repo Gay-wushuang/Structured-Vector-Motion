@@ -130,6 +130,36 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
             ticks.append(tick)
         if ticks != sorted(set(ticks)):
             raise DocumentError(f"Track {track_id} Keyframes must have unique increasing ticks")
+        provenance = track.get("provenance")
+        if provenance is not None:
+            _validate_track_provenance(track_id, target_key, provenance)
+
+
+def _validate_track_provenance(
+    track_id: str, target_key: tuple[str, str, str], provenance: Any
+) -> None:
+    required = {
+        "type",
+        "authoring_identity",
+        "motion_target_binding_id",
+        "evidence_artifact_id",
+        "source_revision_id",
+    }
+    if (
+        not isinstance(provenance, dict)
+        or set(provenance) != required
+        or provenance.get("type") != "ObservedTranslationTrack"
+        or provenance.get("authoring_identity") != "svm-verified-observed-translation-authoring@0.1"
+        or not isinstance(provenance.get("motion_target_binding_id"), str)
+        or not provenance["motion_target_binding_id"].startswith("motion-target-binding:")
+        or not isinstance(provenance.get("evidence_artifact_id"), str)
+        or not provenance["evidence_artifact_id"].startswith("artifact:")
+        or not isinstance(provenance.get("source_revision_id"), str)
+        or not provenance["source_revision_id"].startswith("revision:")
+        or target_key[0] != "group"
+        or target_key[2] not in {"translate.x", "translate.y"}
+    ):
+        raise DocumentError(f"Track {track_id} has invalid observed-translation provenance")
 
 
 def _validate_track_target(

@@ -14,6 +14,7 @@ from ..revisions import (
     MOTION_TARGET_BINDING_POLICY_IDENTITY,
     AddKeyframeChange,
     CreateGroupTransformTrackChange,
+    ReplaceObservedTranslationTracksChange,
     Transaction,
     VerifyObservedTranslationTrackSourceChange,
 )
@@ -43,10 +44,14 @@ class TranslationTrackPreview:
     track_id: str
     property_name: str
     keyframes: tuple[TranslationKeyframePreview, ...]
+    old_track_id: str | None = None
+    old_evidence_artifact_id: str | None = None
+    old_keyframes: tuple[TranslationKeyframePreview, ...] = ()
 
 
 @dataclass(frozen=True)
 class ObservedTranslationTracksPreview(ProposalPreview):
+    mode: str = "CREATE"
     group_id: str = ""
     binding_id: str = ""
     evidence_artifact_id: str = ""
@@ -109,41 +114,86 @@ class ObservedTranslationTracksAdapter:
         tracks = _track_definitions(
             binding_id, snapshot.artifact_id, group_id, samples, ticks_per_second
         )
-        authored_tracks = _document_tracks(group_id, tracks)
+        authored_tracks = _document_tracks(
+            group_id, tracks, binding_id, snapshot.artifact_id, request.base_revision_id
+        )
         animation_before = copy.deepcopy(request.document["animation"])
-        expected_animation = _expected_animation(
-            animation_before, authored_tracks, ticks_per_second
-        )
-        guard = VerifyObservedTranslationTrackSourceChange(
-            reference,
-            binding,
-            group,
-            request.base_revision_id,
-            ticks_per_second,
-            authored_tracks,
-            animation_before,
-            expected_animation,
-        )
+        existing_tracks = _translation_tracks(animation_before, group_id)
+        mode = "CREATE" if not existing_tracks else "REPLACE"
+        if len(existing_tracks) not in {0, 2}:
+            raise ObservedTranslationTracksError(
+                "Existing translation Tracks have partial or ambiguous ownership"
+            )
+        if existing_tracks:
+            _require_owned_tracks(existing_tracks, binding_id, group_id)
+            expected_animation = _replacement_animation(
+                animation_before, existing_tracks, authored_tracks, ticks_per_second
+            )
+        else:
+            expected_animation = _expected_animation(
+                animation_before, authored_tracks, ticks_per_second
+            )
         changes: list[Any] = []
         previews: list[TranslationTrackPreview] = []
-        for property_name, track_id, keyframes in tracks:
+        old_by_property = {track["target"]["property"]: track for track in existing_tracks}
+        if mode == "CREATE":
+            for property_name, track_id, keyframes in tracks:
+                changes.append(
+                    CreateGroupTransformTrackChange(
+                        track_id, group_id, property_name, ticks_per_second, "linear"
+                    )
+                )
+                changes.extend(
+                    AddKeyframeChange(track_id, keyframe_id, tick, value)
+                    for keyframe_id, tick, value in keyframes
+                )
             changes.append(
-                CreateGroupTransformTrackChange(
-                    track_id, group_id, property_name, ticks_per_second, "linear"
+                VerifyObservedTranslationTrackSourceChange(
+                    reference,
+                    binding,
+                    group,
+                    request.base_revision_id,
+                    ticks_per_second,
+                    authored_tracks,
+                    animation_before,
+                    expected_animation,
                 )
             )
-            changes.extend(
-                AddKeyframeChange(track_id, keyframe_id, tick, value)
-                for keyframe_id, tick, value in keyframes
+        else:
+            changes.append(
+                ReplaceObservedTranslationTracksChange(
+                    reference,
+                    binding,
+                    group,
+                    request.base_revision_id,
+                    ticks_per_second,
+                    existing_tracks,
+                    authored_tracks,
+                    animation_before,
+                    expected_animation,
+                )
             )
+        for property_name, track_id, keyframes in tracks:
+            old = old_by_property.get(property_name)
             previews.append(
                 TranslationTrackPreview(
                     track_id,
                     property_name,
                     tuple(TranslationKeyframePreview(tick, value) for _, tick, value in keyframes),
+                    old_track_id=old.get("id") if old else None,
+                    old_evidence_artifact_id=(
+                        old.get("provenance", {}).get("evidence_artifact_id") if old else None
+                    ),
+                    old_keyframes=(
+                        tuple(
+                            TranslationKeyframePreview(item["tick"], item["value"])
+                            for item in old["keyframes"]
+                        )
+                        if old
+                        else ()
+                    ),
                 )
             )
-        changes.append(guard)
         generator = GeneratorProvenance(
             self.adapter_id,
             self.adapter_version,
@@ -162,6 +212,7 @@ class ObservedTranslationTracksAdapter:
                     "base": request.base_revision_id,
                     "generator": asdict(generator),
                     "tracks": tracks,
+                    "mode": mode,
                 }
             )
         ).hexdigest()[:16]
@@ -175,13 +226,16 @@ class ObservedTranslationTracksAdapter:
                 "Author verified observed translation Tracks",
             ),
             preview=ObservedTranslationTracksPreview(
+                mode=mode,
                 group_id=group_id,
                 binding_id=binding_id,
                 evidence_artifact_id=snapshot.artifact_id,
                 tracks=tuple(previews),
             ),
             required_artifact_ids=(snapshot.artifact_id,),
-            notes="Creates linear Group translate.x/y Tracks only after explicit acceptance",
+            notes=(
+                f"{mode.title()} linear Group translate.x/y Tracks only after explicit acceptance"
+            ),
         )
 
 
@@ -209,12 +263,26 @@ def verify_observed_translation_track_source(
             samples,
             change.ticks_per_second,
         ),
+        change.binding["id"],
+        snapshot.artifact_id,
+        change.source_revision_id,
     )
-    if change.authored_tracks != expected:
+    authored = getattr(change, "authored_tracks", getattr(change, "replacement_tracks", ()))
+    if authored != expected:
         raise ValueError("Observed translation Track definitions do not match evidence")
-    if change.expected_animation != _expected_animation(
-        change.animation_before, expected, change.ticks_per_second
-    ):
+    if isinstance(change, ReplaceObservedTranslationTracksChange):
+        _require_owned_tracks(change.existing_tracks, change.binding["id"], change.group["id"])
+        expected_animation = _replacement_animation(
+            change.animation_before,
+            change.existing_tracks,
+            expected,
+            change.ticks_per_second,
+        )
+    else:
+        expected_animation = _expected_animation(
+            change.animation_before, expected, change.ticks_per_second
+        )
+    if change.expected_animation != expected_animation:
         raise ValueError("Observed translation animation result is inconsistent")
 
 
@@ -321,6 +389,9 @@ def _track_definitions(
 def _document_tracks(
     group_id: str,
     definitions: tuple[tuple[str, str, tuple[tuple[str, int, int | float], ...]], ...],
+    binding_id: str,
+    evidence_artifact_id: str,
+    source_revision_id: str,
 ) -> tuple[dict[str, Any], ...]:
     return tuple(
         {
@@ -332,6 +403,13 @@ def _document_tracks(
                 {"id": keyframe_id, "tick": tick, "value": value}
                 for keyframe_id, tick, value in keyframes
             ],
+            "provenance": {
+                "type": "ObservedTranslationTrack",
+                "authoring_identity": POLICY_IDENTITY,
+                "motion_target_binding_id": binding_id,
+                "evidence_artifact_id": evidence_artifact_id,
+                "source_revision_id": source_revision_id,
+            },
         }
         for property_name, track_id, keyframes in definitions
     )
@@ -359,6 +437,60 @@ def _expected_animation(
         animation["semantics_version"] = "svm-motion@0.3"
     animation["timebase"] = {"ticks_per_second": ticks_per_second}
     animation["content"].extend(copy.deepcopy(authored_tracks))
+    return animation
+
+
+def _translation_tracks(animation: dict[str, Any], group_id: str) -> tuple[dict[str, Any], ...]:
+    properties = {"translate.x", "translate.y"}
+    return tuple(
+        copy.deepcopy(track)
+        for track in animation.get("content", [])
+        if track.get("target", {}).get("group") == group_id
+        and track.get("target", {}).get("property") in properties
+    )
+
+
+def _require_owned_tracks(
+    tracks: tuple[dict[str, Any], ...], binding_id: str, group_id: str
+) -> None:
+    properties = {track.get("target", {}).get("property") for track in tracks}
+    if len(tracks) != 2 or properties != {"translate.x", "translate.y"}:
+        raise ObservedTranslationTracksError(
+            "Observed translation replacement requires one x/y pair"
+        )
+    for track in tracks:
+        provenance = track.get("provenance")
+        if (
+            not isinstance(provenance, dict)
+            or provenance.get("type") != "ObservedTranslationTrack"
+            or provenance.get("authoring_identity") != POLICY_IDENTITY
+            or provenance.get("motion_target_binding_id") != binding_id
+            or track.get("target", {}).get("group") != group_id
+        ):
+            raise ObservedTranslationTracksError(
+                "Existing translation Track is not owned by observed-translation authoring"
+            )
+
+
+def _replacement_animation(
+    animation_before: dict[str, Any],
+    existing_tracks: tuple[dict[str, Any], ...],
+    replacement_tracks: tuple[dict[str, Any], ...],
+    ticks_per_second: int,
+) -> dict[str, Any]:
+    animation = copy.deepcopy(animation_before)
+    timebase = animation.get("timebase")
+    if timebase is None or timebase.get("ticks_per_second") != ticks_per_second:
+        raise ObservedTranslationTracksError(
+            "ticks_per_second conflicts with the existing Document timebase"
+        )
+    replacement_by_property = {
+        item["target"]["property"]: copy.deepcopy(item) for item in replacement_tracks
+    }
+    old_ids = {item["id"] for item in existing_tracks}
+    for index, track in enumerate(animation["content"]):
+        if track.get("id") in old_ids:
+            animation["content"][index] = replacement_by_property[track["target"]["property"]]
     return animation
 
 

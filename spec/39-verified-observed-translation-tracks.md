@@ -37,6 +37,11 @@ authoritative Proposal base Revision, and complete expected Track definitions.
 It verifies the final transaction result before commit. Forged targets,
 Keyframes, values, evidence, or provenance fail atomically.
 
+Accepted Tracks carry narrow `ObservedTranslationTrack` provenance binding the
+authoring policy, exact S0 Artifact, accepted Motion Target Binding, and source
+Revision. Golden S3 uses this metadata solely to prove ownership before an
+explicit replacement; target equality alone never grants overwrite authority.
+
 Pending Proposal validation is distinct from persistent S1 semantics. A Group
 may legally evolve after its binding was accepted; a new S2 Proposal uses that
 current Group as its baseline. If the binding or Group changes after that S2
