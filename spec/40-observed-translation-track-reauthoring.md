@@ -21,6 +21,12 @@ Only Tracks carrying canonical `ObservedTranslationTrack` provenance for the
 same accepted Motion Target Binding and authoring policy may be replaced. A
 manual, unknown, mixed, or partial pair fails closed.
 
+An owned observed-translation pair is not merely two individually owned
+Tracks. Both Tracks must share one authoring lineage: authoring identity,
+Motion Target Binding, evidence Artifact, source Revision, and target Group,
+with exactly complementary `translate.x` and `translate.y` properties. Track
+ownership is not pair ownership.
+
 ## Identity and provenance
 
 The semantic animation target remains `(Group ID, property)`. A Track ID names
@@ -38,6 +44,12 @@ The x/y pair is replaced by one registered Core Change on a transactional copy.
 Both Tracks are replaced or neither is. Acceptance verifies the exact S0
 Artifact, Binding snapshot, current Group baseline, old Track pair, new Track
 definitions, source Revision, and expected final animation.
+
+ChangeAuthority artifact verification proves that evidence justifies the
+result; it does not replace Core structural validation. The replacement Change
+itself independently rejects manual, unknown, partial, mixed-lineage,
+wrong-Binding, ambiguous-ID, or conflicting-ID pairs, including when trusted
+internal code invokes it through `RevisionStore.commit()` without a Proposal.
 
 A pending replacement snapshot protects only that Proposal. It does not turn
 the persistent S1 Binding into a frozen Group snapshot: a valid later Group

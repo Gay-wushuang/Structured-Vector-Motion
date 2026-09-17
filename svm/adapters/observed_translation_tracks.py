@@ -458,10 +458,19 @@ def _require_owned_tracks(
         raise ObservedTranslationTracksError(
             "Observed translation replacement requires one x/y pair"
         )
+    lineages: set[tuple[Any, ...]] = set()
+    provenance_keys = {
+        "type",
+        "authoring_identity",
+        "motion_target_binding_id",
+        "evidence_artifact_id",
+        "source_revision_id",
+    }
     for track in tracks:
         provenance = track.get("provenance")
         if (
             not isinstance(provenance, dict)
+            or set(provenance) != provenance_keys
             or provenance.get("type") != "ObservedTranslationTrack"
             or provenance.get("authoring_identity") != POLICY_IDENTITY
             or provenance.get("motion_target_binding_id") != binding_id
@@ -470,6 +479,20 @@ def _require_owned_tracks(
             raise ObservedTranslationTracksError(
                 "Existing translation Track is not owned by observed-translation authoring"
             )
+        lineages.add(
+            (
+                provenance["type"],
+                provenance["authoring_identity"],
+                provenance["motion_target_binding_id"],
+                provenance["evidence_artifact_id"],
+                provenance["source_revision_id"],
+                track["target"]["group"],
+            )
+        )
+    if len(lineages) != 1:
+        raise ObservedTranslationTracksError(
+            "Existing translation Tracks do not form one coherent authoring lineage"
+        )
 
 
 def _replacement_animation(

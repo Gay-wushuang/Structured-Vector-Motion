@@ -939,6 +939,9 @@ class ReplaceObservedTranslationTracksChange:
         ]
         if len(bindings) != 1 or bindings[0] != self.binding:
             raise DocumentError("STALE_MOTION_TARGET_BINDING: translation target changed")
+        group_id = self.group.get("id")
+        if self.binding.get("target") != {"kind": "group", "group_id": group_id}:
+            raise DocumentError("Observed translation replacement Binding target is invalid")
         groups = [
             item for item in document.get("groups", []) if item.get("id") == self.group.get("id")
         ]
@@ -946,6 +949,20 @@ class ReplaceObservedTranslationTracksChange:
             raise DocumentError("STALE_GROUP: translation authoring source changed")
         if document.get("animation") != self.animation_before:
             raise DocumentError("STALE_TRANSLATION_TRACKS: replacement source changed")
+        _validate_observed_translation_pair(
+            self.existing_tracks,
+            self.binding["id"],
+            group_id,
+            label="existing",
+        )
+        _validate_observed_translation_pair(
+            self.replacement_tracks,
+            self.binding["id"],
+            group_id,
+            evidence_artifact_id=self.evidence_reference.get("id"),
+            source_revision_id=self.source_revision_id,
+            label="replacement",
+        )
         current = document["animation"]["content"]
         indices = {track.get("id"): index for index, track in enumerate(current)}
         if len(self.existing_tracks) != 2 or any(
@@ -953,6 +970,13 @@ class ReplaceObservedTranslationTracksChange:
             for track in self.existing_tracks
         ):
             raise DocumentError("STALE_TRANSLATION_TRACKS: replacement source changed")
+        existing_ids = {track["id"] for track in self.existing_tracks}
+        replacement_ids = {track["id"] for track in self.replacement_tracks}
+        current_other_ids = {
+            track.get("id") for track in current if track.get("id") not in existing_ids
+        }
+        if existing_ids & replacement_ids or replacement_ids & current_other_ids:
+            raise DocumentError("Observed translation replacement Track IDs conflict")
         replacements = {
             track["target"]["property"]: copy.deepcopy(track) for track in self.replacement_tracks
         }
@@ -960,6 +984,69 @@ class ReplaceObservedTranslationTracksChange:
             current[indices[old["id"]]] = replacements[old["target"]["property"]]
         if document["animation"] != self.expected_animation:
             raise DocumentError("Observed translation replacement does not match verified evidence")
+
+
+def _validate_observed_translation_pair(
+    tracks: tuple[dict[str, Any], ...],
+    binding_id: Any,
+    group_id: Any,
+    *,
+    evidence_artifact_id: Any | None = None,
+    source_revision_id: Any | None = None,
+    label: str,
+) -> None:
+    if len(tracks) != 2 or any(not isinstance(track, dict) for track in tracks):
+        raise DocumentError(f"Observed translation {label} requires one x/y Track pair")
+    properties: set[Any] = set()
+    track_ids: set[Any] = set()
+    lineages: set[tuple[Any, ...]] = set()
+    provenance_keys = {
+        "type",
+        "authoring_identity",
+        "motion_target_binding_id",
+        "evidence_artifact_id",
+        "source_revision_id",
+    }
+    for track in tracks:
+        target = track.get("target")
+        provenance = track.get("provenance")
+        if not isinstance(target, dict) or set(target) != {"group", "property"}:
+            raise DocumentError(f"Observed translation {label} Track target is invalid")
+        if target.get("group") != group_id:
+            raise DocumentError(f"Observed translation {label} Track Group is invalid")
+        properties.add(target.get("property"))
+        track_id = track.get("id")
+        if not isinstance(track_id, str) or not track_id.startswith("track:"):
+            raise DocumentError(f"Observed translation {label} Track ID is invalid")
+        track_ids.add(track_id)
+        if (
+            not isinstance(provenance, dict)
+            or set(provenance) != provenance_keys
+            or provenance.get("type") != "ObservedTranslationTrack"
+            or provenance.get("authoring_identity")
+            != "svm-verified-observed-translation-authoring@0.1"
+            or provenance.get("motion_target_binding_id") != binding_id
+        ):
+            raise DocumentError(f"Observed translation {label} Track ownership is invalid")
+        lineages.add(
+            (
+                provenance["type"],
+                provenance["authoring_identity"],
+                provenance["motion_target_binding_id"],
+                provenance["evidence_artifact_id"],
+                provenance["source_revision_id"],
+                target["group"],
+            )
+        )
+    if properties != {"translate.x", "translate.y"} or len(track_ids) != 2:
+        raise DocumentError(f"Observed translation {label} pair is incomplete or ambiguous")
+    if len(lineages) != 1:
+        raise DocumentError(f"Observed translation {label} pair has mixed lineage")
+    lineage = next(iter(lineages))
+    if evidence_artifact_id is not None and lineage[3] != evidence_artifact_id:
+        raise DocumentError(f"Observed translation {label} evidence provenance is invalid")
+    if source_revision_id is not None and lineage[4] != source_revision_id:
+        raise DocumentError(f"Observed translation {label} source Revision is invalid")
 
 
 @dataclass(frozen=True)

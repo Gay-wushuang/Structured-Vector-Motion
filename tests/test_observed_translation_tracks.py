@@ -15,6 +15,7 @@ from svm import (
     Proposal,
     ProposalAcceptor,
     ProposalArtifactError,
+    ReplaceObservedTranslationTracksChange,
     RevisionStore,
     SetGroupTransformChange,
     SetKeyframeValueChange,
@@ -377,6 +378,123 @@ class ObservedTranslationTracksGoldenS2Test(unittest.TestCase):
                 )
                 with self.assertRaisesRegex(ObservedTranslationTracksError, message):
                     ObservedTranslationTracksAdapter().propose(request, self.artifacts)
+
+    def test_mixed_evidence_revision_or_binding_pair_is_rejected(self) -> None:
+        ProposalAcceptor().accept(self.store, self.proposal(), self.artifacts)
+        new_evidence = self.add_motion_evidence(24, 48, [30, 25, 40, 35], [45, 20, 55, 30])
+
+        class ChangeLineage:
+            def __init__(self, field: str, value: str) -> None:
+                self.field = field
+                self.value = value
+
+            def apply(inner_self, document):
+                document["animation"]["content"][1]["provenance"][inner_self.field] = (
+                    inner_self.value
+                )
+
+        cases = (
+            ("evidence_artifact_id", "artifact:" + "a" * 64, "coherent authoring lineage"),
+            ("source_revision_id", "revision:" + "b" * 64, "coherent authoring lineage"),
+            ("motion_target_binding_id", "motion-target-binding:" + "c" * 64, "not owned"),
+        )
+        for field, value, message in cases:
+            with self.subTest(field=field):
+                isolated = RevisionStore.create(self.store.get_document(self.store.head))
+                isolated.commit(
+                    isolated.head,
+                    Transaction(f"transaction:mixed-{field}", (ChangeLineage(field, value),)),
+                )
+                request = AdapterRequest.from_store(
+                    isolated,
+                    isolated.head,
+                    ("document",),
+                    artifact_ids=(new_evidence,),
+                    options={
+                        "motion_target_binding_id": self.binding_id,
+                        "ticks_per_second": 24,
+                    },
+                )
+                with self.assertRaisesRegex(ObservedTranslationTracksError, message):
+                    ObservedTranslationTracksAdapter().propose(request, self.artifacts)
+
+    def test_direct_core_replacement_enforces_pair_ownership_and_allows_valid_pair(self) -> None:
+        ProposalAcceptor().accept(self.store, self.proposal(), self.artifacts)
+        new_evidence = self.add_motion_evidence(24, 48, [30, 25, 40, 35], [45, 20, 55, 30])
+        proposal = self.reauthor_proposal(new_evidence)
+        change = proposal.transaction.changes[0]
+        self.assertIsInstance(change, ReplaceObservedTranslationTracksChange)
+        base = self.store.get_document(self.store.head)
+
+        def direct_change(document: dict[str, Any]) -> ReplaceObservedTranslationTracksChange:
+            candidate = copy.deepcopy(change)
+            existing = tuple(copy.deepcopy(document["animation"]["content"]))
+            expected_animation = copy.deepcopy(document["animation"])
+            by_property = {
+                track["target"]["property"]: copy.deepcopy(track)
+                for track in candidate.replacement_tracks
+            }
+            expected_animation["content"] = [
+                by_property[track["target"]["property"]] for track in existing
+            ]
+            object.__setattr__(candidate, "existing_tracks", existing)
+            object.__setattr__(candidate, "animation_before", copy.deepcopy(document["animation"]))
+            object.__setattr__(candidate, "expected_animation", expected_animation)
+            return candidate
+
+        class MutateOwnership:
+            def __init__(self, field: str | None, value: str | None) -> None:
+                self.field = field
+                self.value = value
+
+            def apply(inner_self, document):
+                provenance = document["animation"]["content"][1].get("provenance")
+                if inner_self.field is None:
+                    document["animation"]["content"][0].pop("provenance", None)
+                    document["animation"]["content"][1].pop("provenance", None)
+                else:
+                    provenance[inner_self.field] = inner_self.value
+
+        cases = (
+            (None, None, "ownership is invalid"),
+            ("evidence_artifact_id", "artifact:" + "d" * 64, "mixed lineage"),
+        )
+        for field, value, message in cases:
+            with self.subTest(field=field):
+                isolated = RevisionStore.create(base)
+                isolated.commit(
+                    isolated.head,
+                    Transaction(
+                        "transaction:mutate-direct-source", (MutateOwnership(field, value),)
+                    ),
+                )
+                current = isolated.get_document(isolated.head)
+                head = isolated.head
+                revision_count = len(isolated.revisions)
+                with self.assertRaisesRegex(DocumentError, message):
+                    isolated.commit(
+                        head,
+                        Transaction(
+                            "transaction:direct-invalid-replacement",
+                            (direct_change(current),),
+                        ),
+                    )
+                self.assertEqual(isolated.head, head)
+                self.assertEqual(len(isolated.revisions), revision_count)
+                self.assertEqual(isolated.get_document(head), current)
+
+        revision = self.store.commit(
+            self.store.head,
+            Transaction("transaction:direct-valid-replacement", (copy.deepcopy(change),)),
+        )
+        accepted = self.store.get_document(revision.revision_id)
+        self.assertEqual(
+            {
+                track["provenance"]["evidence_artifact_id"]
+                for track in accepted["animation"]["content"]
+            },
+            {new_evidence},
+        )
 
     def test_pending_replacement_rejects_track_group_binding_and_forgery_atomically(self) -> None:
         ProposalAcceptor().accept(self.store, self.proposal(), self.artifacts)
