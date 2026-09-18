@@ -564,6 +564,64 @@ class AppendReferencesChange:
 
 
 @dataclass(frozen=True)
+class AttachPOPGeometryObservationsChange:
+    """Attach verified POP-derived observation geometry and its exact sources."""
+
+    observation_reference: dict[str, Any]
+    source_output_reference: dict[str, Any]
+    target_output_reference: dict[str, Any]
+    prefix_references: tuple[dict[str, Any], ...]
+    source_tick: int
+    target_tick: int
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (
+            self.observation_reference,
+            self.source_output_reference,
+            self.target_output_reference,
+            *self.prefix_references,
+        )
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if (
+            type(self.source_tick) is not int
+            or type(self.target_tick) is not int
+            or self.source_tick < 0
+            or self.target_tick <= self.source_tick
+        ):
+            raise DocumentError(
+                "POP geometry observation ticks must be non-negative and increasing"
+            )
+        if not 1 <= len(self.prefix_references) <= 2:
+            raise DocumentError("POP geometry observations require one or two prefix references")
+        reference_ids = tuple(_artifact_reference_id(item) for item in self.references)
+        if len(reference_ids) != len(set(reference_ids)):
+            raise DocumentError("POP geometry observation references must be unique")
+        prefix_ids = tuple(_artifact_reference_id(item) for item in self.prefix_references)
+        if prefix_ids != tuple(sorted(prefix_ids)):
+            raise DocumentError("POP geometry observation prefix references must be canonical")
+        known = {reference["id"]: reference for reference in document["references"]}
+        for reference in self.references:
+            artifact_id = reference["id"]
+            existing = known.get(artifact_id)
+            if existing is not None and existing != reference:
+                raise DocumentError("POP geometry observation reference conflicts with Document")
+            if existing is None:
+                document["references"].append(copy.deepcopy(reference))
+                known[artifact_id] = reference
+
+
+def _artifact_reference_id(reference: Any) -> str:
+    if not isinstance(reference, dict):
+        raise DocumentError("POP geometry observation Artifact reference must be an object")
+    artifact_id = reference.get("id")
+    if not isinstance(artifact_id, str) or not artifact_id.startswith("artifact:"):
+        raise DocumentError("POP geometry observation Artifact reference ID is invalid")
+    return artifact_id
+
+
+@dataclass(frozen=True)
 class PromotedGroup:
     inference_artifact_id: str
     candidate_id: str

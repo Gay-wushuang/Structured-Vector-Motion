@@ -3,10 +3,19 @@ from __future__ import annotations
 import copy
 import json
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from svm import AdapterRequest, ArtifactKind, ArtifactStore, ProposalAcceptor, RevisionStore
+from svm import (
+    AdapterRequest,
+    ArtifactKind,
+    ArtifactStore,
+    AttachPOPGeometryObservationsChange,
+    ProposalAcceptor,
+    ProposalArtifactError,
+    RevisionStore,
+)
 from svm.adapters import (
     ObservedSimilarityMotionAdapter,
     POPGeometryObservationAdapter,
@@ -129,6 +138,28 @@ class POPGeometryObservationGoldenS41Test(unittest.TestCase):
         )
         return POPGeometryObservationAdapter().propose(request, self.artifacts), source, target
 
+    def forge_observation(self, proposal: Any, *, payload=None, provenance=None):
+        original = self.artifacts.resolve_reference(
+            proposal.transaction.changes[0].observation_reference
+        )
+        forged = self.artifacts.import_bytes(
+            canonical_bytes(payload) if payload is not None else original.content,
+            media_type=original.media_type,
+            kind=original.kind,
+            provenance=provenance if provenance is not None else original.provenance,
+        )
+        change = proposal.transaction.changes[0]
+        forged_change = replace(change, observation_reference=forged.document_reference())
+        required = tuple(
+            forged.artifact_id if item == original.artifact_id else item
+            for item in proposal.required_artifact_ids
+        )
+        return replace(
+            proposal,
+            transaction=replace(proposal.transaction, changes=(forged_change,)),
+            required_artifact_ids=required,
+        )
+
     def test_real_pop_producer_emits_deterministic_v02_geometry_and_provenance(self) -> None:
         first, source, target = self.producer()
         second = POPGeometryObservationAdapter().propose(
@@ -162,6 +193,120 @@ class POPGeometryObservationGoldenS41Test(unittest.TestCase):
             observation.provenance["source_artifact_ids"],
             [source.artifact_id, target.artifact_id],
         )
+        self.assertIsInstance(first.transaction.changes[0], AttachPOPGeometryObservationsChange)
+        before = self.store.get_document(self.store.head)
+        revision = ProposalAcceptor().accept(self.store, first, self.artifacts)
+        after = self.store.get_document(revision.revision_id)
+        for field in ("entities", "groups", "construction", "presentation", "animation"):
+            self.assertEqual(after.get(field), before.get(field))
+        self.assertEqual(
+            {item["id"] for item in after["references"]}
+            - {item["id"] for item in before["references"]},
+            set(first.required_artifact_ids),
+        )
+
+    def test_acceptor_rejects_forged_points_symmetry_and_bounds(self) -> None:
+        proposal, _source, _target = self.producer()
+        original = self.artifacts.get(proposal.preview_artifacts[0].artifact_id)
+        for mutation in ("points", "symmetry", "bounds"):
+            payload = json.loads(original.content)
+            primitive = payload["frames"][0]["primitives"][0]
+            if mutation == "points":
+                primitive["geometry"]["points"][0][0] += 1
+            elif mutation == "symmetry":
+                primitive["geometry"]["rotation_symmetry"] = "none"
+            else:
+                primitive["bounds"][0] += 1
+            forged = self.forge_observation(proposal, payload=payload)
+            with self.subTest(mutation=mutation), self.assertRaises(ProposalArtifactError):
+                ProposalAcceptor().accept(self.store, forged, self.artifacts)
+
+    def test_acceptor_rejects_every_forged_observation_provenance_field(self) -> None:
+        proposal, _source, _target = self.producer()
+        original = self.artifacts.get(proposal.preview_artifacts[0].artifact_id)
+        for field in (
+            "source_artifact_ids",
+            "source_prefix_artifact_ids",
+            "source_format_identity",
+            "source_adapter_identity",
+            "geometry_observation_policy",
+            "producer_identity",
+            "producer_version",
+        ):
+            provenance = copy.deepcopy(original.provenance)
+            provenance[field] = (
+                ["artifact:" + "0" * 64] if isinstance(provenance[field], list) else "forged"
+            )
+            forged = self.forge_observation(proposal, provenance=provenance)
+            with self.subTest(field=field), self.assertRaises(ProposalArtifactError):
+                ProposalAcceptor().accept(self.store, forged, self.artifacts)
+
+    def test_acceptor_rejects_source_swap_tick_forgery_and_invalid_pop_provenance(self) -> None:
+        proposal, source, target = self.producer()
+        change = proposal.transaction.changes[0]
+        prefix_id = json.loads(source.content)["generation_context"]["prefix_artifact_id"]
+        _prefix, alternate = export_frame(
+            self.artifacts, x=110, y=105, angle=45, width=70, height=35
+        )
+        swapped_change = replace(change, target_output_reference=alternate.document_reference())
+        swapped_required = tuple(
+            alternate.artifact_id if item == target.artifact_id else item
+            for item in proposal.required_artifact_ids
+        )
+        swapped = replace(
+            proposal,
+            transaction=replace(proposal.transaction, changes=(swapped_change,)),
+            required_artifact_ids=swapped_required,
+        )
+        with self.assertRaises(ProposalArtifactError):
+            ProposalAcceptor().accept(self.store, swapped, self.artifacts)
+
+        tick_change = replace(change, target_tick=25)
+        tick_forgery = replace(
+            proposal, transaction=replace(proposal.transaction, changes=(tick_change,))
+        )
+        with self.assertRaises(ProposalArtifactError):
+            ProposalAcceptor().accept(self.store, tick_forgery, self.artifacts)
+
+        forged_provenance = copy.deepcopy(source.provenance)
+        forged_provenance["decoder_identity"] = "forged"
+        forged_source = self.artifacts.import_bytes(
+            source.content,
+            media_type=source.media_type,
+            kind=source.kind,
+            provenance=forged_provenance,
+        )
+        invalid_source_change = replace(
+            change, source_output_reference=forged_source.document_reference()
+        )
+        invalid_source = replace(
+            proposal,
+            transaction=replace(proposal.transaction, changes=(invalid_source_change,)),
+        )
+        self.assertIn(prefix_id, proposal.required_artifact_ids)
+        with self.assertRaises(ProposalArtifactError):
+            ProposalAcceptor().accept(self.store, invalid_source, self.artifacts)
+
+        broken_tokens = json.loads(source.content)
+        broken_tokens["raw_tokens"][9] += 2
+        broken_source = self.artifacts.import_bytes(
+            canonical_bytes(broken_tokens),
+            media_type=source.media_type,
+            kind=source.kind,
+            provenance=source.provenance,
+        )
+        broken_change = replace(change, source_output_reference=broken_source.document_reference())
+        broken_required = tuple(
+            broken_source.artifact_id if item == source.artifact_id else item
+            for item in proposal.required_artifact_ids
+        )
+        broken_proposal = replace(
+            proposal,
+            transaction=replace(proposal.transaction, changes=(broken_change,)),
+            required_artifact_ids=broken_required,
+        )
+        with self.assertRaises(ProposalArtifactError):
+            ProposalAcceptor().accept(self.store, broken_proposal, self.artifacts)
 
     def test_r0_v01_v02_parity_and_square_symmetry(self) -> None:
         proposal, _source, _target = self.producer(square=True)

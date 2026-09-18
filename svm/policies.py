@@ -78,6 +78,7 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
                     "promote_temporal_identity",
                     "attach_observed_motion",
                     "attach_observed_similarity",
+                    "attach_pop_geometry_observations",
                     "bind_motion_target",
                     "author_observed_translation",
                 }

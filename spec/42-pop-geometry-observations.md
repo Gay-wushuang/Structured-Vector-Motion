@@ -65,3 +65,15 @@ Equal source Artifacts, ticks, and policy produce identical canonical bytes,
 Artifact ID, bounds, landmark order, and symmetry. Acceptance attaches the
 observation and exact source references only. Later R0, R1, and S4 remain
 separate explicit Proposal boundaries.
+
+Acceptance uses the artifact-bound `AttachPOPGeometryObservationsChange`, not
+the generic analysis attachment primitive. Its Change Authority independently
+revalidates both POP token sources and prefixes, invokes the same pure geometry
+derivation used by the producer, and requires exact canonical observation bytes
+and exact provenance. A valid-looking but forged observation therefore cannot
+cross the acceptance boundary.
+
+A valid POP-produced v0.2 Artifact may provide exact oriented landmarks while
+still being rotationally ambiguous. Exact authored angle does not override
+visible rotational symmetry. This producer never emits `rotation_symmetry =
+none` for its current rectangle and ellipse subset.

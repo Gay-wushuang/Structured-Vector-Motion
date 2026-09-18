@@ -13,6 +13,7 @@ from .revisions import (
     AppendSceneFragmentChange,
     AttachObservedMotionEvidenceChange,
     AttachObservedSimilarityEvidenceChange,
+    AttachPOPGeometryObservationsChange,
     BindTemporalMotionTargetChange,
     CreateCameraTransformTrackChange,
     CreateGroupTransformTrackChange,
@@ -227,6 +228,12 @@ def _verify_observed_similarity(change: Any, resolved: dict[str, ArtifactSnapsho
     verify_observed_similarity_change(change, resolved)
 
 
+def _verify_pop_geometry_observations(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.pop_geometry_observations import verify_pop_geometry_observations_change
+
+    verify_pop_geometry_observations_change(change, resolved)
+
+
 def _verify_observed_translation_tracks(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
     from .adapters.observed_translation_tracks import (
         verify_observed_translation_track_source,
@@ -336,6 +343,12 @@ CHANGE_AUTHORITIES = {
         ),
         ChangeAuthority(
             AppendReferencesChange, frozenset({"attach_analysis"}), _single("attach_analysis")
+        ),
+        ChangeAuthority(
+            AttachPOPGeometryObservationsChange,
+            frozenset({"attach_pop_geometry_observations"}),
+            _single("attach_pop_geometry_observations"),
+            _verify_pop_geometry_observations,
         ),
         ChangeAuthority(
             PromoteComponentsChange,

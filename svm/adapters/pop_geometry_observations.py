@@ -15,7 +15,7 @@ from ..proposals import (
     Proposal,
     ProposalPreview,
 )
-from ..revisions import AppendReferencesChange, Transaction
+from ..revisions import AttachPOPGeometryObservationsChange, Transaction
 from .pop_output import (
     ADAPTER_IDENTITY as POP_ADAPTER_IDENTITY,
 )
@@ -105,26 +105,10 @@ class POPGeometryObservationAdapter:
             raise POPGeometryObservationError("Artifact IDs must exactly match both POP sources")
         if payloads[0]["canvas"] != payloads[1]["canvas"]:
             raise POPGeometryObservationError("POP frames must use the same canvas")
-        frames = [
-            _frame(payload, output, tick)
-            for payload, output, tick in zip(
-                payloads, outputs, (source_tick, target_tick), strict=True
-            )
-        ]
-        observation_payload = {
-            "schema_version": "svm-primitive-observations-0.2",
-            "canvas": [payloads[0]["canvas"]["width"], payloads[0]["canvas"]["height"]],
-            "frames": frames,
-        }
-        provenance = {
-            "producer_identity": PRODUCER_IDENTITY,
-            "producer_version": self.adapter_version,
-            "source_artifact_ids": [source_id, target_id],
-            "source_prefix_artifact_ids": prefix_ids,
-            "source_format_identity": OUTPUT_IDENTITY,
-            "source_adapter_identity": POP_ADAPTER_IDENTITY,
-            "geometry_observation_policy": POLICY_IDENTITY,
-        }
+        observation_payload = derive_pop_geometry_observation(
+            payloads[0], payloads[1], source_id, target_id, source_tick, target_tick
+        )
+        provenance = pop_geometry_observation_provenance(source_id, target_id, prefix_ids)
         observation = artifacts.import_bytes(
             canonical_bytes(observation_payload),
             media_type=OBSERVATION_MEDIA_TYPE_V2,
@@ -159,17 +143,25 @@ class POPGeometryObservationAdapter:
             transaction=Transaction(
                 f"transaction:pop-geometry-observations:{digest}",
                 (
-                    AppendReferencesChange(
-                        (
-                            observation.document_reference(),
-                            *(snapshots[item].document_reference() for item in exact_ids),
-                        )
+                    AttachPOPGeometryObservationsChange(
+                        observation_reference=observation.document_reference(),
+                        source_output_reference=source.document_reference(),
+                        target_output_reference=target.document_reference(),
+                        prefix_references=tuple(
+                            snapshots[item].document_reference() for item in sorted(set(prefix_ids))
+                        ),
+                        source_tick=source_tick,
+                        target_tick=target_tick,
                     ),
                 ),
                 "Attach POP-derived primitive observations v0.2",
             ),
             report=EvaluationReport(
-                metrics={"observations": float(sum(len(item["primitives"]) for item in frames))}
+                metrics={
+                    "observations": float(
+                        sum(len(item["primitives"]) for item in observation_payload["frames"])
+                    )
+                }
             ),
             preview_artifacts=(
                 PreviewArtifact(
@@ -180,6 +172,106 @@ class POPGeometryObservationAdapter:
             required_artifact_ids=(observation.artifact_id, *exact_ids),
             notes="Landmarks come from frozen POP primitive geometry, not rendered bounds",
         )
+
+
+def verify_pop_geometry_observations_change(
+    change: Any, resolved: dict[str, ArtifactSnapshot]
+) -> None:
+    observation = resolved.get(change.observation_reference.get("id"))
+    source = resolved.get(change.source_output_reference.get("id"))
+    target = resolved.get(change.target_output_reference.get("id"))
+    if (
+        observation is None
+        or observation.kind != ArtifactKind.REFERENCE
+        or observation.media_type != OBSERVATION_MEDIA_TYPE_V2
+        or source is None
+        or target is None
+    ):
+        raise ValueError("POP geometry observation Artifacts were not resolved")
+    outputs = (source, target)
+    if any(
+        item.kind != ArtifactKind.DERIVED or item.media_type != OUTPUT_MEDIA_TYPE
+        for item in outputs
+    ):
+        raise ValueError("POP geometry observation sources must be Derived POP outputs")
+    prefixes = {
+        reference["id"]: resolved.get(reference["id"]) for reference in change.prefix_references
+    }
+    if any(
+        item is None or item.kind != ArtifactKind.REFERENCE or item.media_type != PREFIX_MEDIA_TYPE
+        for item in prefixes.values()
+    ):
+        raise ValueError("POP geometry observation prefixes were not resolved")
+    payloads: list[dict[str, Any]] = []
+    prefix_ids: list[str] = []
+    for output in outputs:
+        raw = _raw_payload(output)
+        prefix_id = raw.get("generation_context", {}).get("prefix_artifact_id")
+        prefix = prefixes.get(prefix_id)
+        if prefix is None:
+            raise ValueError("POP output does not bind one of the exact prefix references")
+        payloads.append(read_validated_pop_output(output, prefix))
+        prefix_ids.append(prefix_id)
+    if set(prefixes) != set(prefix_ids):
+        raise ValueError("POP geometry observation includes an unrelated prefix")
+    if payloads[0]["canvas"] != payloads[1]["canvas"]:
+        raise ValueError("POP geometry observation frames use different canvases")
+    expected = derive_pop_geometry_observation(
+        payloads[0],
+        payloads[1],
+        source.artifact_id,
+        target.artifact_id,
+        change.source_tick,
+        change.target_tick,
+    )
+    if canonical_bytes(expected) != observation.content:
+        raise ValueError("POP geometry observation does not match its exact frozen sources")
+    expected_provenance = pop_geometry_observation_provenance(
+        source.artifact_id, target.artifact_id, prefix_ids
+    )
+    if observation.provenance != expected_provenance:
+        raise ValueError("POP geometry observation provenance is invalid")
+
+
+def derive_pop_geometry_observation(
+    source_payload: dict[str, Any],
+    target_payload: dict[str, Any],
+    source_artifact_id: str,
+    target_artifact_id: str,
+    source_tick: int,
+    target_tick: int,
+) -> dict[str, Any]:
+    """Pure canonical observation derivation shared by producer and verifier."""
+
+    if source_payload["canvas"] != target_payload["canvas"]:
+        raise POPGeometryObservationError("POP frames must use the same canvas")
+    return {
+        "schema_version": "svm-primitive-observations-0.2",
+        "canvas": [
+            source_payload["canvas"]["width"],
+            source_payload["canvas"]["height"],
+        ],
+        "frames": [
+            _frame(source_payload, source_artifact_id, source_tick),
+            _frame(target_payload, target_artifact_id, target_tick),
+        ],
+    }
+
+
+def pop_geometry_observation_provenance(
+    source_artifact_id: str,
+    target_artifact_id: str,
+    prefix_artifact_ids: list[str],
+) -> dict[str, Any]:
+    return {
+        "producer_identity": PRODUCER_IDENTITY,
+        "producer_version": POPGeometryObservationAdapter.adapter_version,
+        "source_artifact_ids": [source_artifact_id, target_artifact_id],
+        "source_prefix_artifact_ids": list(prefix_artifact_ids),
+        "source_format_identity": OUTPUT_IDENTITY,
+        "source_adapter_identity": POP_ADAPTER_IDENTITY,
+        "geometry_observation_policy": POLICY_IDENTITY,
+    }
 
 
 def _raw_payload(snapshot: ArtifactSnapshot) -> dict[str, Any]:
@@ -194,11 +286,11 @@ def _raw_payload(snapshot: ArtifactSnapshot) -> dict[str, Any]:
     return value
 
 
-def _frame(payload: dict[str, Any], output: ArtifactSnapshot, tick: int) -> dict[str, Any]:
+def _frame(payload: dict[str, Any], output_artifact_id: str, tick: int) -> dict[str, Any]:
     return {
         "tick": tick,
         "primitives": [
-            _observation(primitive, output.artifact_id) for primitive in payload["primitives"]
+            _observation(primitive, output_artifact_id) for primitive in payload["primitives"]
         ],
     }
 
