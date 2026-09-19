@@ -612,6 +612,52 @@ class AttachPOPGeometryObservationsChange:
                 known[artifact_id] = reference
 
 
+@dataclass(frozen=True)
+class AttachSVGGeometryObservationsChange:
+    """Attach verified SVG-derived observation geometry and its exact sources."""
+
+    observation_reference: dict[str, Any]
+    source_svg_reference: dict[str, Any]
+    target_svg_reference: dict[str, Any]
+    source_tick: int
+    target_tick: int
+    shape_id: str
+    producer_policy_identity: str
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (
+            self.observation_reference,
+            self.source_svg_reference,
+            self.target_svg_reference,
+        )
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if (
+            type(self.source_tick) is not int
+            or type(self.target_tick) is not int
+            or self.source_tick < 0
+            or self.target_tick <= self.source_tick
+        ):
+            raise DocumentError("SVG geometry observation ticks must be non-negative and increasing")
+        if not isinstance(self.shape_id, str) or not self.shape_id:
+            raise DocumentError("SVG geometry observation shape ID must be non-empty")
+        if not isinstance(self.producer_policy_identity, str) or not self.producer_policy_identity:
+            raise DocumentError("SVG geometry observation policy identity must be non-empty")
+        reference_ids = tuple(_artifact_reference_id(item) for item in self.references)
+        if len(reference_ids) != len(set(reference_ids)):
+            raise DocumentError("SVG geometry observation references must be unique")
+        known = {reference["id"]: reference for reference in document["references"]}
+        for reference in self.references:
+            artifact_id = reference["id"]
+            existing = known.get(artifact_id)
+            if existing is not None and existing != reference:
+                raise DocumentError("SVG geometry observation reference conflicts with Document")
+            if existing is None:
+                document["references"].append(copy.deepcopy(reference))
+                known[artifact_id] = reference
+
+
 def _artifact_reference_id(reference: Any) -> str:
     if not isinstance(reference, dict):
         raise DocumentError("POP geometry observation Artifact reference must be an object")

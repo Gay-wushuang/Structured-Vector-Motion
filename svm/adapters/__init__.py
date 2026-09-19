@@ -26,6 +26,10 @@ from .pop_group_promotion import POPGroupPromotionAdapter, POPGroupPromotionErro
 from .pop_output import POPOutputAdapter, POPOutputError, POPTokenExporter
 from .pop_structure import POPStructureAdapter, POPStructureError
 from .svg_import import SVGImportAdapter, SVGImportError
+from .svg_geometry_observations import (
+    SVGGeometryObservationAdapter,
+    SVGGeometryObservationError,
+)
 from .temporal_correspondence import (
     TemporalCorrespondenceAdapter,
     TemporalCorrespondenceError,
@@ -74,6 +78,8 @@ __all__ = [
     "POPGroupPromotionError",
     "SVGImportAdapter",
     "SVGImportError",
+    "SVGGeometryObservationAdapter",
+    "SVGGeometryObservationError",
     "TemporalCorrespondenceAdapter",
     "TemporalCorrespondenceError",
     "TemporalIdentityPromotionAdapter",

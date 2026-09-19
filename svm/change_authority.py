@@ -14,6 +14,7 @@ from .revisions import (
     AttachObservedMotionEvidenceChange,
     AttachObservedSimilarityEvidenceChange,
     AttachPOPGeometryObservationsChange,
+    AttachSVGGeometryObservationsChange,
     BindTemporalMotionTargetChange,
     CreateCameraTransformTrackChange,
     CreateGroupTransformTrackChange,
@@ -236,6 +237,12 @@ def _verify_pop_geometry_observations(change: Any, resolved: dict[str, ArtifactS
     verify_pop_geometry_observations_change(change, resolved)
 
 
+def _verify_svg_geometry_observations(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.svg_geometry_observations import verify_svg_geometry_observations_change
+
+    verify_svg_geometry_observations_change(change, resolved)
+
+
 def _verify_observed_translation_tracks(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
     from .adapters.observed_translation_tracks import (
         verify_observed_translation_track_source,
@@ -357,6 +364,12 @@ CHANGE_AUTHORITIES = {
             frozenset({"attach_pop_geometry_observations"}),
             _single("attach_pop_geometry_observations"),
             _verify_pop_geometry_observations,
+        ),
+        ChangeAuthority(
+            AttachSVGGeometryObservationsChange,
+            frozenset({"attach_svg_geometry_observations"}),
+            _single("attach_svg_geometry_observations"),
+            _verify_svg_geometry_observations,
         ),
         ChangeAuthority(
             PromoteComponentsChange,

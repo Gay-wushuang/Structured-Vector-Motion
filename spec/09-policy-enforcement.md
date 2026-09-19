@@ -48,6 +48,7 @@ The v0.1 intents are:
 | `AttachObservedMotionEvidenceChange` | `attach_observed_motion` | `document` | none |
 | `AttachObservedSimilarityEvidenceChange` | `attach_observed_similarity` | `document` | none |
 | `AttachPOPGeometryObservationsChange` | `attach_pop_geometry_observations` | `document` | none |
+| `AttachSVGGeometryObservationsChange` | `attach_svg_geometry_observations` | `document` | none |
 | `BindTemporalMotionTargetChange` | `bind_motion_target` | Group ID | Temporal Identity ID |
 | `VerifyObservedTranslationTrackSourceChange` | `author_observed_translation` | `document` | none |
 | `ReplaceObservedTranslationTracksChange` | `author_observed_translation` | Group ID | Group transform property |
