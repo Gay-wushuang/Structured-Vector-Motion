@@ -4,6 +4,7 @@ import copy
 import hashlib
 import json
 import math
+import re
 from dataclasses import asdict, dataclass
 from typing import Any, cast
 
@@ -14,6 +15,7 @@ from ..revisions import (
     MOTION_TARGET_BINDING_POLICY_IDENTITY,
     AddKeyframeChange,
     CreateGroupTransformTrackChange,
+    ReplaceObservedScaleTrackChange,
     Transaction,
     VerifyObservedScaleTrackSourceChange,
 )
@@ -36,6 +38,15 @@ class ScaleKeyframePreview:
 
 
 @dataclass(frozen=True)
+class ScaleTrackStatePreview:
+    track_id: str
+    evidence_artifact_id: str
+    source_revision_id: str
+    keyframes: tuple[ScaleKeyframePreview, ...]
+    baseline_scale: int | float | None = None
+
+
+@dataclass(frozen=True)
 class ObservedScaleTracksPreview(ProposalPreview):
     mode: str = "CREATE"
     group_id: str = ""
@@ -45,6 +56,8 @@ class ObservedScaleTracksPreview(ProposalPreview):
     baseline_scale: int | float = 1
     track_id: str = ""
     keyframes: tuple[ScaleKeyframePreview, ...] = ()
+    old: ScaleTrackStatePreview | None = None
+    new: ScaleTrackStatePreview | None = None
 
 
 class ObservedScaleTracksAdapter:
@@ -90,13 +103,6 @@ class ObservedScaleTracksAdapter:
         if len(groups) != 1 or not isinstance(groups[0].get("transform"), dict):
             raise ObservedScaleTracksError("Bound scale Group is missing or invalid")
         group = copy.deepcopy(groups[0])
-        if any(
-            t.get("target") == {"group": group_id, "property": "scale"}
-            for t in request.document["animation"]["content"]
-        ):
-            raise ObservedScaleTracksError(
-                "Existing Group scale Track requires explicit re-authoring"
-            )
         reference = _accepted_reference(request.document, request.artifact_ids[0])
         snapshot = artifacts.resolve_reference(reference)
         payload = _read_evidence(snapshot)
@@ -118,25 +124,63 @@ class ObservedScaleTracksAdapter:
             request.base_revision_id,
         )
         animation_before = copy.deepcopy(request.document["animation"])
-        expected_animation = _expected_animation(animation_before, authored_track, ticks_per_second)
-        changes: list[Any] = [
-            CreateGroupTransformTrackChange(track_id, group_id, "scale", ticks_per_second, "linear")
-        ]
-        changes.extend(
-            AddKeyframeChange(track_id, kid, tick, value) for kid, tick, value, _ in keyframes
+        existing_tracks = _scale_tracks(animation_before, group_id)
+        claimed_tracks = tuple(
+            copy.deepcopy(track)
+            for track in animation_before.get("content", [])
+            if track.get("provenance", {}).get("type") == "ObservedScaleTrack"
+            and track.get("provenance", {}).get("motion_target_binding_id") == binding_id
         )
-        changes.append(
-            VerifyObservedScaleTrackSourceChange(
-                reference,
-                binding,
-                group,
-                request.base_revision_id,
-                ticks_per_second,
-                authored_track,
-                animation_before,
-                expected_animation,
+        if any(track not in existing_tracks for track in claimed_tracks):
+            raise ObservedScaleTracksError("Existing scale Track has malformed owned target")
+        if len(existing_tracks) > 1:
+            raise ObservedScaleTracksError("Existing Group scale Tracks are ambiguous")
+        mode = "CREATE" if not existing_tracks else "REPLACE"
+        changes: list[Any] = []
+        old: dict[str, Any] | None = None
+        if not existing_tracks:
+            expected_animation = _expected_animation(
+                animation_before, authored_track, ticks_per_second
             )
-        )
+            changes.append(
+                CreateGroupTransformTrackChange(
+                    track_id, group_id, "scale", ticks_per_second, "linear"
+                )
+            )
+            changes.extend(
+                AddKeyframeChange(track_id, kid, tick, value) for kid, tick, value, _ in keyframes
+            )
+            changes.append(
+                VerifyObservedScaleTrackSourceChange(
+                    reference,
+                    binding,
+                    group,
+                    request.base_revision_id,
+                    ticks_per_second,
+                    authored_track,
+                    animation_before,
+                    expected_animation,
+                )
+            )
+        else:
+            old = existing_tracks[0]
+            _require_owned_scale_track(old, binding_id, group_id)
+            expected_animation = _replacement_animation(
+                animation_before, old, authored_track, ticks_per_second
+            )
+            changes.append(
+                ReplaceObservedScaleTrackChange(
+                    reference,
+                    binding,
+                    group,
+                    request.base_revision_id,
+                    ticks_per_second,
+                    old,
+                    authored_track,
+                    animation_before,
+                    expected_animation,
+                )
+            )
         generator = GeneratorProvenance(
             self.adapter_id,
             self.adapter_version,
@@ -155,6 +199,7 @@ class ObservedScaleTracksAdapter:
                     "base": request.base_revision_id,
                     "generator": asdict(generator),
                     "track": authored_track,
+                    "mode": mode,
                 }
             )
         ).hexdigest()[:16]
@@ -168,6 +213,7 @@ class ObservedScaleTracksAdapter:
                 "Author verified observed scale Track",
             ),
             preview=ObservedScaleTracksPreview(
+                mode=mode,
                 group_id=group_id,
                 binding_id=binding_id,
                 evidence_artifact_id=snapshot.artifact_id,
@@ -176,9 +222,20 @@ class ObservedScaleTracksAdapter:
                 keyframes=tuple(
                     ScaleKeyframePreview(tick, value, ratio) for _, tick, value, ratio in keyframes
                 ),
+                old=_track_preview(old) if old else None,
+                new=ScaleTrackStatePreview(
+                    track_id,
+                    snapshot.artifact_id,
+                    request.base_revision_id,
+                    tuple(
+                        ScaleKeyframePreview(tick, value, ratio)
+                        for _, tick, value, ratio in keyframes
+                    ),
+                    baseline,
+                ),
             ),
             required_artifact_ids=(snapshot.artifact_id,),
-            notes="Create one linear Group scale Track only after explicit acceptance",
+            notes=f"{mode.title()} one linear Group scale Track only after explicit acceptance",
         )
 
 
@@ -210,11 +267,22 @@ def verify_observed_scale_track_source(change: Any, resolved: dict[str, Artifact
         snapshot.artifact_id,
         change.source_revision_id,
     )
-    if change.authored_track != expected:
+    authored = getattr(change, "authored_track", getattr(change, "replacement_track", None))
+    if authored != expected:
         raise ValueError("Observed scale Track definition does not match evidence")
-    if change.expected_animation != _expected_animation(
-        change.animation_before, expected, change.ticks_per_second
-    ):
+    if isinstance(change, ReplaceObservedScaleTrackChange):
+        _require_owned_scale_track(change.existing_track, change.binding["id"], change.group["id"])
+        expected_animation = _replacement_animation(
+            change.animation_before,
+            change.existing_track,
+            expected,
+            change.ticks_per_second,
+        )
+    else:
+        expected_animation = _expected_animation(
+            change.animation_before, expected, change.ticks_per_second
+        )
+    if change.expected_animation != expected_animation:
         raise ValueError("Observed scale animation result is inconsistent")
 
 
@@ -352,6 +420,72 @@ def _expected_animation(
     animation["timebase"] = {"ticks_per_second": ticks_per_second}
     animation["content"].append(copy.deepcopy(authored_track))
     return animation
+
+
+def _scale_tracks(animation: dict[str, Any], group_id: str) -> tuple[dict[str, Any], ...]:
+    return tuple(
+        copy.deepcopy(track)
+        for track in animation.get("content", [])
+        if track.get("target") == {"group": group_id, "property": "scale"}
+    )
+
+
+def _require_owned_scale_track(track: dict[str, Any], binding_id: str, group_id: str) -> None:
+    provenance = track.get("provenance")
+    if (
+        track.get("target") != {"group": group_id, "property": "scale"}
+        or not isinstance(provenance, dict)
+        or set(provenance)
+        != {
+            "type",
+            "authoring_identity",
+            "motion_target_binding_id",
+            "evidence_artifact_id",
+            "source_revision_id",
+        }
+        or provenance.get("type") != "ObservedScaleTrack"
+        or provenance.get("authoring_identity") != POLICY_IDENTITY
+        or provenance.get("motion_target_binding_id") != binding_id
+        or re.fullmatch(r"artifact:[0-9a-f]{64}", provenance.get("evidence_artifact_id", ""))
+        is None
+        or re.fullmatch(r"revision:[0-9a-f]{64}", provenance.get("source_revision_id", "")) is None
+    ):
+        raise ObservedScaleTracksError(
+            "Existing scale Track is not owned by observed-scale authoring"
+        )
+
+
+def _replacement_animation(
+    animation_before: dict[str, Any],
+    existing_track: dict[str, Any],
+    replacement_track: dict[str, Any],
+    ticks_per_second: int,
+) -> dict[str, Any]:
+    animation = copy.deepcopy(animation_before)
+    timebase = animation.get("timebase")
+    if timebase is None or timebase.get("ticks_per_second") != ticks_per_second:
+        raise ObservedScaleTracksError(
+            "ticks_per_second conflicts with the existing Document timebase"
+        )
+    matches = [
+        index
+        for index, track in enumerate(animation["content"])
+        if track.get("id") == existing_track.get("id")
+    ]
+    if len(matches) != 1 or animation["content"][matches[0]] != existing_track:
+        raise ObservedScaleTracksError("Existing scale Track snapshot is stale")
+    animation["content"][matches[0]] = copy.deepcopy(replacement_track)
+    return animation
+
+
+def _track_preview(track: dict[str, Any]) -> ScaleTrackStatePreview:
+    provenance = track["provenance"]
+    return ScaleTrackStatePreview(
+        track["id"],
+        provenance["evidence_artifact_id"],
+        provenance["source_revision_id"],
+        tuple(ScaleKeyframePreview(item["tick"], item["value"]) for item in track["keyframes"]),
+    )
 
 
 def _accepted_reference(document: dict[str, Any], artifact_id: str) -> dict[str, Any]:

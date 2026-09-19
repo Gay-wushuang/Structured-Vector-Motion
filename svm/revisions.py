@@ -1048,6 +1048,73 @@ class VerifyObservedScaleTrackSourceChange:
 
 
 @dataclass(frozen=True)
+class ReplaceObservedScaleTrackChange:
+    """Atomically replace one trusted observed-scale Track."""
+
+    evidence_reference: dict[str, Any]
+    binding: dict[str, Any]
+    group: dict[str, Any]
+    source_revision_id: str
+    ticks_per_second: int
+    existing_track: dict[str, Any]
+    replacement_track: dict[str, Any]
+    animation_before: dict[str, Any]
+    expected_animation: dict[str, Any]
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (self.evidence_reference,)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        references = {item["id"]: item for item in document.get("references", [])}
+        if references.get(self.evidence_reference.get("id")) != self.evidence_reference:
+            raise DocumentError("Observed similarity evidence must already be accepted")
+        bindings = [
+            item
+            for item in document.get("motion_target_bindings", [])
+            if item.get("id") == self.binding.get("id")
+        ]
+        if len(bindings) != 1 or bindings[0] != self.binding:
+            raise DocumentError("STALE_MOTION_TARGET_BINDING: scale target changed")
+        group_id = self.group.get("id")
+        if self.binding.get("target") != {"kind": "group", "group_id": group_id}:
+            raise DocumentError("Observed scale replacement Binding target is invalid")
+        groups = [item for item in document.get("groups", []) if item.get("id") == group_id]
+        if len(groups) != 1 or groups[0] != self.group:
+            raise DocumentError("STALE_GROUP: scale authoring baseline changed")
+        if document.get("animation") != self.animation_before:
+            raise DocumentError("STALE_SCALE_TRACK: replacement source changed")
+        _validate_observed_scale_track(
+            self.existing_track, self.binding["id"], group_id, label="existing"
+        )
+        _validate_observed_scale_track(
+            self.replacement_track,
+            self.binding["id"],
+            group_id,
+            evidence_artifact_id=self.evidence_reference.get("id"),
+            source_revision_id=self.source_revision_id,
+            label="replacement",
+        )
+        current = document["animation"]["content"]
+        matches = [
+            index
+            for index, track in enumerate(current)
+            if track.get("id") == self.existing_track.get("id")
+        ]
+        if len(matches) != 1 or current[matches[0]] != self.existing_track:
+            raise DocumentError("STALE_SCALE_TRACK: replacement source changed")
+        existing_id = self.existing_track["id"]
+        replacement_id = self.replacement_track["id"]
+        if replacement_id == existing_id or any(
+            track.get("id") == replacement_id for track in current if track.get("id") != existing_id
+        ):
+            raise DocumentError("Observed scale replacement Track ID conflicts")
+        current[matches[0]] = copy.deepcopy(self.replacement_track)
+        if document["animation"] != self.expected_animation:
+            raise DocumentError("Observed scale replacement does not match verified evidence")
+
+
+@dataclass(frozen=True)
 class ReplaceObservedTranslationTracksChange:
     """Atomically replace one trusted observed-translation x/y Track pair."""
 
@@ -1184,6 +1251,51 @@ def _validate_observed_translation_pair(
         raise DocumentError(f"Observed translation {label} evidence provenance is invalid")
     if source_revision_id is not None and lineage[4] != source_revision_id:
         raise DocumentError(f"Observed translation {label} source Revision is invalid")
+
+
+def _validate_observed_scale_track(
+    track: Any,
+    binding_id: Any,
+    group_id: Any,
+    *,
+    evidence_artifact_id: Any | None = None,
+    source_revision_id: Any | None = None,
+    label: str,
+) -> None:
+    if not isinstance(track, dict):
+        raise DocumentError(f"Observed scale {label} Track is invalid")
+    target = track.get("target")
+    provenance = track.get("provenance")
+    if target != {"group": group_id, "property": "scale"}:
+        raise DocumentError(f"Observed scale {label} Track target is invalid")
+    track_id = track.get("id")
+    if not isinstance(track_id, str) or not track_id.startswith("track:observed-scale:"):
+        raise DocumentError(f"Observed scale {label} Track ID is invalid")
+    provenance_keys = {
+        "type",
+        "authoring_identity",
+        "motion_target_binding_id",
+        "evidence_artifact_id",
+        "source_revision_id",
+    }
+    if (
+        not isinstance(provenance, dict)
+        or set(provenance) != provenance_keys
+        or provenance.get("type") != "ObservedScaleTrack"
+        or provenance.get("authoring_identity") != "svm-verified-observed-scale-authoring@0.1"
+        or provenance.get("motion_target_binding_id") != binding_id
+        or re.fullmatch(r"artifact:[0-9a-f]{64}", provenance.get("evidence_artifact_id", ""))
+        is None
+        or re.fullmatch(r"revision:[0-9a-f]{64}", provenance.get("source_revision_id", "")) is None
+    ):
+        raise DocumentError(f"Observed scale {label} Track ownership is invalid")
+    if (
+        evidence_artifact_id is not None
+        and provenance["evidence_artifact_id"] != evidence_artifact_id
+    ):
+        raise DocumentError(f"Observed scale {label} evidence provenance is invalid")
+    if source_revision_id is not None and provenance["source_revision_id"] != source_revision_id:
+        raise DocumentError(f"Observed scale {label} source Revision is invalid")
 
 
 @dataclass(frozen=True)

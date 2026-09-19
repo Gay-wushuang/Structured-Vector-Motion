@@ -52,6 +52,7 @@ The v0.1 intents are:
 | `VerifyObservedTranslationTrackSourceChange` | `author_observed_translation` | `document` | none |
 | `ReplaceObservedTranslationTracksChange` | `author_observed_translation` | Group ID | Group transform property |
 | `VerifyObservedScaleTrackSourceChange` | `author_observed_scale` | `document` | none |
+| `ReplaceObservedScaleTrackChange` | `author_observed_scale` | `document` | none |
 | `ImportLayeredSceneChange` | `import_scene` | `document` | none |
 | `ImportRasterLayerEvidenceChange` | `import_scene` | `document` | none |
 | `ImportPrimitiveSequenceChange` | `import_scene` | `document` | none |

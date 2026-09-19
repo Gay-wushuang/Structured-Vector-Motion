@@ -72,8 +72,9 @@ Read these files before changing core behavior:
 40. `spec/41-geometry-aware-similarity-motion.md` — conservative rotation/scale evidence.
 41. `spec/42-pop-geometry-observations.md` — real POP geometry observation producer.
 42. `spec/43-verified-observed-scale-tracks.md` — verified similarity scale authoring.
-43. `examples/001-head-basic.svm.json` — current example Document.
-44. `tests/test_golden_a.py` — executable expectations.
+43. `spec/44-observed-scale-track-reauthoring.md` — explicit owned scale Track replacement.
+44. `examples/001-head-basic.svm.json` — current example Document.
+45. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
@@ -378,6 +379,8 @@ Next milestones:
     from exact frozen POP rectangle/ellipse geometry without using AABB corners.
 35. Golden S5A explicitly authors one linear Group scale Track from independently
     supported S4 scale evidence and an explicit Motion Target Binding.
+36. Golden S5B explicitly replaces only a trusted observed-scale Track from new
+    accepted S4 scale evidence while preserving one Group scale target.
 
 UI, automatic vectorization, diffvg optimization, AI adapters, and video support
 come after the core computation and revision models are proven.
