@@ -9,6 +9,7 @@ from svm import (
     ProposalAcceptor,
     ProposalArtifactError,
     RevisionStore,
+    AttachSVGGeometryObservationsChange,
 )
 from svm.adapters import (
     SVGGeometryObservationAdapter,
@@ -17,7 +18,10 @@ from svm.adapters import (
     TemporalIdentityPromotionAdapter,
     ObservedSimilarityMotionAdapter,
 )
-from svm.adapters.svg_geometry_observations import derive_svg_polygon_observations
+from svm.adapters.svg_geometry_observations import (
+    derive_svg_polygon_observations,
+    svg_geometry_observation_provenance,
+)
 from svm.evaluator import canonical_bytes
 
 
@@ -177,6 +181,19 @@ class SVGGeometryObservationTest(unittest.TestCase):
         self.assertEqual(interval["scale"]["status"], "SUPPORTED")
         self.assertAlmostEqual(interval["scale"]["value"], 1.0, places=7)
 
+        before = self.revisions.get_document(self.revisions.head)
+        accepted = ProposalAcceptor().accept(self.revisions, s4, self.artifacts)
+        after = self.revisions.get_document(accepted.revision_id)
+        for field in ("entities", "groups", "construction", "presentation", "animation"):
+            self.assertEqual(after.get(field), before.get(field))
+        evidence_id = s4.transaction.changes[0].evidence_reference["id"]
+        self.assertIn(evidence_id, {reference["id"] for reference in after["references"]})
+        accepted_payload = json.loads(self.artifacts.get(evidence_id).content)
+        accepted_interval = accepted_payload["intervals"][0]
+        self.assertEqual(accepted_interval["rotation_degrees"]["status"], "SUPPORTED")
+        self.assertAlmostEqual(accepted_interval["rotation_degrees"]["value"], 30.0, places=7)
+        self.assertEqual(accepted_interval["scale"]["status"], "SUPPORTED")
+
     def test_real_minus_25_degree_scaled_e2e_is_supported(self):
         points = [(40.0, 40.0), (80.0, 40.0), (65.0, 55.0), (50.0, 75.0)]
         s4 = self._s4(points, -25.0, 1.4, 7.0, -3.0)
@@ -187,6 +204,17 @@ class SVGGeometryObservationTest(unittest.TestCase):
         self.assertAlmostEqual(interval["rotation_degrees"]["value"], -25.0, places=7)
         self.assertEqual(interval["scale"]["status"], "SUPPORTED")
         self.assertAlmostEqual(interval["scale"]["value"], 1.4, places=7)
+        before = self.revisions.get_document(self.revisions.head)
+        accepted = ProposalAcceptor().accept(self.revisions, s4, self.artifacts)
+        after = self.revisions.get_document(accepted.revision_id)
+        for field in ("entities", "groups", "construction", "presentation", "animation"):
+            self.assertEqual(after.get(field), before.get(field))
+        evidence_id = s4.transaction.changes[0].evidence_reference["id"]
+        accepted_interval = json.loads(self.artifacts.get(evidence_id).content)["intervals"][0]
+        self.assertEqual(accepted_interval["rotation_degrees"]["status"], "SUPPORTED")
+        self.assertAlmostEqual(accepted_interval["rotation_degrees"]["value"], -25.0, places=7)
+        self.assertEqual(accepted_interval["scale"]["status"], "SUPPORTED")
+        self.assertAlmostEqual(accepted_interval["scale"]["value"], 1.4, places=7)
 
     def test_equilateral_triangle_is_rejected_as_symmetric(self):
         triangle = self.artifacts.import_bytes(
@@ -253,6 +281,104 @@ class SVGGeometryObservationTest(unittest.TestCase):
         )
         with self.assertRaises(ProposalArtifactError):
             ProposalAcceptor().accept(self.revisions, forged, self.artifacts)
+
+    def test_acceptance_rejects_valid_looking_selector_and_tick_forgery(self):
+        points = [(40.0, 40.0), (80.0, 40.0), (65.0, 55.0), (50.0, 75.0)]
+        source = self.artifacts.import_bytes(svg(path(points)), media_type="image/svg+xml")
+        target = self.artifacts.import_bytes(
+            svg(path(transformed(points, 30.0, 1.0, 5.0, 4.0))), media_type="image/svg+xml"
+        )
+        proposal = SVGGeometryObservationAdapter().propose(self.request(source, target), self.artifacts)
+        original_change = proposal.transaction.changes[0]
+        for field, value in (("shape_id", "missing"), ("source_tick", 1), ("target_tick", 25)):
+            forged_change = replace(original_change, **{field: value})
+            forged = replace(
+                proposal,
+                transaction=replace(proposal.transaction, changes=(forged_change,)),
+            )
+            before_head = self.revisions.head
+            before = self.revisions.get_document(before_head)
+            with self.subTest(field=field), self.assertRaises(ProposalArtifactError):
+                ProposalAcceptor().accept(self.revisions, forged, self.artifacts)
+            self.assertEqual(self.revisions.head, before_head)
+            self.assertEqual(self.revisions.get_document(before_head), before)
+
+    def test_symmetric_source_cannot_forge_none_symmetry(self):
+        square_path = "M 10 10 L 30 10 L 30 30 L 10 30 Z"
+        source = self.artifacts.import_bytes(svg(square_path), media_type="image/svg+xml")
+        target = self.artifacts.import_bytes(
+            svg("M 20 20 L 40 20 L 40 40 L 20 40 Z"), media_type="image/svg+xml"
+        )
+        forged_payload = {
+            "schema_version": "svm-primitive-observations-0.2",
+            "canvas": [100.0, 100.0],
+            "frames": [
+                {
+                    "tick": 0,
+                    "primitives": [
+                        {
+                            "observation_id": "forged-source",
+                            "primitive_type": "svg-polygonal-path",
+                                "bounds": [10.0, 10.0, 30.0, 30.0],
+                            "fill": "#CC3344",
+                            "geometry": {
+                                "type": "ordered-landmarks",
+                                "points": [[10.0, 10.0], [30.0, 10.0], [30.0, 30.0], [10.0, 30.0]],
+                                "rotation_symmetry": "none",
+                            },
+                        }
+                    ],
+                },
+                {
+                    "tick": 24,
+                    "primitives": [
+                        {
+                            "observation_id": "forged-target",
+                            "primitive_type": "svg-polygonal-path",
+                            "bounds": [20.0, 20.0, 40.0, 40.0],
+                            "fill": "#CC3344",
+                            "geometry": {
+                                "type": "ordered-landmarks",
+                                "points": [[20.0, 20.0], [40.0, 20.0], [40.0, 40.0], [20.0, 40.0]],
+                                "rotation_symmetry": "none",
+                            },
+                        }
+                    ],
+                },
+            ],
+        }
+        observation = self.artifacts.import_bytes(
+            canonical_bytes(forged_payload),
+            media_type="application/vnd.svm.primitive-observations+json;version=0.2",
+            kind=ArtifactKind.REFERENCE,
+            provenance=svg_geometry_observation_provenance(
+                source.artifact_id, target.artifact_id, "arrow"
+            ),
+        )
+        change = AttachSVGGeometryObservationsChange(
+            observation.document_reference(),
+            source.document_reference(),
+            target.document_reference(),
+            0,
+            24,
+            "arrow",
+            "svm-svg-polygon-geometry-observation-policy@0.1",
+        )
+        from svm.proposals import EvaluationReport, GeneratorProvenance, Proposal
+        from svm.revisions import Transaction
+
+        proposal = Proposal(
+            "proposal:forged-symmetric",
+            self.revisions.head,
+            GeneratorProvenance("adapter:svg-geometry-observations", "0.1", "forged", "forged", {}),
+            Transaction("transaction:forged-symmetric", (change,), "forged"),
+            EvaluationReport(),
+            required_artifact_ids=(observation.artifact_id, source.artifact_id, target.artifact_id),
+        )
+        before_head = self.revisions.head
+        with self.assertRaises(ProposalArtifactError):
+            ProposalAcceptor().accept(self.revisions, proposal, self.artifacts)
+        self.assertEqual(self.revisions.head, before_head)
 
 
 if __name__ == "__main__":
