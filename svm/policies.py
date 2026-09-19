@@ -81,6 +81,7 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
                     "attach_pop_geometry_observations",
                     "bind_motion_target",
                     "author_observed_translation",
+                    "author_observed_scale",
                 }
                 for action in actions
             )

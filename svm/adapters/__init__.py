@@ -3,6 +3,7 @@ from .bitmap_trace import BitmapTraceAdapter, BitmapTraceError, BitmapTracer, Po
 from .component_promotion import ComponentPromotionAdapter, ComponentPromotionError
 from .layerd_output import LayerDOutputAdapter, LayerDOutputError
 from .layerpeeler_output import LayerPeelerOutputAdapter, LayerPeelerOutputError
+from .observed_scale_tracks import ObservedScaleTracksAdapter, ObservedScaleTracksError
 from .observed_similarity_motion import (
     ObservedSimilarityMotionAdapter,
     ObservedSimilarityMotionError,
@@ -56,6 +57,8 @@ __all__ = [
     "ObservedTranslationMotionError",
     "ObservedSimilarityMotionAdapter",
     "ObservedSimilarityMotionError",
+    "ObservedScaleTracksAdapter",
+    "ObservedScaleTracksError",
     "ObservedTranslationTracksAdapter",
     "ObservedTranslationTracksError",
     "POPOutputAdapter",

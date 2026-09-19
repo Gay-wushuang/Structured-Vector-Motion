@@ -34,6 +34,7 @@ from .revisions import (
     SetKeyframeValueChange,
     SetOperationParameterChange,
     SplitEntityChange,
+    VerifyObservedScaleTrackSourceChange,
     VerifyObservedTranslationTrackSourceChange,
 )
 
@@ -242,6 +243,12 @@ def _verify_observed_translation_tracks(change: Any, resolved: dict[str, Artifac
     verify_observed_translation_track_source(change, resolved)
 
 
+def _verify_observed_scale_track(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.observed_scale_tracks import verify_observed_scale_track_source
+
+    verify_observed_scale_track_source(change, resolved)
+
+
 def _replace_observed_translation_tracks(change: Any) -> tuple[Intent, ...]:
     return tuple(
         ("author_observed_translation", track["target"]["group"], track["target"]["property"])
@@ -393,6 +400,13 @@ CHANGE_AUTHORITIES = {
             frozenset({"author_observed_translation"}),
             _single("author_observed_translation"),
             _verify_observed_translation_tracks,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            VerifyObservedScaleTrackSourceChange,
+            frozenset({"author_observed_scale"}),
+            _single("author_observed_scale"),
+            _verify_observed_scale_track,
             _source_revision,
         ),
         ChangeAuthority(

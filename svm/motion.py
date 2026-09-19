@@ -145,21 +145,31 @@ def _validate_track_provenance(
         "evidence_artifact_id",
         "source_revision_id",
     }
+    if not isinstance(provenance, dict) or set(provenance) != required:
+        raise DocumentError(f"Track {track_id} has invalid observed-motion provenance")
+    translation = (
+        provenance.get("type") == "ObservedTranslationTrack"
+        and provenance.get("authoring_identity")
+        == "svm-verified-observed-translation-authoring@0.1"
+        and target_key[0] == "group"
+        and target_key[2] in {"translate.x", "translate.y"}
+    )
+    scale = (
+        provenance.get("type") == "ObservedScaleTrack"
+        and provenance.get("authoring_identity") == "svm-verified-observed-scale-authoring@0.1"
+        and target_key[0] == "group"
+        and target_key[2] == "scale"
+    )
     if (
-        not isinstance(provenance, dict)
-        or set(provenance) != required
-        or provenance.get("type") != "ObservedTranslationTrack"
-        or provenance.get("authoring_identity") != "svm-verified-observed-translation-authoring@0.1"
+        not (translation or scale)
         or not isinstance(provenance.get("motion_target_binding_id"), str)
         or not provenance["motion_target_binding_id"].startswith("motion-target-binding:")
         or not isinstance(provenance.get("evidence_artifact_id"), str)
         or not provenance["evidence_artifact_id"].startswith("artifact:")
         or not isinstance(provenance.get("source_revision_id"), str)
         or not provenance["source_revision_id"].startswith("revision:")
-        or target_key[0] != "group"
-        or target_key[2] not in {"translate.x", "translate.y"}
     ):
-        raise DocumentError(f"Track {track_id} has invalid observed-translation provenance")
+        raise DocumentError(f"Track {track_id} has invalid observed-motion provenance")
 
 
 def _validate_track_target(
