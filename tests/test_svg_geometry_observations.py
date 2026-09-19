@@ -6,24 +6,23 @@ from svm import (
     AdapterRequest,
     ArtifactKind,
     ArtifactStore,
+    AttachSVGGeometryObservationsChange,
     ProposalAcceptor,
     ProposalArtifactError,
     RevisionStore,
-    AttachSVGGeometryObservationsChange,
 )
 from svm.adapters import (
+    ObservedSimilarityMotionAdapter,
     SVGGeometryObservationAdapter,
     SVGGeometryObservationError,
     TemporalCorrespondenceAdapter,
     TemporalIdentityPromotionAdapter,
-    ObservedSimilarityMotionAdapter,
 )
 from svm.adapters.svg_geometry_observations import (
     derive_svg_polygon_observations,
     svg_geometry_observation_provenance,
 )
 from svm.evaluator import canonical_bytes
-
 
 DOC = {
     "format": "svm-document@0.1",
@@ -59,9 +58,7 @@ def transformed(points, angle_degrees, scale, tx, ty):
 
 
 def path(points):
-    return "M " + " ".join(
-        [f"{x:.12f} {y:.12f}" for x, y in points]
-    ) + " Z"
+    return "M " + " ".join([f"{x:.12f} {y:.12f}" for x, y in points]) + " Z"
 
 
 class SVGGeometryObservationTest(unittest.TestCase):
@@ -93,12 +90,19 @@ class SVGGeometryObservationTest(unittest.TestCase):
             svg("M 10 10 L 44.6410161514 30 L 22.8108891325 34.1506350946 L 0 34.6410161514 Z"),
             media_type="image/svg+xml",
         )
-        first = SVGGeometryObservationAdapter().propose(self.request(source, target), self.artifacts)
-        second = SVGGeometryObservationAdapter().propose(self.request(source, target), self.artifacts)
+        first = SVGGeometryObservationAdapter().propose(
+            self.request(source, target), self.artifacts
+        )
+        second = SVGGeometryObservationAdapter().propose(
+            self.request(source, target), self.artifacts
+        )
         self.assertEqual(first.preview_artifacts, second.preview_artifacts)
         payload = json.loads(self.artifacts.get(first.preview_artifacts[0].artifact_id).content)
         primitive = payload["frames"][0]["primitives"][0]
-        self.assertEqual(primitive["geometry"]["points"], [[10.0, 10.0], [50.0, 10.0], [35.0, 25.0], [20.0, 40.0]])
+        self.assertEqual(
+            primitive["geometry"]["points"],
+            [[10.0, 10.0], [50.0, 10.0], [35.0, 25.0], [20.0, 40.0]],
+        )
         self.assertEqual(primitive["geometry"]["rotation_symmetry"], "none")
         self.assertEqual(primitive["primitive_type"], "svg-polygonal-path")
         before = self.revisions.head
@@ -107,20 +111,32 @@ class SVGGeometryObservationTest(unittest.TestCase):
         self.assertNotEqual(before, self.revisions.head)
 
     def test_curves_and_symmetry_abstain(self):
-        source = self.artifacts.import_bytes(svg("M 0 0 C 1 2 3 4 5 6 Z"), media_type="image/svg+xml")
-        target = self.artifacts.import_bytes(svg("M 0 0 C 1 2 3 4 5 6 Z"), media_type="image/svg+xml")
+        source = self.artifacts.import_bytes(
+            svg("M 0 0 C 1 2 3 4 5 6 Z"), media_type="image/svg+xml"
+        )
+        target = self.artifacts.import_bytes(
+            svg("M 0 0 C 1 2 3 4 5 6 Z"), media_type="image/svg+xml"
+        )
         with self.assertRaises(SVGGeometryObservationError):
             derive_svg_polygon_observations(source, target, "arrow", 0, 1)
-        square = self.artifacts.import_bytes(svg("M 10 10 L 30 10 L 30 30 L 10 30 Z"), media_type="image/svg+xml")
+        square = self.artifacts.import_bytes(
+            svg("M 10 10 L 30 10 L 30 30 L 10 30 Z"), media_type="image/svg+xml"
+        )
         with self.assertRaises(SVGGeometryObservationError):
             derive_svg_polygon_observations(square, square, "arrow", 0, 1)
 
     def test_topology_and_selector_mismatch_abstain(self):
-        source = self.artifacts.import_bytes(svg("M 10 10 L 50 10 L 35 25 L 20 40 Z"), media_type="image/svg+xml")
-        target = self.artifacts.import_bytes(svg("M 10 10 L 50 10 L 35 25 L 20 40 L 10 20 Z"), media_type="image/svg+xml")
+        source = self.artifacts.import_bytes(
+            svg("M 10 10 L 50 10 L 35 25 L 20 40 Z"), media_type="image/svg+xml"
+        )
+        target = self.artifacts.import_bytes(
+            svg("M 10 10 L 50 10 L 35 25 L 20 40 L 10 20 Z"), media_type="image/svg+xml"
+        )
         with self.assertRaises(SVGGeometryObservationError):
             derive_svg_polygon_observations(source, target, "arrow", 0, 1)
-        other = self.artifacts.import_bytes(svg("M 10 10 L 50 10 L 35 25 L 20 40 Z", shape_id="other"), media_type="image/svg+xml")
+        other = self.artifacts.import_bytes(
+            svg("M 10 10 L 50 10 L 35 25 L 20 40 Z", shape_id="other"), media_type="image/svg+xml"
+        )
         with self.assertRaises(SVGGeometryObservationError):
             derive_svg_polygon_observations(source, other, "arrow", 0, 1)
 
@@ -250,7 +266,9 @@ class SVGGeometryObservationTest(unittest.TestCase):
         target = self.artifacts.import_bytes(
             svg(path(transformed(points, 30.0, 1.0, 5.0, 4.0))), media_type="image/svg+xml"
         )
-        proposal = SVGGeometryObservationAdapter().propose(self.request(source, target), self.artifacts)
+        proposal = SVGGeometryObservationAdapter().propose(
+            self.request(source, target), self.artifacts
+        )
         original = self.artifacts.get(proposal.preview_artifacts[0].artifact_id)
         for field in ("points", "bounds", "symmetry"):
             payload = json.loads(original.content)
@@ -288,7 +306,9 @@ class SVGGeometryObservationTest(unittest.TestCase):
         target = self.artifacts.import_bytes(
             svg(path(transformed(points, 30.0, 1.0, 5.0, 4.0))), media_type="image/svg+xml"
         )
-        proposal = SVGGeometryObservationAdapter().propose(self.request(source, target), self.artifacts)
+        proposal = SVGGeometryObservationAdapter().propose(
+            self.request(source, target), self.artifacts
+        )
         original_change = proposal.transaction.changes[0]
         for field, value in (("shape_id", "missing"), ("source_tick", 1), ("target_tick", 25)):
             forged_change = replace(original_change, **{field: value})
@@ -319,7 +339,7 @@ class SVGGeometryObservationTest(unittest.TestCase):
                         {
                             "observation_id": "forged-source",
                             "primitive_type": "svg-polygonal-path",
-                                "bounds": [10.0, 10.0, 30.0, 30.0],
+                            "bounds": [10.0, 10.0, 30.0, 30.0],
                             "fill": "#CC3344",
                             "geometry": {
                                 "type": "ordered-landmarks",

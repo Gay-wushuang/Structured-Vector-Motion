@@ -639,7 +639,9 @@ class AttachSVGGeometryObservationsChange:
             or self.source_tick < 0
             or self.target_tick <= self.source_tick
         ):
-            raise DocumentError("SVG geometry observation ticks must be non-negative and increasing")
+            raise DocumentError(
+                "SVG geometry observation ticks must be non-negative and increasing"
+            )
         if not isinstance(self.shape_id, str) or not self.shape_id:
             raise DocumentError("SVG geometry observation shape ID must be non-empty")
         if not isinstance(self.producer_policy_identity, str) or not self.producer_policy_identity:
@@ -1108,15 +1110,38 @@ class VerifyObservedRotationTrackSourceChange:
         return (self.evidence_reference,)
 
     def apply(self, document: dict[str, Any]) -> None:
-        if next((item for item in document.get("references", []) if item.get("id") == self.evidence_reference.get("id")), None) != self.evidence_reference:
+        if (
+            next(
+                (
+                    item
+                    for item in document.get("references", [])
+                    if item.get("id") == self.evidence_reference.get("id")
+                ),
+                None,
+            )
+            != self.evidence_reference
+        ):
             raise DocumentError("Observed similarity evidence must already be accepted")
-        bindings = [item for item in document.get("motion_target_bindings", []) if item.get("id") == self.binding.get("id")]
-        groups = [item for item in document.get("groups", []) if item.get("id") == self.group.get("id")]
+        bindings = [
+            item
+            for item in document.get("motion_target_bindings", [])
+            if item.get("id") == self.binding.get("id")
+        ]
+        groups = [
+            item for item in document.get("groups", []) if item.get("id") == self.group.get("id")
+        ]
         if len(bindings) != 1 or bindings[0] != self.binding:
             raise DocumentError("STALE_MOTION_TARGET_BINDING: rotation target changed")
         if len(groups) != 1 or groups[0] != self.group:
             raise DocumentError("STALE_GROUP: rotation authoring baseline changed")
-        actual = next((item for item in document["animation"]["content"] if item.get("id") == self.authored_track.get("id")), None)
+        actual = next(
+            (
+                item
+                for item in document["animation"]["content"]
+                if item.get("id") == self.authored_track.get("id")
+            ),
+            None,
+        )
         expected = copy.deepcopy(self.authored_track)
         provenance = expected.pop("provenance", None)
         if actual is None or actual != expected or not isinstance(provenance, dict):

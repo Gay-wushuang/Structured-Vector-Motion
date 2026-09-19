@@ -3,8 +3,8 @@ from .bitmap_trace import BitmapTraceAdapter, BitmapTraceError, BitmapTracer, Po
 from .component_promotion import ComponentPromotionAdapter, ComponentPromotionError
 from .layerd_output import LayerDOutputAdapter, LayerDOutputError
 from .layerpeeler_output import LayerPeelerOutputAdapter, LayerPeelerOutputError
-from .observed_scale_tracks import ObservedScaleTracksAdapter, ObservedScaleTracksError
 from .observed_rotation_tracks import ObservedRotationTracksAdapter, ObservedRotationTracksError
+from .observed_scale_tracks import ObservedScaleTracksAdapter, ObservedScaleTracksError
 from .observed_similarity_motion import (
     ObservedSimilarityMotionAdapter,
     ObservedSimilarityMotionError,
@@ -26,11 +26,11 @@ from .pop_group_candidates import POPGroupCandidateAdapter, POPGroupCandidateErr
 from .pop_group_promotion import POPGroupPromotionAdapter, POPGroupPromotionError
 from .pop_output import POPOutputAdapter, POPOutputError, POPTokenExporter
 from .pop_structure import POPStructureAdapter, POPStructureError
-from .svg_import import SVGImportAdapter, SVGImportError
 from .svg_geometry_observations import (
     SVGGeometryObservationAdapter,
     SVGGeometryObservationError,
 )
+from .svg_import import SVGImportAdapter, SVGImportError
 from .temporal_correspondence import (
     TemporalCorrespondenceAdapter,
     TemporalCorrespondenceError,

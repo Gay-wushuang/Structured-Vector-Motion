@@ -25,9 +25,7 @@ from .temporal_correspondence import OBSERVATION_MEDIA_TYPE_V2
 POLICY_IDENTITY = "svm-svg-polygon-geometry-observation-policy@0.1"
 PRODUCER_IDENTITY = "svm-svg-polygon-geometry-observation-producer@0.1"
 PRIMITIVE_TYPE = "svg-polygonal-path"
-_TOKEN = re.compile(
-    r"[MmLlHhVvZz]|[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
-)
+_TOKEN = re.compile(r"[MmLlHhVvZz]|[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?")
 _COMMAND = re.compile(r"[A-Za-z]")
 _SYMMETRY_RESIDUAL_LIMIT = 1e-9
 
@@ -72,7 +70,9 @@ class SVGGeometryObservationAdapter:
             or not isinstance(shape_id, str)
             or not shape_id
         ):
-            raise SVGGeometryObservationError("SVG source identities, ticks, or shape ID are invalid")
+            raise SVGGeometryObservationError(
+                "SVG source identities, ticks, or shape ID are invalid"
+            )
         snapshots = {item.artifact_id: item for item in artifacts.resolve(request.artifact_ids)}
         if set(snapshots) != {source_id, target_id} or len(request.artifact_ids) != 2:
             raise SVGGeometryObservationError("Artifact IDs must exactly match both SVG sources")
@@ -323,7 +323,9 @@ def _polygon_vertices(path_data: str) -> tuple[list[list[float]], list[str]]:
     if not closed or topology[0] != "M" or topology[-1] != "Z":
         raise SVGGeometryObservationError("Polygonal path must be closed with Z")
     if len(points) < 3 or len({tuple(point) for point in points}) < 3:
-        raise SVGGeometryObservationError("Polygonal path requires at least three distinct vertices")
+        raise SVGGeometryObservationError(
+            "Polygonal path requires at least three distinct vertices"
+        )
     area2 = sum(
         points[i][0] * points[(i + 1) % len(points)][1]
         - points[(i + 1) % len(points)][0] * points[i][1]
@@ -362,11 +364,7 @@ def _has_rotational_symmetry(points: list[list[float]]) -> bool:
         cosine, sine = dot / magnitude, cross / magnitude
         residual = math.sqrt(
             sum(
-                (
-                    cosine * centered[i][0]
-                    - sine * centered[i][1]
-                    - centered[(i + shift) % count][0]
-                )
+                (cosine * centered[i][0] - sine * centered[i][1] - centered[(i + shift) % count][0])
                 ** 2
                 + (
                     sine * centered[i][0]

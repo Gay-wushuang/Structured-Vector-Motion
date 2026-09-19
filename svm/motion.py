@@ -162,8 +162,7 @@ def _validate_track_provenance(
     )
     rotation = (
         provenance.get("type") == "ObservedRotationTrack"
-        and provenance.get("authoring_identity")
-        == "svm-verified-observed-rotation-authoring@0.1"
+        and provenance.get("authoring_identity") == "svm-verified-observed-rotation-authoring@0.1"
         and target_key[0] == "group"
         and target_key[2] == "rotation_degrees"
     )

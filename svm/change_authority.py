@@ -36,8 +36,8 @@ from .revisions import (
     SetKeyframeValueChange,
     SetOperationParameterChange,
     SplitEntityChange,
-    VerifyObservedScaleTrackSourceChange,
     VerifyObservedRotationTrackSourceChange,
+    VerifyObservedScaleTrackSourceChange,
     VerifyObservedTranslationTrackSourceChange,
 )
 
