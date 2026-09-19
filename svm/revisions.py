@@ -1088,6 +1088,42 @@ class VerifyObservedScaleTrackSourceChange:
         actual = by_id.get(self.authored_track.get("id"))
         if actual is None or actual != expected or not isinstance(provenance, dict):
             raise DocumentError("Observed scale Track does not match verified evidence")
+
+
+@dataclass(frozen=True)
+class VerifyObservedRotationTrackSourceChange:
+    """Verify S6B inputs and mark one created rotation Track as trusted."""
+
+    evidence_reference: dict[str, Any]
+    binding: dict[str, Any]
+    group: dict[str, Any]
+    source_revision_id: str
+    ticks_per_second: int
+    authored_track: dict[str, Any]
+    animation_before: dict[str, Any]
+    expected_animation: dict[str, Any]
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (self.evidence_reference,)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if next((item for item in document.get("references", []) if item.get("id") == self.evidence_reference.get("id")), None) != self.evidence_reference:
+            raise DocumentError("Observed similarity evidence must already be accepted")
+        bindings = [item for item in document.get("motion_target_bindings", []) if item.get("id") == self.binding.get("id")]
+        groups = [item for item in document.get("groups", []) if item.get("id") == self.group.get("id")]
+        if len(bindings) != 1 or bindings[0] != self.binding:
+            raise DocumentError("STALE_MOTION_TARGET_BINDING: rotation target changed")
+        if len(groups) != 1 or groups[0] != self.group:
+            raise DocumentError("STALE_GROUP: rotation authoring baseline changed")
+        actual = next((item for item in document["animation"]["content"] if item.get("id") == self.authored_track.get("id")), None)
+        expected = copy.deepcopy(self.authored_track)
+        provenance = expected.pop("provenance", None)
+        if actual is None or actual != expected or not isinstance(provenance, dict):
+            raise DocumentError("Observed rotation Track does not match verified evidence")
+        actual["provenance"] = copy.deepcopy(provenance)
+        if document["animation"] != self.expected_animation:
+            raise DocumentError("Observed rotation Track does not match verified evidence")
         actual["provenance"] = copy.deepcopy(provenance)
         if document["animation"] != self.expected_animation:
             raise DocumentError("Observed scale Track does not match verified evidence")

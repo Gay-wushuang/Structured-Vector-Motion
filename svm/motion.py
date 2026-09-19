@@ -160,8 +160,15 @@ def _validate_track_provenance(
         and target_key[0] == "group"
         and target_key[2] == "scale"
     )
+    rotation = (
+        provenance.get("type") == "ObservedRotationTrack"
+        and provenance.get("authoring_identity")
+        == "svm-verified-observed-rotation-authoring@0.1"
+        and target_key[0] == "group"
+        and target_key[2] == "rotation_degrees"
+    )
     if (
-        not (translation or scale)
+        not (translation or scale or rotation)
         or not isinstance(provenance.get("motion_target_binding_id"), str)
         or not provenance["motion_target_binding_id"].startswith("motion-target-binding:")
         or not isinstance(provenance.get("evidence_artifact_id"), str)

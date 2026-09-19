@@ -37,6 +37,7 @@ from .revisions import (
     SetOperationParameterChange,
     SplitEntityChange,
     VerifyObservedScaleTrackSourceChange,
+    VerifyObservedRotationTrackSourceChange,
     VerifyObservedTranslationTrackSourceChange,
 )
 
@@ -257,6 +258,12 @@ def _verify_observed_scale_track(change: Any, resolved: dict[str, ArtifactSnapsh
     verify_observed_scale_track_source(change, resolved)
 
 
+def _verify_observed_rotation_track(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.observed_rotation_tracks import verify_observed_rotation_track_source
+
+    verify_observed_rotation_track_source(change, resolved)
+
+
 def _replace_observed_translation_tracks(change: Any) -> tuple[Intent, ...]:
     return tuple(
         ("author_observed_translation", track["target"]["group"], track["target"]["property"])
@@ -421,6 +428,13 @@ CHANGE_AUTHORITIES = {
             frozenset({"author_observed_scale"}),
             _single("author_observed_scale"),
             _verify_observed_scale_track,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            VerifyObservedRotationTrackSourceChange,
+            frozenset({"author_observed_rotation"}),
+            _single("author_observed_rotation"),
+            _verify_observed_rotation_track,
             _source_revision,
         ),
         ChangeAuthority(

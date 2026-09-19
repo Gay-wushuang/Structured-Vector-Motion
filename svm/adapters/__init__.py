@@ -4,6 +4,7 @@ from .component_promotion import ComponentPromotionAdapter, ComponentPromotionEr
 from .layerd_output import LayerDOutputAdapter, LayerDOutputError
 from .layerpeeler_output import LayerPeelerOutputAdapter, LayerPeelerOutputError
 from .observed_scale_tracks import ObservedScaleTracksAdapter, ObservedScaleTracksError
+from .observed_rotation_tracks import ObservedRotationTracksAdapter, ObservedRotationTracksError
 from .observed_similarity_motion import (
     ObservedSimilarityMotionAdapter,
     ObservedSimilarityMotionError,
@@ -63,6 +64,8 @@ __all__ = [
     "ObservedSimilarityMotionError",
     "ObservedScaleTracksAdapter",
     "ObservedScaleTracksError",
+    "ObservedRotationTracksAdapter",
+    "ObservedRotationTracksError",
     "ObservedTranslationTracksAdapter",
     "ObservedTranslationTracksError",
     "POPOutputAdapter",
