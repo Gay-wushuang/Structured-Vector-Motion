@@ -4,6 +4,7 @@ import copy
 import hashlib
 import json
 import math
+import re
 from dataclasses import asdict, dataclass
 from typing import Any, cast
 
@@ -14,6 +15,7 @@ from ..revisions import (
     MOTION_TARGET_BINDING_POLICY_IDENTITY,
     AddKeyframeChange,
     CreateGroupTransformTrackChange,
+    ReplaceObservedRotationTrackChange,
     Transaction,
     VerifyObservedRotationTrackSourceChange,
 )
@@ -22,6 +24,7 @@ from .observed_similarity_motion import POLICY_IDENTITY as SIMILARITY_POLICY_IDE
 
 POLICY_IDENTITY = "svm-verified-observed-rotation-authoring@0.1"
 ADAPTER_ID = "adapter:observed-rotation-tracks"
+REPLACEMENT_ADAPTER_ID = "adapter:observed-rotation-track-replacement"
 
 
 class ObservedRotationTracksError(ValueError):
@@ -44,6 +47,7 @@ class ObservedRotationTracksPreview(ProposalPreview):
     property_name: str = "rotation_degrees"
     baseline_rotation_degrees: int | float = 0
     track_id: str = ""
+    replaced_track_id: str = ""
     keyframes: tuple[RotationKeyframePreview, ...] = ()
 
 
@@ -172,6 +176,135 @@ class ObservedRotationTracksAdapter:
         )
 
 
+class ObservedRotationTrackReplacementAdapter:
+    """Explicitly replace one trusted S6B/S6C rotation Track."""
+
+    adapter_id = REPLACEMENT_ADAPTER_ID
+    adapter_version = "0.1"
+
+    def propose(self, request: AdapterRequest, artifacts: ArtifactRepository) -> Proposal:
+        if request.scope not in {(), ("document",)}:
+            raise ObservedRotationTracksError("Rotation replacement scope must be document")
+        if set(request.options) != {"motion_target_binding_id", "ticks_per_second"}:
+            raise ObservedRotationTracksError(
+                "Explicit replacement binding and timebase are required"
+            )
+        binding_id = request.options["motion_target_binding_id"]
+        ticks_per_second = request.options["ticks_per_second"]
+        if (
+            not isinstance(binding_id, str)
+            or not isinstance(ticks_per_second, int)
+            or isinstance(ticks_per_second, bool)
+            or ticks_per_second <= 0
+        ):
+            raise ObservedRotationTracksError("Invalid binding or ticks_per_second")
+        if len(request.artifact_ids) != 1:
+            raise ObservedRotationTracksError(
+                "Rotation replacement requires one similarity Artifact"
+            )
+        bindings = [
+            item
+            for item in request.document.get("motion_target_bindings", [])
+            if item.get("id") == binding_id
+        ]
+        if (
+            len(bindings) != 1
+            or bindings[0].get("policy_identity") != MOTION_TARGET_BINDING_POLICY_IDENTITY
+            or bindings[0].get("target", {}).get("kind") != "group"
+        ):
+            raise ObservedRotationTracksError("Explicit Group Motion Target Binding is required")
+        binding = copy.deepcopy(bindings[0])
+        group_id = binding["target"]["group_id"]
+        groups = [item for item in request.document.get("groups", []) if item.get("id") == group_id]
+        if len(groups) != 1 or not isinstance(groups[0].get("transform"), dict):
+            raise ObservedRotationTracksError("Bound rotation Group is missing or invalid")
+        group = copy.deepcopy(groups[0])
+        reference = _accepted_reference(request.document, request.artifact_ids[0])
+        snapshot = artifacts.resolve_reference(reference)
+        payload = _read_evidence(snapshot)
+        if payload["temporal_identity_id"] != binding["temporal_identity_id"]:
+            raise ObservedRotationTracksError("Similarity evidence identity does not match binding")
+        baseline = group["transform"].get("rotation_degrees")
+        samples = _absolute_samples(payload["intervals"], baseline)
+        track_id, keyframes = _track_definition(
+            binding_id, snapshot.artifact_id, group_id, samples, ticks_per_second
+        )
+        replacement = _document_track(
+            group_id,
+            track_id,
+            keyframes,
+            binding_id,
+            snapshot.artifact_id,
+            request.base_revision_id,
+        )
+        animation_before = copy.deepcopy(request.document["animation"])
+        existing = _rotation_tracks(animation_before, group_id)
+        if len(existing) != 1:
+            raise ObservedRotationTracksError(
+                "Rotation replacement requires exactly one existing Group rotation Track"
+            )
+        old = existing[0]
+        _require_owned_rotation_track(old, binding_id, group_id)
+        expected_animation = _replacement_animation(
+            animation_before, old, replacement, ticks_per_second
+        )
+        change = ReplaceObservedRotationTrackChange(
+            reference,
+            binding,
+            group,
+            request.base_revision_id,
+            ticks_per_second,
+            old,
+            replacement,
+            animation_before,
+            expected_animation,
+        )
+        generator = GeneratorProvenance(
+            self.adapter_id,
+            self.adapter_version,
+            "svm-verified-observed-rotation-reauthoring",
+            POLICY_IDENTITY,
+            {
+                "evidence_artifact_id": snapshot.artifact_id,
+                "motion_target_binding_id": binding_id,
+                "group_id": group_id,
+                "existing_track_id": old["id"],
+                "ticks_per_second": ticks_per_second,
+            },
+        )
+        digest = hashlib.sha256(
+            canonical_bytes(
+                {
+                    "base": request.base_revision_id,
+                    "generator": asdict(generator),
+                    "change": asdict(change),
+                }
+            )
+        ).hexdigest()[:16]
+        return Proposal(
+            proposal_id=f"proposal:replace-observed-rotation-track:{digest}",
+            base_revision_id=request.base_revision_id,
+            generator=generator,
+            transaction=Transaction(
+                f"transaction:replace-observed-rotation-track:{digest}",
+                (change,),
+                "Replace verified observed rotation Track",
+            ),
+            preview=ObservedRotationTracksPreview(
+                mode="REPLACE",
+                group_id=group_id,
+                binding_id=binding_id,
+                evidence_artifact_id=snapshot.artifact_id,
+                baseline_rotation_degrees=baseline,
+                track_id=track_id,
+                replaced_track_id=old["id"],
+                keyframes=tuple(RotationKeyframePreview(t, v, d) for _, t, v, d in keyframes),
+            ),
+            required_artifact_ids=(snapshot.artifact_id,),
+            notes="REPLACE one trusted observed rotation Track after explicit acceptance",
+        )
+
+
 def verify_observed_rotation_track_source(
     change: Any, resolved: dict[str, ArtifactSnapshot]
 ) -> None:
@@ -201,11 +334,21 @@ def verify_observed_rotation_track_source(
         snapshot.artifact_id,
         change.source_revision_id,
     )
-    if change.authored_track != expected:
+    authored = getattr(change, "authored_track", getattr(change, "replacement_track", None))
+    if authored != expected:
         raise ValueError("Observed rotation Track definition does not match evidence")
-    if change.expected_animation != _expected_animation(
-        change.animation_before, expected, change.ticks_per_second
-    ):
+    if isinstance(change, ReplaceObservedRotationTrackChange):
+        _require_owned_rotation_track(
+            change.existing_track, change.binding["id"], change.group["id"]
+        )
+        expected_animation = _replacement_animation(
+            change.animation_before, change.existing_track, expected, change.ticks_per_second
+        )
+    else:
+        expected_animation = _expected_animation(
+            change.animation_before, expected, change.ticks_per_second
+        )
+    if change.expected_animation != expected_animation:
         raise ValueError("Observed rotation animation result is inconsistent")
 
 
@@ -339,6 +482,51 @@ def _rotation_tracks(animation, group_id):
         for track in animation.get("content", [])
         if track.get("target") == {"group": group_id, "property": "rotation_degrees"}
     )
+
+
+def _require_owned_rotation_track(track, binding_id, group_id):
+    provenance = track.get("provenance")
+    if (
+        track.get("target") != {"group": group_id, "property": "rotation_degrees"}
+        or not isinstance(provenance, dict)
+        or set(provenance)
+        != {
+            "type",
+            "authoring_identity",
+            "motion_target_binding_id",
+            "evidence_artifact_id",
+            "source_revision_id",
+        }
+        or provenance.get("type") != "ObservedRotationTrack"
+        or provenance.get("authoring_identity") != POLICY_IDENTITY
+        or provenance.get("motion_target_binding_id") != binding_id
+        or re.fullmatch(r"artifact:[0-9a-f]{64}", provenance.get("evidence_artifact_id", ""))
+        is None
+        or re.fullmatch(r"revision:[0-9a-f]{64}", provenance.get("source_revision_id", "")) is None
+    ):
+        raise ObservedRotationTracksError(
+            "Existing rotation Track is not owned by observed-rotation authoring"
+        )
+
+
+def _replacement_animation(animation_before, existing_track, replacement_track, ticks_per_second):
+    animation = copy.deepcopy(animation_before)
+    timebase = animation.get("timebase")
+    if timebase is None or timebase.get("ticks_per_second") != ticks_per_second:
+        raise ObservedRotationTracksError(
+            "ticks_per_second conflicts with the existing Document timebase"
+        )
+    matches = [
+        index
+        for index, track in enumerate(animation["content"])
+        if track.get("id") == existing_track.get("id")
+    ]
+    if len(matches) != 1 or animation["content"][matches[0]] != existing_track:
+        raise ObservedRotationTracksError("Existing rotation Track snapshot is stale")
+    if replacement_track.get("id") == existing_track.get("id"):
+        raise ObservedRotationTracksError("Replacement evidence must author a distinct Track")
+    animation["content"][matches[0]] = copy.deepcopy(replacement_track)
+    return animation
 
 
 def _accepted_reference(document, artifact_id):

@@ -28,6 +28,7 @@ from .revisions import (
     PromotedGroup,
     PromoteGroupsChange,
     PromoteTemporalIdentityChange,
+    ReplaceObservedRotationTrackChange,
     ReplaceObservedScaleTrackChange,
     ReplaceObservedTranslationTracksChange,
     ReplaceSceneFragmentChange,
@@ -442,6 +443,13 @@ CHANGE_AUTHORITIES = {
             frozenset({"author_observed_scale"}),
             _single("author_observed_scale"),
             _verify_observed_scale_track,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            ReplaceObservedRotationTrackChange,
+            frozenset({"author_observed_rotation"}),
+            _single("author_observed_rotation"),
+            _verify_observed_rotation_track,
             _source_revision,
         ),
         ChangeAuthority(

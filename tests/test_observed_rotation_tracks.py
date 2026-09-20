@@ -7,6 +7,7 @@ from pathlib import Path
 
 from svm import (
     AdapterRequest,
+    AppendReferencesChange,
     ArtifactStore,
     MotionEvaluator,
     ProposalAcceptor,
@@ -14,9 +15,11 @@ from svm import (
     ProposalConflictError,
     RevisionStore,
     SetGroupTransformChange,
+    SetKeyframeValueChange,
     Transaction,
 )
 from svm.adapters import (
+    ObservedRotationTrackReplacementAdapter,
     ObservedRotationTracksAdapter,
     ObservedSimilarityMotionAdapter,
     SVGGeometryObservationAdapter,
@@ -28,6 +31,8 @@ from svm.adapters.observed_rotation_tracks import (
     ObservedRotationTracksError,
     _absolute_samples,
 )
+from svm.evaluator import DocumentError, canonical_bytes
+from svm.revisions import ReplaceObservedRotationTrackChange
 
 ROOT = Path(__file__).resolve().parents[1]
 GROUP_ID = "group:" + "1" * 64
@@ -242,6 +247,43 @@ class ObservedRotationTrackGoldenS6B1Test(unittest.TestCase):
             self.artifacts,
         )
 
+    def _accept_rotation_evidence(self, value, status="SUPPORTED"):
+        original = self.artifacts.get(self.evidence_id)
+        payload = json.loads(original.content)
+        payload["intervals"][0]["rotation_degrees"] = {
+            "status": status,
+            "value": value if status == "SUPPORTED" else None,
+        }
+        artifact = self.artifacts.import_bytes(
+            canonical_bytes(payload),
+            media_type=original.media_type,
+            kind=original.kind,
+            provenance=original.provenance,
+        )
+        self.store.commit(
+            self.store.head,
+            Transaction(
+                "transaction:accept-replacement-rotation-evidence",
+                (AppendReferencesChange((artifact.document_reference(),)),),
+            ),
+        )
+        return artifact.artifact_id
+
+    def _replacement_proposal(self, evidence_id):
+        return ObservedRotationTrackReplacementAdapter().propose(
+            AdapterRequest.from_store(
+                self.store,
+                self.store.head,
+                ("document",),
+                artifact_ids=(evidence_id,),
+                options={
+                    "motion_target_binding_id": self.binding_id,
+                    "ticks_per_second": 24,
+                },
+            ),
+            self.artifacts,
+        )
+
     @staticmethod
     def _rotation(document, tick):
         sampled = MotionEvaluator(document).sample_document(tick)
@@ -349,5 +391,144 @@ class ObservedRotationTrackGoldenS6B1Test(unittest.TestCase):
             before = self.store.get_document(before_head)
             with self.assertRaises((ProposalArtifactError, ValueError)):
                 ProposalAcceptor().accept(self.store, forged, self.artifacts)
+            self.assertEqual(self.store.head, before_head)
+            self.assertEqual(self.store.get_document(before_head), before)
+
+    def test_explicit_replacement_accepts_and_updates_provenance(self):
+        self._bind()
+        ProposalAcceptor().accept(self.store, self._proposal(), self.artifacts)
+        old = copy.deepcopy(self.store.get_document(self.store.head)["animation"]["content"][0])
+        replacement_evidence = self._accept_rotation_evidence(-25)
+        proposal = self._replacement_proposal(replacement_evidence)
+        self.assertEqual(proposal.preview.mode, "REPLACE")
+        self.assertEqual(proposal.preview.replaced_track_id, old["id"])
+        self.assertNotEqual(proposal.preview.track_id, old["id"])
+        self.assertEqual([item.value for item in proposal.preview.keyframes], [10, -15])
+        change = proposal.transaction.changes[0]
+        self.assertIsInstance(change, ReplaceObservedRotationTrackChange)
+        revision = ProposalAcceptor().accept(self.store, proposal, self.artifacts)
+        accepted = self.store.get_document(revision.revision_id)
+        self.assertEqual(len(accepted["animation"]["content"]), 1)
+        track = accepted["animation"]["content"][0]
+        self.assertEqual(track["id"], proposal.preview.track_id)
+        self.assertEqual(track["provenance"]["evidence_artifact_id"], replacement_evidence)
+        self.assertEqual(track["provenance"]["source_revision_id"], proposal.base_revision_id)
+        self.assertEqual(self._rotation(accepted, 0), 10)
+        self.assertEqual(self._rotation(accepted, 12), -2.5)
+        self.assertEqual(self._rotation(accepted, 24), -15)
+
+    def test_replacement_is_explicit_and_create_still_rejects_existing_track(self):
+        self._bind()
+        ProposalAcceptor().accept(self.store, self._proposal(), self.artifacts)
+        replacement_evidence = self._accept_rotation_evidence(20)
+        with self.assertRaisesRegex(ObservedRotationTracksError, "explicit re-authoring"):
+            self.evidence_id = replacement_evidence
+            self._proposal()
+        proposal = self._replacement_proposal(replacement_evidence)
+        self.assertEqual(proposal.preview.mode, "REPLACE")
+
+    def test_replacement_rejects_unsupported_rotation_component(self):
+        self._bind()
+        ProposalAcceptor().accept(self.store, self._proposal(), self.artifacts)
+        for status in ("UNCERTAIN", "REJECTED"):
+            with self.subTest(status=status):
+                evidence = self._accept_rotation_evidence(0, status)
+                with self.assertRaisesRegex(
+                    ObservedRotationTracksError, "supported ordered contiguous chain"
+                ):
+                    self._replacement_proposal(evidence)
+
+    def test_replacement_preserves_unwrapped_rotation(self):
+        self._initialize(30, 170)
+        self._bind()
+        ProposalAcceptor().accept(self.store, self._proposal(), self.artifacts)
+        evidence = self._accept_rotation_evidence(20)
+        proposal = self._replacement_proposal(evidence)
+        self.assertEqual([item.value for item in proposal.preview.keyframes], [170, 190])
+        revision = ProposalAcceptor().accept(self.store, proposal, self.artifacts)
+        accepted = self.store.get_document(revision.revision_id)
+        self.assertEqual(self._rotation(accepted, 12), 180)
+        self.assertEqual(self._rotation(accepted, 24), 190)
+
+    def test_stale_replacement_rejects_atomically(self):
+        self._bind()
+        ProposalAcceptor().accept(self.store, self._proposal(), self.artifacts)
+        evidence = self._accept_rotation_evidence(-10)
+        stale = self._replacement_proposal(evidence)
+        track = self.store.get_document(self.store.head)["animation"]["content"][0]
+        self.store.commit(
+            self.store.head,
+            Transaction(
+                "transaction:edit-existing-rotation-track",
+                (SetKeyframeValueChange(track["id"], track["keyframes"][1]["id"], 41),),
+            ),
+        )
+        before_head = self.store.head
+        before = self.store.get_document(before_head)
+        with self.assertRaises(ProposalConflictError):
+            ProposalAcceptor().accept(self.store, stale, self.artifacts)
+        self.assertEqual(self.store.head, before_head)
+        self.assertEqual(self.store.get_document(before_head), before)
+
+    def test_forged_replacement_fields_fail_atomically(self):
+        self._bind()
+        ProposalAcceptor().accept(self.store, self._proposal(), self.artifacts)
+        evidence = self._accept_rotation_evidence(-25)
+        proposal = self._replacement_proposal(evidence)
+        change = proposal.transaction.changes[0]
+
+        def forged(field):
+            item = copy.deepcopy(change)
+            if field == "track":
+                item.replacement_track["id"] += "x"
+            elif field == "group":
+                item.replacement_track["target"]["group"] = "group:" + "f" * 64
+            elif field == "property":
+                item.replacement_track["target"]["property"] = "scale"
+            elif field == "animation":
+                item.expected_animation["content"] = []
+            elif field == "provenance":
+                item.replacement_track["provenance"]["evidence_artifact_id"] = (
+                    "artifact:" + "f" * 64
+                )
+            elif field == "binding":
+                item.binding["id"] = "motion-target-binding:" + "f" * 64
+            elif field == "binding_target":
+                item.binding["target"]["group_id"] = "group:" + "f" * 64
+            elif field == "existing":
+                item.existing_track["keyframes"][1]["value"] = 999
+            elif field == "existing_id":
+                item.existing_track["id"] += "x"
+            elif field == "ownership":
+                item.existing_track.pop("provenance")
+            elif field == "policy":
+                item.replacement_track["provenance"]["authoring_identity"] = "forged"
+            return item
+
+        for field in (
+            "track",
+            "group",
+            "property",
+            "animation",
+            "provenance",
+            "binding",
+            "binding_target",
+            "existing",
+            "existing_id",
+            "ownership",
+            "policy",
+        ):
+            bad_change = forged(field)
+            bad = replace(
+                proposal,
+                transaction=replace(proposal.transaction, changes=(bad_change,)),
+            )
+            before_head = self.store.head
+            before = self.store.get_document(before_head)
+            with (
+                self.subTest(field=field),
+                self.assertRaises((ProposalArtifactError, DocumentError, ValueError)),
+            ):
+                ProposalAcceptor().accept(self.store, bad, self.artifacts)
             self.assertEqual(self.store.head, before_head)
             self.assertEqual(self.store.get_document(before_head), before)
