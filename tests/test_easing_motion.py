@@ -5,6 +5,8 @@ import json
 import unittest
 from pathlib import Path
 
+import jsonschema
+
 from svm import (
     EASING_MOTION_SEMANTICS_IDENTITY,
     AddKeyframeChange,
@@ -19,6 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples" / "025-easing-motion.svm.json"
 STATIC_GROUP = ROOT / "examples" / "022-group-transform.svm.json"
 STATIC_OPERATION = ROOT / "examples" / "018-anchored-regeneration.svm.json"
+GROUP_MOTION = ROOT / "examples" / "023-group-transform-motion.svm.json"
+SCHEMA = ROOT / "schema" / "svm-document-v0.1.schema.json"
 GROUP_ID = "group:" + "1" * 64
 
 
@@ -45,6 +49,79 @@ class EasingMotionV0Test(unittest.TestCase):
         )
         self.assertEqual(
             eased_motion.sample_document(1)["groups"][0]["transform"]["translate"][0], 15.625
+        )
+        self.assertEqual(
+            [
+                linear_motion.sample_document(tick)["groups"][0]["transform"]["translate"][0]
+                for tick in range(5)
+            ],
+            [0, 25, 50, 75, 100],
+        )
+
+    def test_missing_interpolation_is_schema_valid_and_defaults_to_linear(self) -> None:
+        explicit = json.loads(EXAMPLE.read_text(encoding="utf-8"))
+        explicit["animation"]["content"][0]["interpolation"] = "linear"
+        omitted = copy.deepcopy(explicit)
+        omitted["animation"]["content"][0].pop("interpolation")
+        jsonschema.validate(omitted, json.loads(SCHEMA.read_text(encoding="utf-8")))
+        explicit_motion = MotionEvaluator(explicit)
+        omitted_motion = MotionEvaluator(omitted)
+        self.assertEqual(
+            [
+                explicit_motion.sample_document(tick)["groups"][0]["transform"]["translate"][0]
+                for tick in range(5)
+            ],
+            [
+                omitted_motion.sample_document(tick)["groups"][0]["transform"]["translate"][0]
+                for tick in range(5)
+            ],
+        )
+        self.assertNotIn("interpolation", omitted_motion.document["animation"]["content"][0])
+
+    def test_group_numeric_properties_share_easing_and_keep_rotation_unwrapped(self) -> None:
+        document = json.loads(GROUP_MOTION.read_text(encoding="utf-8"))
+        document["animation"]["semantics_version"] = EASING_MOTION_SEMANTICS_IDENTITY
+        values = {
+            "translate.x": (0, 100, 50),
+            "translate.y": (0, 100, 50),
+            "rotation_degrees": (170, 190, 200),
+            "scale": (1, 2, 3),
+        }
+        for track in document["animation"]["content"]:
+            track["interpolation"] = "ease-in-out"
+            property_name = track["target"]["property"]
+            for keyframe, tick, value in zip(
+                track["keyframes"], (0, 4, 8), values[property_name], strict=True
+            ):
+                keyframe["tick"] = tick
+                keyframe["value"] = value
+        motion = MotionEvaluator(document)
+        quarter = motion.sample_document(1)["groups"][0]["transform"]
+        midpoint = motion.sample_document(2)["groups"][0]["transform"]
+        three_quarters = motion.sample_document(3)["groups"][0]["transform"]
+        self.assertEqual(quarter["translate"], [15.625, 15.625])
+        self.assertEqual(midpoint["translate"], [50, 50])
+        self.assertEqual(three_quarters["translate"], [84.375, 84.375])
+        self.assertEqual(quarter["scale"], 1.15625)
+        self.assertEqual(midpoint["scale"], 1.5)
+        self.assertEqual(quarter["rotation_degrees"], 173.125)
+        self.assertEqual(midpoint["rotation_degrees"], 180)
+        self.assertEqual(three_quarters["rotation_degrees"], 186.875)
+        self.assertGreater(three_quarters["rotation_degrees"], 180)
+        self.assertEqual(
+            motion.sample_document(5)["groups"][0]["transform"]["translate"][0],
+            92.1875,
+        )
+        self.assertEqual(motion.sample_document(0)["groups"][0]["transform"]["translate"][0], 0)
+        self.assertEqual(motion.sample_document(100)["groups"][0]["transform"]["translate"][0], 50)
+        first_segment = [
+            motion.sample_document(tick)["groups"][0]["transform"]["translate"][0]
+            for tick in range(5)
+        ]
+        self.assertEqual(first_segment, sorted(first_segment))
+        round_tripped = json.loads(json.dumps(document, sort_keys=True))
+        self.assertEqual(
+            MotionEvaluator(round_tripped).sample_document(1), motion.sample_document(1)
         )
 
     def test_group_easing_track_is_authored_atomically(self) -> None:
@@ -120,6 +197,11 @@ class EasingMotionV0Test(unittest.TestCase):
                 self.assertRaisesRegex(ValueError, "unsupported value/interpolation"),
             ):
                 RevisionStore.create(candidate)
+
+        invalid_schema = copy.deepcopy(document)
+        invalid_schema["animation"]["content"][0]["interpolation"] = "ease_magic"
+        with self.assertRaises(jsonschema.ValidationError):
+            jsonschema.validate(invalid_schema, json.loads(SCHEMA.read_text(encoding="utf-8")))
 
         static = json.loads(STATIC_GROUP.read_text(encoding="utf-8"))
         store = RevisionStore.create(static)

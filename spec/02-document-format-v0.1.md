@@ -119,6 +119,8 @@ permits the closed Group Transform property set `translate.x`, `translate.y`,
 `rotation_degrees`, and `scale`; it does not permit animated Group origin.
 Motion v0.4 permits `linear` and deterministic `ease-in-out` interpolation;
 earlier Motion identities remain linear-only.
+Omitted Track interpolation is the backward-compatible spelling of `linear`;
+explicit unknown interpolation values are invalid.
 Motion v0.5 permits Entity `opacity` numeric Tracks using either v0.4 numeric
 interpolation and Entity `fill` color Tracks using discrete `hold` sampling.
 Style samples affect only the sampled presentation state.

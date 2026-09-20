@@ -33,5 +33,11 @@ Both Operation parameter Tracks and Group Transform Tracks may record
 `CreateGroupTransformTrackChange` accept an optional interpolation argument;
 the default remains `linear`.
 
+For backward compatibility, a Track that omits `interpolation` is interpreted
+as `linear`. Explicit unknown values remain invalid. The omission is preserved
+as authored Document state rather than being rewritten during validation or
+sampling; therefore omitted and explicit `linear` Tracks sample identically
+without requiring fixture migration.
+
 Bezier handles, custom curves, per-Keyframe tangents, spring physics, Style
 Tracks, and Camera motion are outside this slice.

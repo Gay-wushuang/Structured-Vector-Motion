@@ -86,7 +86,7 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
         if track_id in track_ids:
             raise DocumentError(f"Duplicate Animation Track ID {track_id}")
         track_ids.add(track_id)
-        interpolation = track.get("interpolation")
+        interpolation = _track_interpolation(track)
         value_type = track.get("value_type")
         if semantics_version in {STYLE_MOTION_SEMANTICS_IDENTITY, CAMERA_MOTION_SEMANTICS_IDENTITY}:
             valid_track_shape = value_type in {"number", "color"} and interpolation in {
@@ -207,7 +207,7 @@ def _validate_track_target(
         current = operation["parameters"][parameter]
         if not _finite_number(current):
             raise DocumentError(f"Track {track_id} target parameter is not numeric")
-        if track["value_type"] != "number" or track["interpolation"] == "hold":
+        if track["value_type"] != "number" or _track_interpolation(track) == "hold":
             raise DocumentError(f"Track {track_id} has invalid Operation Track semantics")
         return ("operation", operation_id, parameter)
     if isinstance(target, dict) and set(target) == {"group", "property"}:
@@ -231,7 +231,7 @@ def _validate_track_target(
         if not isinstance(transform, dict):
             raise DocumentError(f"Track {track_id} requires an existing Group Transform")
         _group_transform_property(transform, property_name)
-        if track["value_type"] != "number" or track["interpolation"] == "hold":
+        if track["value_type"] != "number" or _track_interpolation(track) == "hold":
             raise DocumentError(f"Track {track_id} has invalid Group Track semantics")
         return ("group", group_id, property_name)
     if isinstance(target, dict) and set(target) == {"entity", "property"}:
@@ -255,9 +255,9 @@ def _validate_track_target(
         if style is None:
             raise DocumentError(f"Track {track_id} targets missing Entity Style {entity_id}")
         if property_name == "opacity":
-            if track["value_type"] != "number" or track["interpolation"] == "hold":
+            if track["value_type"] != "number" or _track_interpolation(track) == "hold":
                 raise DocumentError(f"Track {track_id} has invalid opacity Track semantics")
-        elif track["value_type"] != "color" or track["interpolation"] != "hold":
+        elif track["value_type"] != "color" or _track_interpolation(track) != "hold":
             raise DocumentError(f"Track {track_id} has invalid fill Track semantics")
         return ("entity", entity_id, property_name)
     if isinstance(target, dict) and set(target) == {"camera", "property"}:
@@ -270,7 +270,7 @@ def _validate_track_target(
             raise DocumentError(f"Track {track_id} targets unsupported Camera property")
         if not isinstance(document.get("presentation", {}).get("camera"), dict):
             raise DocumentError(f"Track {track_id} requires an existing Camera")
-        if track["value_type"] != "number" or track["interpolation"] == "hold":
+        if track["value_type"] != "number" or _track_interpolation(track) == "hold":
             raise DocumentError(f"Track {track_id} has invalid Camera Track semantics")
         return ("camera", "presentation", target["property"])
     raise DocumentError(f"Track {track_id} has invalid target")
@@ -433,7 +433,7 @@ class MotionEvaluator:
         except DocumentError:
             keyframes[index]["value"] = previous_raw
             raise
-        interval = _keyframe_influence_interval(keyframes, index, track["interpolation"])
+        interval = _keyframe_influence_interval(keyframes, index, _track_interpolation(track))
         self.frame_cache = {
             key: frame
             for key, frame in self.frame_cache.items()
@@ -499,7 +499,7 @@ def motion_revision_deltas(
                     track_id=old_track["id"],
                     keyframe_id=old_keyframe["id"],
                     interval=_keyframe_influence_interval(
-                        old_keyframes, index, old_track["interpolation"]
+                        old_keyframes, index, _track_interpolation(old_track)
                     ),
                 )
             )
@@ -547,11 +547,12 @@ def _ticks_per_second(timebase: Any) -> int:
 
 def _sample_track(track: dict[str, Any], tick: int) -> int | float | str:
     keyframes = track["keyframes"]
+    interpolation = _track_interpolation(track)
     if tick <= keyframes[0]["tick"]:
         return canonical_track_value(track, keyframes[0]["value"])
     if tick >= keyframes[-1]["tick"]:
         return canonical_track_value(track, keyframes[-1]["value"])
-    if track["interpolation"] == "hold":
+    if interpolation == "hold":
         return canonical_track_value(
             track,
             next(
@@ -565,7 +566,7 @@ def _sample_track(track: dict[str, Any], tick: int) -> int | float | str:
             span = right["tick"] - left["tick"]
             offset = tick - left["tick"]
             progress = Fraction(offset, span)
-            if track["interpolation"] == "ease-in-out":
+            if interpolation == "ease-in-out":
                 progress = 3 * progress**2 - 2 * progress**3
             value = (
                 Fraction(str(left["value"]))
@@ -573,6 +574,11 @@ def _sample_track(track: dict[str, Any], tick: int) -> int | float | str:
             )
             return canonical_motion_number(value)
     raise DocumentError(f"Cannot sample Track {track['id']} at tick {tick}")
+
+
+def _track_interpolation(track: dict[str, Any]) -> Any:
+    """Interpret an omitted authored interpolation as the legacy linear default."""
+    return track.get("interpolation", "linear")
 
 
 def _finite_number(value: Any) -> bool:

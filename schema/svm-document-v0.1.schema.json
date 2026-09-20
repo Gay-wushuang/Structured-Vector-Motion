@@ -369,7 +369,7 @@
       "animationTrack": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "target", "value_type", "interpolation", "keyframes"],
+        "required": ["id", "target", "value_type", "keyframes"],
         "properties": {
           "id": {"type": "string", "pattern": "^track:.+"},
           "target": {
