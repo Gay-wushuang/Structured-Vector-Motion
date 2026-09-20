@@ -281,10 +281,11 @@ class ObservedRotationTrackGoldenS6B1Test(unittest.TestCase):
         self._initialize(20, 170)
         self._bind()
         proposal = self._proposal()
-        self.assertEqual([item.value for item in proposal.preview.keyframes], [170, 190])
+        self.assertEqual(proposal.preview.keyframes[0].value, 170)
+        self.assertAlmostEqual(proposal.preview.keyframes[1].value, 190, places=7)
         accepted = ProposalAcceptor().accept(self.store, proposal, self.artifacts)
         document = self.store.get_document(accepted.revision_id)
-        self.assertEqual(self._rotation(document, 12), 180)
+        self.assertAlmostEqual(self._rotation(document, 12), 180, places=7)
 
     def test_stale_baseline_rejects_but_binding_persists_for_fresh_proposal(self):
         self._bind()

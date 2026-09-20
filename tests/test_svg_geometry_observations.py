@@ -1,6 +1,7 @@
 import json
 import unittest
 from dataclasses import replace
+from pathlib import Path
 
 from svm import (
     AdapterRequest,
@@ -24,14 +25,7 @@ from svm.adapters.svg_geometry_observations import (
 )
 from svm.evaluator import canonical_bytes
 
-DOC = {
-    "format": "svm-document@0.1",
-    "entities": [],
-    "references": [],
-    "construction": {"operations": [], "output_bindings": []},
-    "presentation": {"styles": [], "render_stack": []},
-    "animation": {"content": []},
-}
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def svg(path: str, *, shape_id: str = "arrow", fill: str = "#CC3344") -> bytes:
@@ -63,7 +57,10 @@ def path(points):
 
 class SVGGeometryObservationTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.revisions = RevisionStore.create(DOC)
+        document = json.loads(
+            (ROOT / "examples" / "005-empty-canvas.svm.json").read_text(encoding="utf-8")
+        )
+        self.revisions = RevisionStore.create(document)
         self.artifacts = ArtifactStore()
 
     def request(self, source, target, shape_id="arrow"):

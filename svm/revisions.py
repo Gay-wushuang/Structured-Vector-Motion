@@ -1090,6 +1090,9 @@ class VerifyObservedScaleTrackSourceChange:
         actual = by_id.get(self.authored_track.get("id"))
         if actual is None or actual != expected or not isinstance(provenance, dict):
             raise DocumentError("Observed scale Track does not match verified evidence")
+        actual["provenance"] = copy.deepcopy(provenance)
+        if document["animation"] != self.expected_animation:
+            raise DocumentError("Observed scale Track does not match verified evidence")
 
 
 @dataclass(frozen=True)
@@ -1149,9 +1152,6 @@ class VerifyObservedRotationTrackSourceChange:
         actual["provenance"] = copy.deepcopy(provenance)
         if document["animation"] != self.expected_animation:
             raise DocumentError("Observed rotation Track does not match verified evidence")
-        actual["provenance"] = copy.deepcopy(provenance)
-        if document["animation"] != self.expected_animation:
-            raise DocumentError("Observed scale Track does not match verified evidence")
 
 
 @dataclass(frozen=True)
