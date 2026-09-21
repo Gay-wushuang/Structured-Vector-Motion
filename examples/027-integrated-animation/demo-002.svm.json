@@ -1,0 +1,169 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:demo-002-integrated-animation",
+  "references": [
+    {
+      "id": "artifact:0000000000000000000000000000000000000000000000000000000000000000",
+      "uri": "artifact://0000000000000000000000000000000000000000000000000000000000000000",
+      "content_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "media_type": "application/vnd.svm.pop-group-candidates+json;version=0.1",
+      "import_metadata": {"fixture": "demo-002-integrated-animation"}
+    }
+  ],
+  "entities": [
+    {"id": "entity:demo-background", "name": "Background"},
+    {"id": "entity:demo-body", "name": "Body"},
+    {"id": "entity:demo-accent", "name": "Accent"},
+    {"id": "entity:demo-reference", "name": "Reference"}
+  ],
+  "groups": [
+    {
+      "id": "group:1111111111111111111111111111111111111111111111111111111111111111",
+      "kind": "explicit-group",
+      "members": ["entity:demo-accent", "entity:demo-body"],
+      "transform": {
+        "translate": [0, 0],
+        "rotation_degrees": 0,
+        "scale": 1,
+        "origin": [20, 10]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:2222222222222222222222222222222222222222222222222222222222222222",
+        "inference_id": "inference:group:3333333333333333333333333333333333333333333333333333333333333333",
+        "inference_artifact_id": "artifact:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ],
+  "construction": {
+    "operations": [
+      {"id": "op:demo-background", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": -60, "y": -40, "width": 240, "height": 120}},
+      {"id": "op:demo-body", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": 0, "y": 0, "width": 40, "height": 20}},
+      {"id": "op:demo-accent", "type": "CreateRectangle", "inputs": {}, "parameters": {"x": 38, "y": 3, "width": 16, "height": 8}},
+      {"id": "op:demo-reference", "type": "CreateEllipse", "inputs": {}, "parameters": {"cx": 145, "cy": 10, "rx": 7, "ry": 7}}
+    ],
+    "output_bindings": [
+      {"entity": "entity:demo-background", "property": "geometry", "slot": "op:demo-background.geometry"},
+      {"entity": "entity:demo-body", "property": "geometry", "slot": "op:demo-body.geometry"},
+      {"entity": "entity:demo-accent", "property": "geometry", "slot": "op:demo-accent.geometry"},
+      {"entity": "entity:demo-reference", "property": "geometry", "slot": "op:demo-reference.geometry"}
+    ],
+    "refinement_stages": []
+  },
+  "presentation": {
+    "render_stack": ["entity:demo-background", "entity:demo-reference", "entity:demo-body", "entity:demo-accent"],
+    "styles": [
+      {"entity": "entity:demo-background", "fill": "#172033", "stroke": "none", "stroke_width": 0, "opacity": 1},
+      {"entity": "entity:demo-body", "fill": "#4A90E2", "stroke": "#DDEBFF", "stroke_width": 1, "opacity": 1},
+      {"entity": "entity:demo-accent", "fill": "#FFD166", "stroke": "#5B3A00", "stroke_width": 1, "opacity": 0},
+      {"entity": "entity:demo-reference", "fill": "#F4F7FB", "stroke": "#5D6B82", "stroke_width": 1, "opacity": 1}
+    ],
+    "camera": {"position": [0, 0], "rotation_degrees": 0, "scale": 1}
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {
+    "semantics_version": "svm-motion@0.6",
+    "timebase": {"ticks_per_second": 12},
+    "content": [
+      {
+        "id": "track:demo-group-translate-x",
+        "target": {"group": "group:1111111111111111111111111111111111111111111111111111111111111111", "property": "translate.x"},
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {"id": "keyframe:demo-group-x-000", "tick": 0, "value": 0},
+          {"id": "keyframe:demo-group-x-012", "tick": 12, "value": 5},
+          {"id": "keyframe:demo-group-x-036", "tick": 36, "value": 85},
+          {"id": "keyframe:demo-group-x-054", "tick": 54, "value": 105},
+          {"id": "keyframe:demo-group-x-072", "tick": 72, "value": 115}
+        ]
+      },
+      {
+        "id": "track:demo-group-translate-y",
+        "target": {"group": "group:1111111111111111111111111111111111111111111111111111111111111111", "property": "translate.y"},
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {"id": "keyframe:demo-group-y-000", "tick": 0, "value": 0},
+          {"id": "keyframe:demo-group-y-036", "tick": 36, "value": -12},
+          {"id": "keyframe:demo-group-y-054", "tick": 54, "value": 6},
+          {"id": "keyframe:demo-group-y-072", "tick": 72, "value": 0}
+        ]
+      },
+      {
+        "id": "track:demo-group-rotation",
+        "target": {"group": "group:1111111111111111111111111111111111111111111111111111111111111111", "property": "rotation_degrees"},
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {"id": "keyframe:demo-group-rotation-000", "tick": 0, "value": 0},
+          {"id": "keyframe:demo-group-rotation-012", "tick": 12, "value": 0},
+          {"id": "keyframe:demo-group-rotation-036", "tick": 36, "value": 30},
+          {"id": "keyframe:demo-group-rotation-054", "tick": 54, "value": -15},
+          {"id": "keyframe:demo-group-rotation-072", "tick": 72, "value": 0}
+        ]
+      },
+      {
+        "id": "track:demo-group-scale",
+        "target": {"group": "group:1111111111111111111111111111111111111111111111111111111111111111", "property": "scale"},
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {"id": "keyframe:demo-group-scale-000", "tick": 0, "value": 1},
+          {"id": "keyframe:demo-group-scale-012", "tick": 12, "value": 1},
+          {"id": "keyframe:demo-group-scale-036", "tick": 36, "value": 1.2},
+          {"id": "keyframe:demo-group-scale-054", "tick": 54, "value": 0.9},
+          {"id": "keyframe:demo-group-scale-072", "tick": 72, "value": 1}
+        ]
+      },
+      {
+        "id": "track:demo-accent-opacity",
+        "target": {"entity": "entity:demo-accent", "property": "opacity"},
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {"id": "keyframe:demo-accent-opacity-000", "tick": 0, "value": 0},
+          {"id": "keyframe:demo-accent-opacity-012", "tick": 12, "value": 1},
+          {"id": "keyframe:demo-accent-opacity-054", "tick": 54, "value": 1},
+          {"id": "keyframe:demo-accent-opacity-072", "tick": 72, "value": 0}
+        ]
+      },
+      {
+        "id": "track:demo-body-fill",
+        "target": {"entity": "entity:demo-body", "property": "fill"},
+        "value_type": "color",
+        "interpolation": "hold",
+        "keyframes": [
+          {"id": "keyframe:demo-body-fill-000", "tick": 0, "value": "#4A90E2"},
+          {"id": "keyframe:demo-body-fill-036", "tick": 36, "value": "#FF8C42"},
+          {"id": "keyframe:demo-body-fill-054", "tick": 54, "value": "#56C596"}
+        ]
+      },
+      {
+        "id": "track:demo-camera-x",
+        "target": {"camera": "presentation", "property": "position.x"},
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {"id": "keyframe:demo-camera-x-000", "tick": 0, "value": 0},
+          {"id": "keyframe:demo-camera-x-036", "tick": 36, "value": 5},
+          {"id": "keyframe:demo-camera-x-072", "tick": 72, "value": 10}
+        ]
+      },
+      {
+        "id": "track:demo-camera-scale",
+        "target": {"camera": "presentation", "property": "scale"},
+        "value_type": "number",
+        "interpolation": "ease-in-out",
+        "keyframes": [
+          {"id": "keyframe:demo-camera-scale-000", "tick": 0, "value": 1},
+          {"id": "keyframe:demo-camera-scale-036", "tick": 36, "value": 1.05},
+          {"id": "keyframe:demo-camera-scale-072", "tick": 72, "value": 1.1}
+        ]
+      }
+    ],
+    "construction_scheduling_hints": []
+  }
+}
