@@ -8,10 +8,12 @@ the closed polygonal grammar `M/m`, `L/l`, `H/h`, `V/v`, `Z/z`. Curves, arcs,
 multiple subpaths, arbitrary transforms, implicit semantic matching, sampling,
 and vertex reordering are rejected.
 
-Synthetic Motion Recovery v0 additionally accepts the strict renderer-owned
-shape `g[data-svm-entity=<selector>] > g[transform=matrix(...)] > path`. The
-selected Entity must contain exactly one matrix-transformed polygonal path.
-Landmarks and bounds are deterministically converted to world coordinates.
+Synthetic Motion Recovery accepts the strict renderer-owned shape
+`g[data-svm-role=render-stack] > g[data-svm-entity=<selector>]` containing
+exactly one polygonal path, optionally inside the renderer's single Group
+`matrix(...)`. The renderer-owned render-stack may additionally carry its one
+Camera `matrix(...)`. Group and Camera matrices are composed in renderer order;
+landmarks and bounds are deterministically converted to observed view space.
 This does not enable general SVG transform support: transform lists, nested
 author transforms, multiple geometries, and non-matrix syntax remain rejected.
 

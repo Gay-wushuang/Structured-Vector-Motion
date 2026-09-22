@@ -67,6 +67,17 @@ def rendered_entity_svg(matrix: str) -> bytes:
     ).encode()
 
 
+def rendered_static_entity_svg(camera_matrix: str) -> bytes:
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">'
+        f'<g data-svm-role="render-stack" transform="matrix({camera_matrix})">'
+        '<g data-svm-entity="entity:anchor" fill="#238A72" stroke="none" '
+        'stroke-width="0" opacity="1">'
+        '<path d="M 10 10 L 30 10 L 24 20 L 12 26 Z" />'
+        "</g></g></svg>"
+    ).encode()
+
+
 class SVGGeometryObservationTest(unittest.TestCase):
     def setUp(self) -> None:
         document = json.loads(
@@ -134,6 +145,19 @@ class SVGGeometryObservationTest(unittest.TestCase):
         self.assertEqual(
             payload["frames"][1]["primitives"][0]["geometry"]["points"],
             [[50.0, 60.0], [50.0, -20.0], [78.0, 4.0], [110.0, 44.0]],
+        )
+
+    def test_renderer_camera_transform_is_composed_for_static_entity(self):
+        source = self.artifacts.import_bytes(
+            rendered_static_entity_svg("1 0 0 1 0 0"), media_type="image/svg+xml"
+        )
+        target = self.artifacts.import_bytes(
+            rendered_static_entity_svg("0 -2 2 0 10 100"), media_type="image/svg+xml"
+        )
+        payload = derive_svg_polygon_observations(source, target, "entity:anchor", 0, 12)
+        self.assertEqual(
+            payload["frames"][1]["primitives"][0]["geometry"]["points"],
+            [[30.0, 80.0], [30.0, 40.0], [50.0, 52.0], [62.0, 76.0]],
         )
 
     def test_renderer_entity_observation_rejects_non_matrix_or_extra_geometry(self):

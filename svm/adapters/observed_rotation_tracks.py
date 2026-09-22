@@ -19,6 +19,12 @@ from ..revisions import (
     Transaction,
     VerifyObservedRotationTrackSourceChange,
 )
+from .camera_compensation import (
+    COMPENSATION_POLICY,
+)
+from .camera_compensation import (
+    SIMILARITY_MEDIA_TYPE as COMPENSATED_SIMILARITY_MEDIA_TYPE,
+)
 from .observed_similarity_motion import MEDIA_TYPE as SIMILARITY_MEDIA_TYPE
 from .observed_similarity_motion import POLICY_IDENTITY as SIMILARITY_POLICY_IDENTITY
 
@@ -357,16 +363,27 @@ def _read_evidence(snapshot: ArtifactSnapshot) -> dict[str, Any]:
         payload = json.loads(snapshot.content)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ObservedRotationTracksError("Similarity evidence is invalid JSON") from exc
+    standard = (
+        snapshot.media_type == SIMILARITY_MEDIA_TYPE
+        and snapshot.provenance.get("adapter_id") == "adapter:observed-similarity-motion"
+        and snapshot.provenance.get("policy_identity") == SIMILARITY_POLICY_IDENTITY
+        and payload.get("schema_version") == "svm-observed-similarity-motion-0.1"
+        and payload.get("identity") == "svm-observed-similarity-motion@0.1"
+        and payload.get("policy_identity") == SIMILARITY_POLICY_IDENTITY
+    )
+    compensated = (
+        snapshot.media_type == COMPENSATED_SIMILARITY_MEDIA_TYPE
+        and snapshot.provenance.get("adapter_id") == "adapter:camera-compensated-motion"
+        and snapshot.provenance.get("policy_identity") == COMPENSATION_POLICY
+        and payload.get("schema_version") == "svm-camera-compensated-similarity-motion-0.1"
+        and payload.get("identity") == "svm-camera-compensated-similarity-motion@0.1"
+        and payload.get("policy_identity") == COMPENSATION_POLICY
+    )
     if (
         snapshot.kind != ArtifactKind.DERIVED
-        or snapshot.media_type != SIMILARITY_MEDIA_TYPE
-        or snapshot.provenance.get("adapter_id") != "adapter:observed-similarity-motion"
-        or snapshot.provenance.get("policy_identity") != SIMILARITY_POLICY_IDENTITY
         or not isinstance(payload, dict)
         or canonical_bytes(payload) != snapshot.content
-        or payload.get("schema_version") != "svm-observed-similarity-motion-0.1"
-        or payload.get("identity") != "svm-observed-similarity-motion@0.1"
-        or payload.get("policy_identity") != SIMILARITY_POLICY_IDENTITY
+        or not (standard or compensated)
         or not isinstance(payload.get("temporal_identity_id"), str)
         or not isinstance(payload.get("intervals"), list)
         or not payload["intervals"]

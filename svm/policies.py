@@ -78,6 +78,7 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
                     "promote_temporal_identity",
                     "attach_observed_motion",
                     "attach_observed_similarity",
+                    "attach_camera_compensation",
                     "attach_pop_geometry_observations",
                     "attach_svg_geometry_observations",
                     "bind_motion_target",

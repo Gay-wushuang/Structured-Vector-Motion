@@ -11,6 +11,7 @@ from .revisions import (
     AddKeyframeChange,
     AppendReferencesChange,
     AppendSceneFragmentChange,
+    AttachCameraCompensationEvidenceChange,
     AttachObservedMotionEvidenceChange,
     AttachObservedSimilarityEvidenceChange,
     AttachPOPGeometryObservationsChange,
@@ -233,6 +234,12 @@ def _verify_observed_similarity(change: Any, resolved: dict[str, ArtifactSnapsho
     verify_observed_similarity_change(change, resolved)
 
 
+def _verify_camera_compensation(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.camera_compensation import verify_camera_compensation_change
+
+    verify_camera_compensation_change(change, resolved)
+
+
 def _verify_pop_geometry_observations(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
     from .adapters.pop_geometry_observations import verify_pop_geometry_observations_change
 
@@ -409,6 +416,13 @@ CHANGE_AUTHORITIES = {
             frozenset({"attach_observed_similarity"}),
             _single("attach_observed_similarity"),
             _verify_observed_similarity,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            AttachCameraCompensationEvidenceChange,
+            frozenset({"attach_camera_compensation"}),
+            _single("attach_camera_compensation"),
+            _verify_camera_compensation,
             _source_revision,
         ),
         ChangeAuthority(

@@ -270,24 +270,46 @@ def _extract_rendered_entity_polygon(root: ET.Element, shape_id: str) -> dict[st
         raise SVGGeometryObservationError("Rendered SVG Entity selector is ambiguous")
     entity = matches[0]
     children = list(entity)
-    if len(children) != 1 or _local_name(children[0].tag) != "g":
-        raise SVGGeometryObservationError(
-            "Rendered SVG Entity observation requires one transformed geometry"
-        )
-    transformed = children[0]
-    if set(transformed.attrib) != {"transform"}:
-        raise SVGGeometryObservationError("Rendered SVG geometry transform fields are invalid")
-    geometry = list(transformed)
-    if (
-        len(geometry) != 1
-        or _local_name(geometry[0].tag) != "path"
-        or set(geometry[0].attrib) != {"d"}
-    ):
+    if len(children) != 1:
+        raise SVGGeometryObservationError("Rendered SVG Entity observation requires one geometry")
+    child = children[0]
+    if _local_name(child.tag) == "g":
+        if set(child.attrib) != {"transform"}:
+            raise SVGGeometryObservationError("Rendered SVG geometry transform fields are invalid")
+        geometry = list(child)
+        if len(geometry) != 1:
+            raise SVGGeometryObservationError(
+                "Rendered SVG Entity observation requires one polygonal path"
+            )
+        path = geometry[0]
+        matrix = _matrix(child.attrib["transform"])
+    else:
+        path = child
+        matrix = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+    if _local_name(path.tag) != "path" or set(path.attrib) != {"d"}:
         raise SVGGeometryObservationError(
             "Rendered SVG Entity observation requires one polygonal path"
         )
-    matrix = _matrix(transformed.attrib["transform"])
-    points, topology = _polygon_vertices(geometry[0].attrib["d"])
+    render_stacks = [
+        element
+        for element in root
+        if _local_name(element.tag) == "g"
+        and element.attrib.get("data-svm-role") == "render-stack"
+        and entity in list(element)
+    ]
+    if len(render_stacks) != 1:
+        raise SVGGeometryObservationError("Rendered SVG Entity must belong to one render stack")
+    render_stack = render_stacks[0]
+    allowed_stack_fields = {"data-svm-role", "transform"}
+    if not set(render_stack.attrib).issubset(allowed_stack_fields):
+        raise SVGGeometryObservationError("Rendered SVG render-stack fields are invalid")
+    camera = (
+        _matrix(render_stack.attrib["transform"])
+        if "transform" in render_stack.attrib
+        else (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+    )
+    matrix = _compose_matrix(camera, matrix)
+    points, topology = _polygon_vertices(path.attrib["d"])
     points = [
         [
             _round(matrix[0] * x + matrix[2] * y + matrix[4]),
@@ -333,6 +355,22 @@ def _matrix(value: str) -> tuple[float, float, float, float, float, float]:
     if not all(math.isfinite(item) for item in matrix):
         raise SVGGeometryObservationError("Rendered SVG matrix must be finite")
     return (matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5])
+
+
+def _compose_matrix(
+    outer: tuple[float, float, float, float, float, float],
+    inner: tuple[float, float, float, float, float, float],
+) -> tuple[float, float, float, float, float, float]:
+    a, b, c, d, e, f = outer
+    g, h, i, j, k, offset_y = inner
+    return (
+        a * g + c * h,
+        b * g + d * h,
+        a * i + c * j,
+        b * i + d * j,
+        a * k + c * offset_y + e,
+        b * k + d * offset_y + f,
+    )
 
 
 def _polygon_vertices(path_data: str) -> tuple[list[list[float]], list[str]]:

@@ -18,6 +18,12 @@ from ..revisions import (
     Transaction,
     VerifyObservedTranslationTrackSourceChange,
 )
+from .camera_compensation import (
+    COMPENSATION_POLICY,
+)
+from .camera_compensation import (
+    TRANSLATION_MEDIA_TYPE as COMPENSATED_TRANSLATION_MEDIA_TYPE,
+)
 from .observed_translation_motion import (
     MEDIA_TYPE as OBSERVED_MOTION_MEDIA_TYPE,
 )
@@ -291,16 +297,27 @@ def _read_evidence(snapshot: ArtifactSnapshot) -> dict[str, Any]:
         payload = json.loads(snapshot.content)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ObservedTranslationTracksError("Observed motion evidence is invalid JSON") from exc
+    standard = (
+        snapshot.media_type == OBSERVED_MOTION_MEDIA_TYPE
+        and snapshot.provenance.get("adapter_id") == "adapter:observed-translation-motion"
+        and snapshot.provenance.get("policy_identity") == OBSERVED_MOTION_POLICY_IDENTITY
+        and payload.get("schema_version") == "svm-observed-translation-motion-0.1"
+        and payload.get("identity") == "svm-observed-translation-motion@0.1"
+        and payload.get("policy_identity") == OBSERVED_MOTION_POLICY_IDENTITY
+    )
+    compensated = (
+        snapshot.media_type == COMPENSATED_TRANSLATION_MEDIA_TYPE
+        and snapshot.provenance.get("adapter_id") == "adapter:camera-compensated-motion"
+        and snapshot.provenance.get("policy_identity") == COMPENSATION_POLICY
+        and payload.get("schema_version") == "svm-camera-compensated-translation-motion-0.1"
+        and payload.get("identity") == "svm-camera-compensated-translation-motion@0.1"
+        and payload.get("policy_identity") == COMPENSATION_POLICY
+    )
     if (
         snapshot.kind != ArtifactKind.DERIVED
-        or snapshot.media_type != OBSERVED_MOTION_MEDIA_TYPE
-        or snapshot.provenance.get("adapter_id") != "adapter:observed-translation-motion"
-        or snapshot.provenance.get("policy_identity") != OBSERVED_MOTION_POLICY_IDENTITY
         or not isinstance(payload, dict)
         or canonical_bytes(payload) != snapshot.content
-        or payload.get("schema_version") != "svm-observed-translation-motion-0.1"
-        or payload.get("identity") != "svm-observed-translation-motion@0.1"
-        or payload.get("policy_identity") != OBSERVED_MOTION_POLICY_IDENTITY
+        or not (standard or compensated)
         or not isinstance(payload.get("temporal_identity_id"), str)
         or not isinstance(payload.get("intervals"), list)
         or not payload["intervals"]

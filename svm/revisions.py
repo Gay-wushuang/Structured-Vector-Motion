@@ -933,6 +933,38 @@ class AttachObservedSimilarityEvidenceChange:
             document["references"].append(copy.deepcopy(self.evidence_reference))
 
 
+@dataclass(frozen=True)
+class AttachCameraCompensationEvidenceChange:
+    """Attach verified camera or compensated motion evidence only."""
+
+    evidence_references: tuple[dict[str, Any], ...]
+    source_references: tuple[dict[str, Any], ...]
+    anchor_entity: dict[str, Any]
+    animation_before: dict[str, Any]
+    source_revision_id: str
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (*self.evidence_references, *self.source_references)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        anchors = [
+            item
+            for item in document.get("entities", [])
+            if item.get("id") == self.anchor_entity.get("id")
+        ]
+        if len(anchors) != 1 or anchors[0] != self.anchor_entity:
+            raise DocumentError("STALE_CAMERA_ANCHOR: static anchor changed")
+        if document.get("animation") != self.animation_before:
+            raise DocumentError("STALE_CAMERA_COMPENSATION: animation changed")
+        accepted = {item["id"]: item for item in document.get("references", [])}
+        if any(accepted.get(item.get("id")) != item for item in self.source_references):
+            raise DocumentError("Camera compensation requires accepted source evidence")
+        for reference in self.evidence_references:
+            if reference["id"] not in accepted:
+                document["references"].append(copy.deepcopy(reference))
+
+
 MOTION_TARGET_BINDING_POLICY_IDENTITY = "svm-explicit-motion-target-binding@0.1"
 
 

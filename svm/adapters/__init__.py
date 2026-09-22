@@ -1,5 +1,10 @@
 from .bitmap_reconcile import BitmapReconcileAdapter
 from .bitmap_trace import BitmapTraceAdapter, BitmapTraceError, BitmapTracer, PotracerEngine
+from .camera_compensation import (
+    CameraCompensatedMotionAdapter,
+    CameraCompensationError,
+    ObservedCameraSimilarityAdapter,
+)
 from .component_promotion import ComponentPromotionAdapter, ComponentPromotionError
 from .layerd_output import LayerDOutputAdapter, LayerDOutputError
 from .layerpeeler_output import LayerPeelerOutputAdapter, LayerPeelerOutputError
@@ -66,6 +71,9 @@ __all__ = [
     "ObservedTranslationMotionError",
     "ObservedSimilarityMotionAdapter",
     "ObservedSimilarityMotionError",
+    "ObservedCameraSimilarityAdapter",
+    "CameraCompensatedMotionAdapter",
+    "CameraCompensationError",
     "ObservedScaleTracksAdapter",
     "ObservedScaleTracksError",
     "ObservedRotationTracksAdapter",
