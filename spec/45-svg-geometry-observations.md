@@ -5,15 +5,22 @@ Status: normative evidence-only producer boundary.
 S6A derives `svm-primitive-observations-0.2` from two frozen SVG Reference
 Artifacts. It supports exactly one renderable `<path id="...">` per frame and
 the closed polygonal grammar `M/m`, `L/l`, `H/h`, `V/v`, `Z/z`. Curves, arcs,
-multiple subpaths, transforms, implicit semantic matching, sampling, and vertex
-reordering are rejected. The SVG `transform` attribute is never interpreted as
-observed motion.
+multiple subpaths, arbitrary transforms, implicit semantic matching, sampling,
+and vertex reordering are rejected.
+
+Synthetic Motion Recovery v0 additionally accepts the strict renderer-owned
+shape `g[data-svm-entity=<selector>] > g[transform=matrix(...)] > path`. The
+selected Entity must contain exactly one matrix-transformed polygonal path.
+Landmarks and bounds are deterministically converted to world coordinates.
+This does not enable general SVG transform support: transform lists, nested
+author transforms, multiple geometries, and non-matrix syntax remain rejected.
 
 Path command order defines landmark identity. `Z` closes the polygon but does
 not add a duplicate first landmark. Source and target must have the same
 selector, command topology, vertex count, positive viewBox canvas, finite
 coordinates, non-zero area, and six-digit resolved fill. Bounds are computed
-with the shared `canonical_path_bounds` policy.
+with the shared `canonical_path_bounds` policy for plain paths, or directly
+from transformed world-space landmarks for the strict renderer-owned subset.
 
 `rotation_symmetry = none` is emitted only after a conservative proof: every
 non-zero cyclic shift of centered ordered landmarks is tested for a unit-scale

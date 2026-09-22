@@ -1,0 +1,107 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:synthetic-motion-ground-truth",
+  "references": [
+    {
+      "id": "artifact:0000000000000000000000000000000000000000000000000000000000000000",
+      "uri": "artifact://0000000000000000000000000000000000000000000000000000000000000000",
+      "content_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "media_type": "application/vnd.svm.pop-group-candidates+json;version=0.1",
+      "import_metadata": {"fixture": "synthetic-motion-recovery"}
+    }
+  ],
+  "entities": [
+    {"id": "entity:recovery-target", "name": "Asymmetric Target"},
+    {"id": "entity:recovery-companion", "name": "Companion"}
+  ],
+  "groups": [
+    {
+      "id": "group:1111111111111111111111111111111111111111111111111111111111111111",
+      "kind": "explicit-group",
+      "members": ["entity:recovery-companion", "entity:recovery-target"],
+      "transform": {"translate": [0, 0], "rotation_degrees": 10, "scale": 1, "origin": [50, 50]},
+      "provenance": {
+        "candidate_id": "candidate:group:2222222222222222222222222222222222222222222222222222222222222222",
+        "inference_id": "inference:group:3333333333333333333333333333333333333333333333333333333333333333",
+        "inference_artifact_id": "artifact:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ],
+  "construction": {
+    "operations": [
+      {"id": "op:recovery-target", "type": "CreatePath", "inputs": {}, "parameters": {"d": "M 30 30 L 70 30 L 70 70 L 50 60 L 30 70 Z", "bounds": [30, 30, 70, 70]}},
+      {"id": "op:recovery-companion", "type": "CreateEllipse", "inputs": {}, "parameters": {"cx": 50, "cy": 50, "rx": 4, "ry": 4}}
+    ],
+    "output_bindings": [
+      {"entity": "entity:recovery-target", "property": "geometry", "slot": "op:recovery-target.geometry"},
+      {"entity": "entity:recovery-companion", "property": "geometry", "slot": "op:recovery-companion.geometry"}
+    ],
+    "refinement_stages": []
+  },
+  "presentation": {
+    "render_stack": ["entity:recovery-target", "entity:recovery-companion"],
+    "styles": [
+      {"entity": "entity:recovery-target", "fill": "#CC3344", "stroke": "none", "stroke_width": 0, "opacity": 1},
+      {"entity": "entity:recovery-companion", "fill": "#F5C451", "stroke": "none", "stroke_width": 0, "opacity": 1}
+    ]
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {
+    "semantics_version": "svm-motion@0.3",
+    "timebase": {"ticks_per_second": 12},
+    "content": [
+      {
+        "id": "track:ground-truth-translate-x",
+        "target": {"group": "group:1111111111111111111111111111111111111111111111111111111111111111", "property": "translate.x"},
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {"id": "keyframe:ground-truth-x-000", "tick": 0, "value": 0},
+          {"id": "keyframe:ground-truth-x-012", "tick": 12, "value": 12},
+          {"id": "keyframe:ground-truth-x-024", "tick": 24, "value": 30},
+          {"id": "keyframe:ground-truth-x-036", "tick": 36, "value": 42}
+        ]
+      },
+      {
+        "id": "track:ground-truth-translate-y",
+        "target": {"group": "group:1111111111111111111111111111111111111111111111111111111111111111", "property": "translate.y"},
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {"id": "keyframe:ground-truth-y-000", "tick": 0, "value": 0},
+          {"id": "keyframe:ground-truth-y-012", "tick": 12, "value": -4},
+          {"id": "keyframe:ground-truth-y-024", "tick": 24, "value": 2},
+          {"id": "keyframe:ground-truth-y-036", "tick": 36, "value": -3}
+        ]
+      },
+      {
+        "id": "track:ground-truth-rotation",
+        "target": {"group": "group:1111111111111111111111111111111111111111111111111111111111111111", "property": "rotation_degrees"},
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {"id": "keyframe:ground-truth-rotation-000", "tick": 0, "value": 10},
+          {"id": "keyframe:ground-truth-rotation-012", "tick": 12, "value": 25},
+          {"id": "keyframe:ground-truth-rotation-024", "tick": 24, "value": 50},
+          {"id": "keyframe:ground-truth-rotation-036", "tick": 36, "value": 35}
+        ]
+      },
+      {
+        "id": "track:ground-truth-scale",
+        "target": {"group": "group:1111111111111111111111111111111111111111111111111111111111111111", "property": "scale"},
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {"id": "keyframe:ground-truth-scale-000", "tick": 0, "value": 1},
+          {"id": "keyframe:ground-truth-scale-012", "tick": 12, "value": 1.1},
+          {"id": "keyframe:ground-truth-scale-024", "tick": 24, "value": 1.25},
+          {"id": "keyframe:ground-truth-scale-036", "tick": 36, "value": 0.9}
+        ]
+      }
+    ],
+    "construction_scheduling_hints": []
+  }
+}

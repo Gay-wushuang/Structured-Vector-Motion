@@ -55,6 +55,18 @@ def path(points):
     return "M " + " ".join([f"{x:.12f} {y:.12f}" for x, y in points]) + " Z"
 
 
+def rendered_entity_svg(matrix: str) -> bytes:
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">'
+        '<g data-svm-role="render-stack">'
+        '<g data-svm-entity="entity:moving" fill="#CC3344" stroke="none" '
+        'stroke-width="0" opacity="1">'
+        f'<g transform="matrix({matrix})">'
+        '<path d="M 20 20 L 60 20 L 48 34 L 28 50 Z" />'
+        "</g></g></g></svg>"
+    ).encode()
+
+
 class SVGGeometryObservationTest(unittest.TestCase):
     def setUp(self) -> None:
         document = json.loads(
@@ -106,6 +118,40 @@ class SVGGeometryObservationTest(unittest.TestCase):
         ProposalAcceptor().accept(self.revisions, first, self.artifacts)
         self.assertEqual(len(self.revisions.get_document(self.revisions.head)["entities"]), 0)
         self.assertNotEqual(before, self.revisions.head)
+
+    def test_renderer_entity_transform_is_observed_in_world_space(self):
+        source = self.artifacts.import_bytes(
+            rendered_entity_svg("1 0 0 1 0 0"), media_type="image/svg+xml"
+        )
+        target = self.artifacts.import_bytes(
+            rendered_entity_svg("0 -2 2 0 10 100"), media_type="image/svg+xml"
+        )
+        payload = derive_svg_polygon_observations(source, target, "entity:moving", 0, 12)
+        self.assertEqual(
+            payload["frames"][0]["primitives"][0]["geometry"]["points"],
+            [[20.0, 20.0], [60.0, 20.0], [48.0, 34.0], [28.0, 50.0]],
+        )
+        self.assertEqual(
+            payload["frames"][1]["primitives"][0]["geometry"]["points"],
+            [[50.0, 60.0], [50.0, -20.0], [78.0, 4.0], [110.0, 44.0]],
+        )
+
+    def test_renderer_entity_observation_rejects_non_matrix_or_extra_geometry(self):
+        source = self.artifacts.import_bytes(
+            rendered_entity_svg("translate 10 20"), media_type="image/svg+xml"
+        )
+        valid = self.artifacts.import_bytes(
+            rendered_entity_svg("1 0 0 1 10 20"), media_type="image/svg+xml"
+        )
+        with self.assertRaisesRegex(SVGGeometryObservationError, "matrix"):
+            derive_svg_polygon_observations(source, valid, "entity:moving", 0, 12)
+        extra = rendered_entity_svg("1 0 0 1 0 0").replace(
+            b"</g></g></g></svg>",
+            b'<path d="M 1 1 L 2 1 L 1 2 Z" /></g></g></g></svg>',
+        )
+        extra_artifact = self.artifacts.import_bytes(extra, media_type="image/svg+xml")
+        with self.assertRaisesRegex(SVGGeometryObservationError, "one polygonal path"):
+            derive_svg_polygon_observations(extra_artifact, valid, "entity:moving", 0, 12)
 
     def test_curves_and_symmetry_abstain(self):
         source = self.artifacts.import_bytes(

@@ -4,6 +4,7 @@ import hashlib
 import importlib.metadata
 import math
 import re
+import xml.etree.ElementTree as ET
 from dataclasses import asdict
 from typing import Any
 
@@ -218,6 +219,9 @@ def svg_geometry_observation_provenance(
 def _extract_polygon(snapshot: ArtifactSnapshot, shape_id: str) -> dict[str, Any]:
     try:
         root = SVGImportAdapter._parse_svg(snapshot)
+        rendered = _extract_rendered_entity_polygon(root, shape_id)
+        if rendered is not None:
+            return rendered
         shapes = SVGNormalizer().normalize(snapshot, "observation")
     except ValueError as exc:
         raise SVGGeometryObservationError(str(exc)) from exc
@@ -250,6 +254,85 @@ def _extract_polygon(snapshot: ArtifactSnapshot, shape_id: str) -> dict[str, Any
         "bounds": list(canonical_path_bounds(d)),
         "fill": fill,
     }
+
+
+def _extract_rendered_entity_polygon(root: ET.Element, shape_id: str) -> dict[str, Any] | None:
+    """Read the strict single-path subset emitted for one rendered SVM Entity."""
+
+    matches = [
+        element
+        for element in root.iter()
+        if _local_name(element.tag) == "g" and element.attrib.get("data-svm-entity") == shape_id
+    ]
+    if not matches:
+        return None
+    if len(matches) != 1:
+        raise SVGGeometryObservationError("Rendered SVG Entity selector is ambiguous")
+    entity = matches[0]
+    children = list(entity)
+    if len(children) != 1 or _local_name(children[0].tag) != "g":
+        raise SVGGeometryObservationError(
+            "Rendered SVG Entity observation requires one transformed geometry"
+        )
+    transformed = children[0]
+    if set(transformed.attrib) != {"transform"}:
+        raise SVGGeometryObservationError("Rendered SVG geometry transform fields are invalid")
+    geometry = list(transformed)
+    if (
+        len(geometry) != 1
+        or _local_name(geometry[0].tag) != "path"
+        or set(geometry[0].attrib) != {"d"}
+    ):
+        raise SVGGeometryObservationError(
+            "Rendered SVG Entity observation requires one polygonal path"
+        )
+    matrix = _matrix(transformed.attrib["transform"])
+    points, topology = _polygon_vertices(geometry[0].attrib["d"])
+    points = [
+        [
+            _round(matrix[0] * x + matrix[2] * y + matrix[4]),
+            _round(matrix[1] * x + matrix[3] * y + matrix[5]),
+        ]
+        for x, y in points
+    ]
+    if _has_rotational_symmetry(points):
+        raise SVGGeometryObservationError(
+            "UNSUPPORTED_FOR_ASYMMETRIC_SVG_PRODUCER: polygon has rotational symmetry"
+        )
+    fill = entity.attrib.get("fill")
+    if not isinstance(fill, str) or re.fullmatch(r"#[0-9A-F]{6}", fill) is None:
+        raise SVGGeometryObservationError("Rendered SVG polygon fill must be six-digit hex")
+    view_box = root.attrib.get("viewBox")
+    if view_box is None:
+        raise SVGGeometryObservationError("SVG geometry observation requires a positive viewBox")
+    canvas_values = _view_box(view_box)
+    if canvas_values[0] != 0 or canvas_values[1] != 0:
+        raise SVGGeometryObservationError("SVG observation viewBox origin must be zero")
+    xs = [point[0] for point in points]
+    ys = [point[1] for point in points]
+    return {
+        "canvas": [_round(canvas_values[2]), _round(canvas_values[3])],
+        "points": points,
+        "topology": topology,
+        "bounds": [_round(min(xs)), _round(min(ys)), _round(max(xs)), _round(max(ys))],
+        "fill": fill,
+    }
+
+
+def _matrix(value: str) -> tuple[float, float, float, float, float, float]:
+    match = re.fullmatch(r"matrix\(([^()]*)\)", value)
+    if match is None:
+        raise SVGGeometryObservationError("Rendered SVG geometry requires one matrix transform")
+    parts = match.group(1).replace(",", " ").split()
+    if len(parts) != 6:
+        raise SVGGeometryObservationError("Rendered SVG matrix must contain six numbers")
+    try:
+        matrix = tuple(float(part) for part in parts)
+    except ValueError as exc:
+        raise SVGGeometryObservationError("Rendered SVG matrix must be numeric") from exc
+    if not all(math.isfinite(item) for item in matrix):
+        raise SVGGeometryObservationError("Rendered SVG matrix must be finite")
+    return (matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5])
 
 
 def _polygon_vertices(path_data: str) -> tuple[list[list[float]], list[str]]:
