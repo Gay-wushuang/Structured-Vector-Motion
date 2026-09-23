@@ -25,6 +25,8 @@ from .temporal_correspondence import OBSERVATION_MEDIA_TYPE_V2
 
 POLICY_IDENTITY = "svm-svg-polygon-geometry-observation-policy@0.1"
 PRODUCER_IDENTITY = "svm-svg-polygon-geometry-observation-producer@0.1"
+OCCURRENCE_POLICY_IDENTITY = "svm-svg-polygon-geometry-observation-policy@0.2"
+OCCURRENCE_PRODUCER_IDENTITY = "svm-svg-polygon-geometry-observation-producer@0.2"
 PRIMITIVE_TYPE = "svg-polygonal-path"
 _TOKEN = re.compile(r"[MmLlHhVvZz]|[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?")
 _COMMAND = re.compile(r"[A-Za-z]")
@@ -40,6 +42,8 @@ class SVGGeometryObservationAdapter:
 
     adapter_id = "adapter:svg-geometry-observations"
     adapter_version = "0.1"
+    policy_identity = POLICY_IDENTITY
+    producer_identity = PRODUCER_IDENTITY
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactRepository) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -63,7 +67,7 @@ class SVGGeometryObservationAdapter:
         if (
             not isinstance(source_id, str)
             or not isinstance(target_id, str)
-            or source_id == target_id
+            or (source_id == target_id and self.policy_identity == POLICY_IDENTITY)
             or type(source_tick) is not int
             or type(target_tick) is not int
             or source_tick < 0
@@ -75,14 +79,23 @@ class SVGGeometryObservationAdapter:
                 "SVG source identities, ticks, or shape ID are invalid"
             )
         snapshots = {item.artifact_id: item for item in artifacts.resolve(request.artifact_ids)}
-        if set(snapshots) != {source_id, target_id} or len(request.artifact_ids) != 2:
+        if set(snapshots) != {source_id, target_id} or len(request.artifact_ids) != len(
+            {source_id, target_id}
+        ):
             raise SVGGeometryObservationError("Artifact IDs must exactly match both SVG sources")
         source = snapshots[source_id]
         target = snapshots[target_id]
         payload = derive_svg_polygon_observations(
-            source, target, shape_id, source_tick, target_tick
+            source, target, shape_id, source_tick, target_tick, policy_identity=self.policy_identity
         )
-        provenance = svg_geometry_observation_provenance(source_id, target_id, shape_id)
+        provenance = svg_geometry_observation_provenance(
+            source_id,
+            target_id,
+            shape_id,
+            policy_identity=self.policy_identity,
+            source_tick=source_tick,
+            target_tick=target_tick,
+        )
         observation = artifacts.import_bytes(
             canonical_bytes(payload),
             media_type=OBSERVATION_MEDIA_TYPE_V2,
@@ -93,9 +106,9 @@ class SVGGeometryObservationAdapter:
             self.adapter_id,
             self.adapter_version,
             "exact frozen SVG polygon geometry",
-            PRODUCER_IDENTITY,
+            self.producer_identity,
             {
-                "geometry_observation_policy": POLICY_IDENTITY,
+                "geometry_observation_policy": self.policy_identity,
                 "source_svg_artifact_ids": [source_id, target_id],
                 "source_tick": source_tick,
                 "target_tick": target_tick,
@@ -125,7 +138,7 @@ class SVGGeometryObservationAdapter:
                         source_tick,
                         target_tick,
                         shape_id,
-                        POLICY_IDENTITY,
+                        self.policy_identity,
                     ),
                 ),
                 "Attach SVG-derived primitive observations v0.2",
@@ -137,9 +150,19 @@ class SVGGeometryObservationAdapter:
                 ),
             ),
             preview=ProposalPreview(),
-            required_artifact_ids=(observation.artifact_id, source_id, target_id),
+            required_artifact_ids=tuple(
+                dict.fromkeys((observation.artifact_id, source_id, target_id))
+            ),
             notes="Exact ordered landmarks come from closed polygonal SVG path commands",
         )
+
+
+class SVGGeometryOccurrenceAdapter(SVGGeometryObservationAdapter):
+    """Produce tick-scoped SVG occurrences under the explicit v0.2 producer policy."""
+
+    adapter_version = "0.2"
+    policy_identity = OCCURRENCE_POLICY_IDENTITY
+    producer_identity = OCCURRENCE_PRODUCER_IDENTITY
 
 
 def verify_svg_geometry_observations_change(
@@ -156,15 +179,30 @@ def verify_svg_geometry_observations_change(
         or target is None
     ):
         raise ValueError("SVG geometry observation Artifacts were not resolved")
-    if change.producer_policy_identity != POLICY_IDENTITY:
+    if change.producer_policy_identity not in {POLICY_IDENTITY, OCCURRENCE_POLICY_IDENTITY}:
         raise ValueError("SVG geometry observation policy identity is invalid")
+    if (
+        source.artifact_id == target.artifact_id
+        and change.producer_policy_identity == POLICY_IDENTITY
+    ):
+        raise ValueError("Legacy SVG observation policy requires distinct source Artifacts")
     expected = derive_svg_polygon_observations(
-        source, target, change.shape_id, change.source_tick, change.target_tick
+        source,
+        target,
+        change.shape_id,
+        change.source_tick,
+        change.target_tick,
+        policy_identity=change.producer_policy_identity,
     )
     if canonical_bytes(expected) != observation.content:
         raise ValueError("SVG geometry observation does not match its exact frozen sources")
     provenance = svg_geometry_observation_provenance(
-        source.artifact_id, target.artifact_id, change.shape_id
+        source.artifact_id,
+        target.artifact_id,
+        change.shape_id,
+        policy_identity=change.producer_policy_identity,
+        source_tick=change.source_tick,
+        target_tick=change.target_tick,
     )
     if observation.provenance != provenance:
         raise ValueError("SVG geometry observation provenance is invalid")
@@ -176,8 +214,14 @@ def derive_svg_polygon_observations(
     shape_id: str,
     source_tick: int,
     target_tick: int,
+    *,
+    policy_identity: str = POLICY_IDENTITY,
 ) -> dict[str, Any]:
     """Pure derivation shared by the producer and acceptance verifier."""
+
+    _producer_version(policy_identity)
+    if policy_identity == OCCURRENCE_POLICY_IDENTITY:
+        _validate_occurrence_ticks(source_tick, target_tick)
 
     if (
         source_svg.kind != ArtifactKind.REFERENCE
@@ -196,24 +240,58 @@ def derive_svg_polygon_observations(
         "schema_version": "svm-primitive-observations-0.2",
         "canvas": source["canvas"],
         "frames": [
-            _frame(source, source_svg.artifact_id, shape_id, source_tick),
-            _frame(target, target_svg.artifact_id, shape_id, target_tick),
+            _frame(source, source_svg.artifact_id, shape_id, source_tick, policy_identity),
+            _frame(target, target_svg.artifact_id, shape_id, target_tick, policy_identity),
         ],
     }
 
 
 def svg_geometry_observation_provenance(
-    source_artifact_id: str, target_artifact_id: str, shape_id: str
+    source_artifact_id: str,
+    target_artifact_id: str,
+    shape_id: str,
+    *,
+    policy_identity: str = POLICY_IDENTITY,
+    source_tick: int | None = None,
+    target_tick: int | None = None,
 ) -> dict[str, Any]:
-    return {
-        "producer_identity": PRODUCER_IDENTITY,
-        "producer_version": SVGGeometryObservationAdapter.adapter_version,
-        "geometry_observation_policy": POLICY_IDENTITY,
+    version = _producer_version(policy_identity)
+    provenance = {
+        "producer_identity": PRODUCER_IDENTITY
+        if version == "0.1"
+        else OCCURRENCE_PRODUCER_IDENTITY,
+        "producer_version": version,
+        "geometry_observation_policy": policy_identity,
         "source_svg_artifact_ids": [source_artifact_id, target_artifact_id],
         "svg_normalization_identity": SVG_NORMALIZATION_IDENTITY,
         "svgpathtools_version": importlib.metadata.version("svgpathtools"),
         "shape_id": shape_id,
     }
+    if version == "0.2":
+        _validate_occurrence_ticks(source_tick, target_tick)
+        provenance["source_occurrences"] = [
+            {"source_svg_artifact_id": source_artifact_id, "tick": source_tick},
+            {"source_svg_artifact_id": target_artifact_id, "tick": target_tick},
+        ]
+    return provenance
+
+
+def _producer_version(policy_identity: str) -> str:
+    if policy_identity == POLICY_IDENTITY:
+        return "0.1"
+    if policy_identity == OCCURRENCE_POLICY_IDENTITY:
+        return "0.2"
+    raise SVGGeometryObservationError("Unsupported SVG observation policy")
+
+
+def _validate_occurrence_ticks(source_tick: Any, target_tick: Any) -> None:
+    if (
+        type(source_tick) is not int
+        or type(target_tick) is not int
+        or source_tick < 0
+        or target_tick <= source_tick
+    ):
+        raise SVGGeometryObservationError("Occurrence ticks must be non-negative and increasing")
 
 
 def _extract_polygon(snapshot: ArtifactSnapshot, shape_id: str) -> dict[str, Any]:
@@ -503,13 +581,19 @@ def _has_rotational_symmetry(points: list[list[float]]) -> bool:
 
 
 def _frame(
-    geometry: dict[str, Any], source_artifact_id: str, shape_id: str, tick: int
+    geometry: dict[str, Any],
+    source_artifact_id: str,
+    shape_id: str,
+    tick: int,
+    policy_identity: str = POLICY_IDENTITY,
 ) -> dict[str, Any]:
-    identity = {
+    identity: dict[str, Any] = {
         "source_svg_artifact_id": source_artifact_id,
         "shape_id": shape_id,
-        "policy_identity": POLICY_IDENTITY,
+        "policy_identity": policy_identity,
     }
+    if policy_identity == OCCURRENCE_POLICY_IDENTITY:
+        identity["tick"] = tick
     return {
         "tick": tick,
         "primitives": [

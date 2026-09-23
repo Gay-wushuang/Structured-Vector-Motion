@@ -2,6 +2,10 @@
 
 Status: normative evidence-only producer boundary.
 
+The original producer policy @0.1 below remains supported unchanged. The explicit
+@0.2 occurrence policy is specified in
+[Repeated-Frame Observation Occurrences](53-repeated-frame-observation-occurrences.md).
+
 S6A derives `svm-primitive-observations-0.2` from two frozen SVG Reference
 Artifacts. It supports exactly one renderable `<path id="...">` per frame and
 the closed polygonal grammar `M/m`, `L/l`, `H/h`, `V/v`, `Z/z`. Curves, arcs,

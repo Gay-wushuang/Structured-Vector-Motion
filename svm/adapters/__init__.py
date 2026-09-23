@@ -43,6 +43,7 @@ from .pop_structure import POPStructureAdapter, POPStructureError
 from .svg_geometry_observations import (
     SVGGeometryObservationAdapter,
     SVGGeometryObservationError,
+    SVGGeometryOccurrenceAdapter,
 )
 from .svg_import import SVGImportAdapter, SVGImportError
 from .temporal_correspondence import (
@@ -103,6 +104,7 @@ __all__ = [
     "SVGImportAdapter",
     "SVGImportError",
     "SVGGeometryObservationAdapter",
+    "SVGGeometryOccurrenceAdapter",
     "SVGGeometryObservationError",
     "TemporalCorrespondenceAdapter",
     "TemporalCorrespondenceError",

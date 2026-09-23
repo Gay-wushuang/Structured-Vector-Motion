@@ -240,16 +240,16 @@ def request(store, *, artifact_ids=(), options=None):
     )
 
 
-def observe_lineage(store, artifacts, frames, shape_id):
+def observe_lineage(store, artifacts, frames, shape_id, *, observation_adapter=None, ticks=TICKS):
     geometry_ids, correspondence_ids, inference_ids = [], [], []
     identity_id = None
     for source, target, source_tick, target_tick in zip(
-        frames[:-1], frames[1:], TICKS[:-1], TICKS[1:], strict=True
+        frames[:-1], frames[1:], ticks[:-1], ticks[1:], strict=True
     ):
-        geometry = SVGGeometryObservationAdapter().propose(
+        geometry = (observation_adapter or SVGGeometryObservationAdapter()).propose(
             request(
                 store,
-                artifact_ids=(source.artifact_id, target.artifact_id),
+                artifact_ids=tuple(dict.fromkeys((source.artifact_id, target.artifact_id))),
                 options={
                     "source_svg_artifact_id": source.artifact_id,
                     "target_svg_artifact_id": target.artifact_id,

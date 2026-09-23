@@ -1,0 +1,416 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:repeated-frame-ground-truth",
+  "references": [
+    {
+      "id": "artifact:0000000000000000000000000000000000000000000000000000000000000000",
+      "uri": "artifact://0000000000000000000000000000000000000000000000000000000000000000",
+      "content_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "media_type": "application/vnd.svm.pop-group-candidates+json;version=0.1",
+      "import_metadata": {
+        "fixture": "synthetic-motion-recovery"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "entity:recovery-target",
+      "name": "Asymmetric Target"
+    },
+    {
+      "id": "entity:recovery-companion",
+      "name": "Companion"
+    },
+    {
+      "id": "entity:camera-anchor",
+      "name": "Static Camera Anchor"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group:1111111111111111111111111111111111111111111111111111111111111111",
+      "kind": "explicit-group",
+      "members": [
+        "entity:recovery-companion",
+        "entity:recovery-target"
+      ],
+      "transform": {
+        "translate": [
+          0,
+          0
+        ],
+        "rotation_degrees": 10,
+        "scale": 1,
+        "origin": [
+          37,
+          43
+        ]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:2222222222222222222222222222222222222222222222222222222222222222",
+        "inference_id": "inference:group:3333333333333333333333333333333333333333333333333333333333333333",
+        "inference_artifact_id": "artifact:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ],
+  "construction": {
+    "operations": [
+      {
+        "id": "op:recovery-target",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 30 30 L 70 30 L 70 70 L 50 60 L 30 70 Z",
+          "bounds": [
+            30,
+            30,
+            70,
+            70
+          ]
+        }
+      },
+      {
+        "id": "op:recovery-companion",
+        "type": "CreateEllipse",
+        "inputs": {},
+        "parameters": {
+          "cx": 50,
+          "cy": 50,
+          "rx": 4,
+          "ry": 4
+        }
+      },
+      {
+        "id": "op:camera-anchor",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 105 35 L 137 38 L 132 66 L 119 55 L 103 62 Z",
+          "bounds": [
+            103,
+            35,
+            137,
+            66
+          ]
+        }
+      }
+    ],
+    "output_bindings": [
+      {
+        "entity": "entity:recovery-target",
+        "property": "geometry",
+        "slot": "op:recovery-target.geometry"
+      },
+      {
+        "entity": "entity:recovery-companion",
+        "property": "geometry",
+        "slot": "op:recovery-companion.geometry"
+      },
+      {
+        "entity": "entity:camera-anchor",
+        "property": "geometry",
+        "slot": "op:camera-anchor.geometry"
+      }
+    ],
+    "refinement_stages": []
+  },
+  "presentation": {
+    "render_stack": [
+      "entity:recovery-target",
+      "entity:recovery-companion",
+      "entity:camera-anchor"
+    ],
+    "styles": [
+      {
+        "entity": "entity:recovery-target",
+        "fill": "#CC3344",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:recovery-companion",
+        "fill": "#F5C451",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:camera-anchor",
+        "fill": "#238A72",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      }
+    ],
+    "camera": {
+      "position": [
+        0,
+        0
+      ],
+      "rotation_degrees": 0,
+      "scale": 1
+    }
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {
+    "semantics_version": "svm-motion@0.6",
+    "timebase": {
+      "ticks_per_second": 12
+    },
+    "construction_scheduling_hints": [],
+    "content": [
+      {
+        "id": "track:hold-group-translate.x",
+        "target": {
+          "group": "group:1111111111111111111111111111111111111111111111111111111111111111",
+          "property": "translate.x"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:hold-group-translate.x-0",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:hold-group-translate.x-12",
+            "tick": 12,
+            "value": 0
+          },
+          {
+            "id": "keyframe:hold-group-translate.x-24",
+            "tick": 24,
+            "value": 6
+          },
+          {
+            "id": "keyframe:hold-group-translate.x-36",
+            "tick": 36,
+            "value": 6
+          }
+        ]
+      },
+      {
+        "id": "track:hold-group-translate.y",
+        "target": {
+          "group": "group:1111111111111111111111111111111111111111111111111111111111111111",
+          "property": "translate.y"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:hold-group-translate.y-0",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:hold-group-translate.y-12",
+            "tick": 12,
+            "value": 0
+          },
+          {
+            "id": "keyframe:hold-group-translate.y-24",
+            "tick": 24,
+            "value": -2
+          },
+          {
+            "id": "keyframe:hold-group-translate.y-36",
+            "tick": 36,
+            "value": -2
+          }
+        ]
+      },
+      {
+        "id": "track:hold-group-rotation_degrees",
+        "target": {
+          "group": "group:1111111111111111111111111111111111111111111111111111111111111111",
+          "property": "rotation_degrees"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:hold-group-rotation_degrees-0",
+            "tick": 0,
+            "value": 10
+          },
+          {
+            "id": "keyframe:hold-group-rotation_degrees-12",
+            "tick": 12,
+            "value": 10
+          },
+          {
+            "id": "keyframe:hold-group-rotation_degrees-24",
+            "tick": 24,
+            "value": 25
+          },
+          {
+            "id": "keyframe:hold-group-rotation_degrees-36",
+            "tick": 36,
+            "value": 25
+          }
+        ]
+      },
+      {
+        "id": "track:hold-group-scale",
+        "target": {
+          "group": "group:1111111111111111111111111111111111111111111111111111111111111111",
+          "property": "scale"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:hold-group-scale-0",
+            "tick": 0,
+            "value": 1
+          },
+          {
+            "id": "keyframe:hold-group-scale-12",
+            "tick": 12,
+            "value": 1
+          },
+          {
+            "id": "keyframe:hold-group-scale-24",
+            "tick": 24,
+            "value": 1.2
+          },
+          {
+            "id": "keyframe:hold-group-scale-36",
+            "tick": 36,
+            "value": 1.2
+          }
+        ]
+      },
+      {
+        "id": "track:hold-camera-position.x",
+        "target": {
+          "camera": "presentation",
+          "property": "position.x"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:hold-camera-position.x-0",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:hold-camera-position.x-12",
+            "tick": 12,
+            "value": 0
+          },
+          {
+            "id": "keyframe:hold-camera-position.x-24",
+            "tick": 24,
+            "value": 2
+          },
+          {
+            "id": "keyframe:hold-camera-position.x-36",
+            "tick": 36,
+            "value": 2
+          }
+        ]
+      },
+      {
+        "id": "track:hold-camera-position.y",
+        "target": {
+          "camera": "presentation",
+          "property": "position.y"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:hold-camera-position.y-0",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:hold-camera-position.y-12",
+            "tick": 12,
+            "value": 0
+          },
+          {
+            "id": "keyframe:hold-camera-position.y-24",
+            "tick": 24,
+            "value": -1
+          },
+          {
+            "id": "keyframe:hold-camera-position.y-36",
+            "tick": 36,
+            "value": -1
+          }
+        ]
+      },
+      {
+        "id": "track:hold-camera-rotation_degrees",
+        "target": {
+          "camera": "presentation",
+          "property": "rotation_degrees"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:hold-camera-rotation_degrees-0",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:hold-camera-rotation_degrees-12",
+            "tick": 12,
+            "value": 0
+          },
+          {
+            "id": "keyframe:hold-camera-rotation_degrees-24",
+            "tick": 24,
+            "value": 3
+          },
+          {
+            "id": "keyframe:hold-camera-rotation_degrees-36",
+            "tick": 36,
+            "value": 3
+          }
+        ]
+      },
+      {
+        "id": "track:hold-camera-scale",
+        "target": {
+          "camera": "presentation",
+          "property": "scale"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:hold-camera-scale-0",
+            "tick": 0,
+            "value": 1
+          },
+          {
+            "id": "keyframe:hold-camera-scale-12",
+            "tick": 12,
+            "value": 1
+          },
+          {
+            "id": "keyframe:hold-camera-scale-24",
+            "tick": 24,
+            "value": 1.03
+          },
+          {
+            "id": "keyframe:hold-camera-scale-36",
+            "tick": 36,
+            "value": 1.03
+          }
+        ]
+      }
+    ]
+  }
+}

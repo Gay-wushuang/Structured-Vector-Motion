@@ -647,7 +647,12 @@ class AttachSVGGeometryObservationsChange:
         if not isinstance(self.producer_policy_identity, str) or not self.producer_policy_identity:
             raise DocumentError("SVG geometry observation policy identity must be non-empty")
         reference_ids = tuple(_artifact_reference_id(item) for item in self.references)
-        if len(reference_ids) != len(set(reference_ids)):
+        repeated_svg_occurrence = (
+            self.producer_policy_identity == "svm-svg-polygon-geometry-observation-policy@0.2"
+            and self.source_svg_reference == self.target_svg_reference
+            and reference_ids[0] != reference_ids[1]
+        )
+        if len(reference_ids) != len(set(reference_ids)) and not repeated_svg_occurrence:
             raise DocumentError("SVG geometry observation references must be unique")
         known = {reference["id"]: reference for reference in document["references"]}
         for reference in self.references:
