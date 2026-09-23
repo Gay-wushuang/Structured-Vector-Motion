@@ -1187,6 +1187,40 @@ class VerifyObservedRotationTrackSourceChange:
 
 
 @dataclass(frozen=True)
+class VerifyObservedCameraTracksSourceChange:
+    """Verify S9C evidence and mark four created Camera Tracks as trusted."""
+
+    evidence_reference: dict[str, Any]
+    camera_before: dict[str, Any]
+    source_revision_id: str
+    ticks_per_second: int
+    authored_tracks: tuple[dict[str, Any], ...]
+    animation_before: dict[str, Any]
+    expected_animation: dict[str, Any]
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (self.evidence_reference,)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        references = {item["id"]: item for item in document.get("references", [])}
+        if references.get(self.evidence_reference.get("id")) != self.evidence_reference:
+            raise DocumentError("Observed Camera evidence must already be accepted")
+        if document.get("presentation", {}).get("camera") != self.camera_before:
+            raise DocumentError("STALE_CAMERA: observed Camera baseline changed")
+        by_id = {item.get("id"): item for item in document["animation"]["content"]}
+        for authored in self.authored_tracks:
+            expected = copy.deepcopy(authored)
+            provenance = expected.pop("provenance", None)
+            actual = by_id.get(authored.get("id"))
+            if actual is None or actual != expected or not isinstance(provenance, dict):
+                raise DocumentError("Observed Camera Tracks do not match verified evidence")
+            actual["provenance"] = copy.deepcopy(provenance)
+        if document["animation"] != self.expected_animation:
+            raise DocumentError("Observed Camera Tracks do not match verified evidence")
+
+
+@dataclass(frozen=True)
 class ReplaceObservedScaleTrackChange:
     """Atomically replace one trusted observed-scale Track."""
 

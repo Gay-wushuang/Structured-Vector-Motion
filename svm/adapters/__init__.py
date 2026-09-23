@@ -8,6 +8,10 @@ from .camera_compensation import (
 from .component_promotion import ComponentPromotionAdapter, ComponentPromotionError
 from .layerd_output import LayerDOutputAdapter, LayerDOutputError
 from .layerpeeler_output import LayerPeelerOutputAdapter, LayerPeelerOutputError
+from .observed_camera_tracks import (
+    ObservedCameraTracksAdapter,
+    ObservedCameraTracksError,
+)
 from .observed_rotation_tracks import (
     ObservedRotationTrackReplacementAdapter,
     ObservedRotationTracksAdapter,
@@ -72,6 +76,8 @@ __all__ = [
     "ObservedSimilarityMotionAdapter",
     "ObservedSimilarityMotionError",
     "ObservedCameraSimilarityAdapter",
+    "ObservedCameraTracksAdapter",
+    "ObservedCameraTracksError",
     "CameraCompensatedMotionAdapter",
     "CameraCompensationError",
     "ObservedScaleTracksAdapter",

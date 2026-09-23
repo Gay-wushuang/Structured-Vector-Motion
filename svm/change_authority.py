@@ -38,6 +38,7 @@ from .revisions import (
     SetKeyframeValueChange,
     SetOperationParameterChange,
     SplitEntityChange,
+    VerifyObservedCameraTracksSourceChange,
     VerifyObservedRotationTrackSourceChange,
     VerifyObservedScaleTrackSourceChange,
     VerifyObservedTranslationTrackSourceChange,
@@ -272,6 +273,12 @@ def _verify_observed_rotation_track(change: Any, resolved: dict[str, ArtifactSna
     verify_observed_rotation_track_source(change, resolved)
 
 
+def _verify_observed_camera_tracks(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.observed_camera_tracks import verify_observed_camera_tracks_source
+
+    verify_observed_camera_tracks_source(change, resolved)
+
+
 def _replace_observed_translation_tracks(change: Any) -> tuple[Intent, ...]:
     return tuple(
         ("author_observed_translation", track["target"]["group"], track["target"]["property"])
@@ -450,6 +457,13 @@ CHANGE_AUTHORITIES = {
             frozenset({"author_observed_rotation"}),
             _single("author_observed_rotation"),
             _verify_observed_rotation_track,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            VerifyObservedCameraTracksSourceChange,
+            frozenset({"author_observed_camera"}),
+            _single("author_observed_camera"),
+            _verify_observed_camera_tracks,
             _source_revision,
         ),
         ChangeAuthority(

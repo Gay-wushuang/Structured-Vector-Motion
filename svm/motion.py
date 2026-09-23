@@ -138,6 +138,14 @@ def validate_motion(document: dict[str, Any], evaluator: Evaluator) -> None:
 def _validate_track_provenance(
     track_id: str, target_key: tuple[str, str, str], provenance: Any
 ) -> None:
+    camera_required = {
+        "type",
+        "authoring_identity",
+        "evidence_artifact_id",
+        "source_revision_id",
+        "camera_target",
+        "property",
+    }
     required = {
         "type",
         "authoring_identity",
@@ -145,7 +153,28 @@ def _validate_track_provenance(
         "evidence_artifact_id",
         "source_revision_id",
     }
-    if not isinstance(provenance, dict) or set(provenance) != required:
+    if not isinstance(provenance, dict):
+        raise DocumentError(f"Track {track_id} has invalid observed-motion provenance")
+    camera = (
+        set(provenance) == camera_required
+        and provenance.get("type") == "ObservedCameraTrack"
+        and provenance.get("authoring_identity") == "svm-verified-observed-camera-authoring@0.1"
+        and provenance.get("camera_target") == "presentation"
+        and provenance.get("property") == target_key[2]
+        and target_key[0] == "camera"
+        and target_key[1] == "presentation"
+        and target_key[2] in {"position.x", "position.y", "rotation_degrees", "scale"}
+    )
+    if camera:
+        if (
+            not isinstance(provenance.get("evidence_artifact_id"), str)
+            or not provenance["evidence_artifact_id"].startswith("artifact:")
+            or not isinstance(provenance.get("source_revision_id"), str)
+            or not provenance["source_revision_id"].startswith("revision:")
+        ):
+            raise DocumentError(f"Track {track_id} has invalid observed-motion provenance")
+        return
+    if set(provenance) != required:
         raise DocumentError(f"Track {track_id} has invalid observed-motion provenance")
     translation = (
         provenance.get("type") == "ObservedTranslationTrack"
