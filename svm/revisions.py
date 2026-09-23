@@ -970,6 +970,44 @@ class AttachCameraCompensationEvidenceChange:
                 document["references"].append(copy.deepcopy(reference))
 
 
+@dataclass(frozen=True)
+class AttachMultiAnchorCameraEvidenceChange:
+    """Attach consensus or its compensated evidence without authoring authority."""
+
+    evidence_references: tuple[dict[str, Any], ...]
+    source_references: tuple[dict[str, Any], ...]
+    anchor_entities: tuple[dict[str, Any], ...]
+    groups_before: list[dict[str, Any]]
+    animation_before: dict[str, Any]
+    presentation_before: dict[str, Any]
+    source_revision_id: str
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (*self.evidence_references, *self.source_references)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        from .adapters.camera_compensation import _static_anchor
+
+        if (
+            document.get("groups", []) != self.groups_before
+            or document.get("animation") != self.animation_before
+            or document.get("presentation", {}) != self.presentation_before
+        ):
+            raise DocumentError("STALE_CAMERA_CONSENSUS: anchor or animation state changed")
+        for anchor in self.anchor_entities:
+            if _static_anchor(document, anchor["id"]) != anchor:
+                raise DocumentError("STALE_CAMERA_ANCHOR: static anchor changed")
+        accepted = {item["id"]: item for item in document.get("references", [])}
+        if any(accepted.get(item.get("id")) != item for item in self.source_references):
+            raise DocumentError("Camera consensus requires accepted source evidence")
+        for reference in self.evidence_references:
+            if reference["id"] in accepted and accepted[reference["id"]] != reference:
+                raise DocumentError("Conflicting Camera consensus reference")
+            if reference["id"] not in accepted:
+                document["references"].append(copy.deepcopy(reference))
+
+
 MOTION_TARGET_BINDING_POLICY_IDENTITY = "svm-explicit-motion-target-binding@0.1"
 
 
@@ -1225,9 +1263,16 @@ class VerifyObservedCameraTracksSourceChange:
         return (self.evidence_reference,)
 
     def apply(self, document: dict[str, Any]) -> None:
+        from .adapters.camera_compensation import _static_anchor
+        from .adapters.camera_consensus import MEDIA_TYPE as CONSENSUS_MEDIA_TYPE
+
         references = {item["id"]: item for item in document.get("references", [])}
         if references.get(self.evidence_reference.get("id")) != self.evidence_reference:
             raise DocumentError("Observed Camera evidence must already be accepted")
+        if self.evidence_reference.get("media_type") == CONSENSUS_MEDIA_TYPE:
+            provenance = self.evidence_reference["import_metadata"]["provenance"]
+            for anchor_id in provenance["anchor_entity_ids"]:
+                _static_anchor(document, anchor_id)
         if document.get("presentation", {}).get("camera") != self.camera_before:
             raise DocumentError("STALE_CAMERA: observed Camera baseline changed")
         by_id = {item.get("id"): item for item in document["animation"]["content"]}

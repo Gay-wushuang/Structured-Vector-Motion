@@ -12,6 +12,7 @@ from .revisions import (
     AppendReferencesChange,
     AppendSceneFragmentChange,
     AttachCameraCompensationEvidenceChange,
+    AttachMultiAnchorCameraEvidenceChange,
     AttachObservedMotionEvidenceChange,
     AttachObservedSimilarityEvidenceChange,
     AttachPOPGeometryObservationsChange,
@@ -242,6 +243,12 @@ def _verify_camera_compensation(change: Any, resolved: dict[str, ArtifactSnapsho
     verify_camera_compensation_change(change, resolved)
 
 
+def _verify_camera_consensus(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.camera_consensus import verify_multi_anchor_camera_change
+
+    verify_multi_anchor_camera_change(change, resolved)
+
+
 def _verify_geometry_translation(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
     from .adapters.geometry_translation_tracks import verify_geometry_translation_source
 
@@ -437,6 +444,13 @@ CHANGE_AUTHORITIES = {
             frozenset({"attach_camera_compensation"}),
             _single("attach_camera_compensation"),
             _verify_camera_compensation,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            AttachMultiAnchorCameraEvidenceChange,
+            frozenset({"attach_camera_compensation"}),
+            _single("attach_camera_compensation"),
+            _verify_camera_consensus,
             _source_revision,
         ),
         ChangeAuthority(

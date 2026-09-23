@@ -1,0 +1,194 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:multi-anchor-recovery-base",
+  "references": [
+    {
+      "id": "artifact:0000000000000000000000000000000000000000000000000000000000000000",
+      "uri": "artifact://0000000000000000000000000000000000000000000000000000000000000000",
+      "content_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "media_type": "application/vnd.svm.pop-group-candidates+json;version=0.1",
+      "import_metadata": {
+        "fixture": "synthetic-motion-recovery"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "entity:recovery-target",
+      "name": "Asymmetric Target"
+    },
+    {
+      "id": "entity:recovery-companion",
+      "name": "Companion"
+    },
+    {
+      "id": "entity:camera-anchor",
+      "name": "Static Camera Anchor"
+    },
+    {
+      "id": "entity:camera-anchor-b",
+      "name": "Independent Anchor B"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group:1111111111111111111111111111111111111111111111111111111111111111",
+      "kind": "explicit-group",
+      "members": [
+        "entity:recovery-companion",
+        "entity:recovery-target"
+      ],
+      "transform": {
+        "translate": [
+          0,
+          0
+        ],
+        "rotation_degrees": 10,
+        "scale": 1,
+        "origin": [
+          37,
+          43
+        ]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:2222222222222222222222222222222222222222222222222222222222222222",
+        "inference_id": "inference:group:3333333333333333333333333333333333333333333333333333333333333333",
+        "inference_artifact_id": "artifact:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ],
+  "construction": {
+    "operations": [
+      {
+        "id": "op:recovery-target",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 30 30 L 70 30 L 70 70 L 50 60 L 30 70 Z",
+          "bounds": [
+            30,
+            30,
+            70,
+            70
+          ]
+        }
+      },
+      {
+        "id": "op:recovery-companion",
+        "type": "CreateEllipse",
+        "inputs": {},
+        "parameters": {
+          "cx": 50,
+          "cy": 50,
+          "rx": 4,
+          "ry": 4
+        }
+      },
+      {
+        "id": "op:camera-anchor",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 105 35 L 137 38 L 132 66 L 119 55 L 103 62 Z",
+          "bounds": [
+            103,
+            35,
+            137,
+            66
+          ]
+        }
+      },
+      {
+        "id": "op:camera-anchor-b",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 145 80 L 180 82 L 174 104 L 152 111 L 149 95 Z",
+          "bounds": [
+            145,
+            80,
+            180,
+            111
+          ]
+        }
+      }
+    ],
+    "output_bindings": [
+      {
+        "entity": "entity:recovery-target",
+        "property": "geometry",
+        "slot": "op:recovery-target.geometry"
+      },
+      {
+        "entity": "entity:recovery-companion",
+        "property": "geometry",
+        "slot": "op:recovery-companion.geometry"
+      },
+      {
+        "entity": "entity:camera-anchor",
+        "property": "geometry",
+        "slot": "op:camera-anchor.geometry"
+      },
+      {
+        "entity": "entity:camera-anchor-b",
+        "property": "geometry",
+        "slot": "op:camera-anchor-b.geometry"
+      }
+    ],
+    "refinement_stages": []
+  },
+  "presentation": {
+    "render_stack": [
+      "entity:recovery-target",
+      "entity:recovery-companion",
+      "entity:camera-anchor",
+      "entity:camera-anchor-b"
+    ],
+    "styles": [
+      {
+        "entity": "entity:recovery-target",
+        "fill": "#CC3344",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:recovery-companion",
+        "fill": "#F5C451",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:camera-anchor",
+        "fill": "#238A72",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:camera-anchor-b",
+        "fill": "#3344AA",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      }
+    ],
+    "camera": {
+      "position": [
+        0,
+        0
+      ],
+      "rotation_degrees": 0,
+      "scale": 1
+    }
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {
+    "content": [],
+    "construction_scheduling_hints": []
+  }
+}

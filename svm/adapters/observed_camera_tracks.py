@@ -99,6 +99,11 @@ class ObservedCameraTracksAdapter:
             animation_before, authored_tracks, ticks_per_second
         )
         changes: list[Any] = []
+        if "anchor_entity_ids" in payload:
+            from .camera_compensation import _static_anchor
+
+            for anchor_id in payload["anchor_entity_ids"]:
+                _static_anchor(request.document, anchor_id)
         for property_name, track_id, keyframes in definitions:
             changes.append(
                 CreateCameraTransformTrackChange(
@@ -261,6 +266,15 @@ def recover_camera_state(matrix: Any, previous_rotation: float | None = None) ->
 
 
 def _read_evidence(snapshot: ArtifactSnapshot) -> dict[str, Any]:
+    from .camera_consensus import read_camera_evidence
+
+    try:
+        return read_camera_evidence(snapshot)
+    except ValueError as exc:
+        raise ObservedCameraTracksError(str(exc)) from exc
+
+
+def _read_single_evidence(snapshot: ArtifactSnapshot) -> dict[str, Any]:
     try:
         payload = json.loads(snapshot.content)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:

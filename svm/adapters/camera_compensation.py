@@ -99,7 +99,11 @@ class CameraCompensatedMotionAdapter:
     adapter_version = "0.1"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactRepository) -> Proposal:
-        if set(request.options) != {"anchor_entity_id", "target_temporal_identity_id"}:
+        from .camera_consensus import canonical_anchor_ids, multi_anchor_change, one_camera_evidence
+
+        consensus_mode = "anchor_entity_ids" in request.options
+        anchor_key = "anchor_entity_ids" if consensus_mode else "anchor_entity_id"
+        if set(request.options) != {anchor_key, "target_temporal_identity_id"}:
             raise CameraCompensationError(
                 "Explicit anchor_entity_id and target_temporal_identity_id are required"
             )
@@ -108,17 +112,29 @@ class CameraCompensatedMotionAdapter:
                 "Camera compensation requires camera, target translation, "
                 "and target similarity evidence"
             )
-        anchor_id = request.options["anchor_entity_id"]
+        anchor_id = request.options.get("anchor_entity_id")
+        anchors = (
+            tuple(
+                _static_anchor(request.document, item)
+                for item in canonical_anchor_ids(request.options[anchor_key])
+            )
+            if consensus_mode
+            else ()
+        )
         identity_id = request.options["target_temporal_identity_id"]
-        anchor = _static_anchor(request.document, anchor_id)
+        anchor = {} if consensus_mode else _static_anchor(request.document, anchor_id)
         references = tuple(
             _accepted_reference(request.document, item) for item in request.artifact_ids
         )
         snapshots = tuple(artifacts.resolve_reference(item) for item in references)
-        camera = _one_media(snapshots, CAMERA_MEDIA_TYPE)
+        camera = one_camera_evidence(snapshots)
         translation = _one_standard_translation(snapshots)
         similarity = _one_standard_similarity(snapshots)
-        if camera["anchor_entity_id"] != anchor_id:
+        if (
+            camera.get("anchor_entity_ids") != [item["id"] for item in anchors]
+            if consensus_mode
+            else camera.get("anchor_entity_id") != anchor_id
+        ):
             raise CameraCompensationError("Camera evidence belongs to another anchor")
         if (
             translation["temporal_identity_id"] != identity_id
@@ -162,6 +178,10 @@ class CameraCompensatedMotionAdapter:
             copy.deepcopy(request.document["animation"]),
             request.base_revision_id,
         )
+        if consensus_mode:
+            change = multi_anchor_change(
+                request, tuple(item.document_reference() for item in outputs), references, anchors
+            )
         return _proposal(
             request,
             self,
@@ -173,7 +193,7 @@ class CameraCompensatedMotionAdapter:
                 interval_count=len(translation_payload["intervals"]),
             ),
             {
-                "anchor_entity_id": anchor_id,
+                anchor_key: [item["id"] for item in anchors] if consensus_mode else anchor_id,
                 "target_temporal_identity_id": identity_id,
                 "policy_identity": COMPENSATION_POLICY,
             },
@@ -215,7 +235,13 @@ def verify_camera_compensation_change(change: Any, resolved: dict[str, ArtifactS
     by_media = {item.media_type: item for item in output_snapshots}
     if set(by_media) != {TRANSLATION_MEDIA_TYPE, SIMILARITY_MEDIA_TYPE}:
         raise ValueError("Camera compensation outputs are incomplete")
-    camera = _one_media(source_snapshots, CAMERA_MEDIA_TYPE)
+    from .camera_consensus import one_camera_evidence
+
+    camera = one_camera_evidence(source_snapshots)
+    if "anchor_entity_ids" in camera and camera["anchor_entity_ids"] != [
+        item["id"] for item in getattr(change, "anchor_entities", ())
+    ]:
+        raise ValueError("Consensus compensation requires all anchor state checks")
     translation = _one_standard_translation(source_snapshots)
     similarity = _one_standard_similarity(source_snapshots)
     translation_expected, similarity_expected = _compensated_payloads(

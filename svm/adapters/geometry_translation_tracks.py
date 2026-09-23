@@ -17,7 +17,9 @@ from ..revisions import (
 )
 from ..scene import _group_transform_matrix
 from .camera_compensation import (
-    CAMERA_MEDIA_TYPE,
+    SIMILARITY_MEDIA_TYPE as COMPENSATED_MEDIA_TYPE,
+)
+from .camera_compensation import (
     _by_ticks,
     _compensated_payloads,
     _compose,
@@ -25,13 +27,9 @@ from .camera_compensation import (
     _finite,
     _interval_matrix,
     _inverse,
-    _one_media,
     _one_standard_similarity,
     _one_standard_translation,
     _round,
-)
-from .camera_compensation import (
-    SIMILARITY_MEDIA_TYPE as COMPENSATED_MEDIA_TYPE,
 )
 from .observed_camera_tracks import recover_camera_samples
 from .observed_rotation_tracks import _read_evidence
@@ -219,7 +217,9 @@ def _authored_tracks(
         if set(resolved) != {snapshot.artifact_id, *source_ids} or len(source_ids) != 3:
             raise ValueError("Compensated similarity requires its exact accepted source Artifacts")
         sources = tuple(resolved[item] for item in source_ids)
-        camera = _one_media(sources, CAMERA_MEDIA_TYPE)
+        from .camera_consensus import one_camera_evidence
+
+        camera = one_camera_evidence(sources)
         translation = _one_standard_translation(sources)
         similarity = _one_standard_similarity(sources)
         if (
