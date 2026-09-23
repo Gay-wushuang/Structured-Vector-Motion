@@ -1084,6 +1084,23 @@ class VerifyObservedTranslationTrackSourceChange:
 
 
 @dataclass(frozen=True)
+class VerifyGeometryTranslationTrackSourceChange(VerifyObservedTranslationTrackSourceChange):
+    """Verify geometry-derived translation with its exact compensation sources."""
+
+    source_references: tuple[dict[str, Any], ...] = ()
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (self.evidence_reference, *self.source_references)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        accepted = {item["id"]: item for item in document.get("references", [])}
+        if any(accepted.get(item.get("id")) != item for item in self.source_references):
+            raise DocumentError("Geometry translation sources must already be accepted")
+        super().apply(document)
+
+
+@dataclass(frozen=True)
 class VerifyObservedScaleTrackSourceChange:
     """Verify S5A inputs and mark one created scale Track with trusted provenance."""
 

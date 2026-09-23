@@ -420,7 +420,7 @@
             "required": ["type", "authoring_identity", "motion_target_binding_id", "evidence_artifact_id", "source_revision_id"],
             "properties": {
               "type": {"const": "ObservedTranslationTrack"},
-              "authoring_identity": {"const": "svm-verified-observed-translation-authoring@0.1"},
+              "authoring_identity": {"enum": ["svm-verified-observed-translation-authoring@0.1", "svm-geometry-correct-translation-authoring@0.1"]},
               "motion_target_binding_id": {"type": "string", "pattern": "^motion-target-binding:[0-9a-f]{64}$"},
               "evidence_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
               "source_revision_id": {"type": "string", "pattern": "^revision:[0-9a-f]{64}$"}

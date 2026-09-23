@@ -179,7 +179,10 @@ def _validate_track_provenance(
     translation = (
         provenance.get("type") == "ObservedTranslationTrack"
         and provenance.get("authoring_identity")
-        == "svm-verified-observed-translation-authoring@0.1"
+        in {
+            "svm-verified-observed-translation-authoring@0.1",
+            "svm-geometry-correct-translation-authoring@0.1",
+        }
         and target_key[0] == "group"
         and target_key[2] in {"translate.x", "translate.y"}
     )

@@ -6,6 +6,7 @@ from .camera_compensation import (
     ObservedCameraSimilarityAdapter,
 )
 from .component_promotion import ComponentPromotionAdapter, ComponentPromotionError
+from .geometry_translation_tracks import GeometryTranslationTracksAdapter
 from .layerd_output import LayerDOutputAdapter, LayerDOutputError
 from .layerpeeler_output import LayerPeelerOutputAdapter, LayerPeelerOutputError
 from .observed_camera_tracks import (
@@ -58,6 +59,7 @@ from .temporal_motion_target_binding import (
 )
 
 __all__ = [
+    "GeometryTranslationTracksAdapter",
     "BitmapTraceAdapter",
     "BitmapReconcileAdapter",
     "BitmapTraceError",

@@ -108,6 +108,7 @@ from .revisions import (
     SplitEntityChange,
     SplitPart,
     Transaction,
+    VerifyGeometryTranslationTrackSourceChange,
     VerifyObservedCameraTracksSourceChange,
     VerifyObservedRotationTrackSourceChange,
     VerifyObservedScaleTrackSourceChange,
@@ -120,6 +121,7 @@ from .scene import EvaluatedEntity, EvaluatedScene, EvaluatedStyle, build_evalua
 from .structural_relations import STRUCTURAL_RELATIONS_IDENTITY
 
 __all__ = [
+    "VerifyGeometryTranslationTrackSourceChange",
     "Evaluator",
     "ArtifactError",
     "ArtifactBlob",

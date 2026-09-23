@@ -1,0 +1,608 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:shared-camera-multi-object-ground-truth",
+  "references": [
+    {
+      "id": "artifact:0000000000000000000000000000000000000000000000000000000000000000",
+      "uri": "artifact://0000000000000000000000000000000000000000000000000000000000000000",
+      "content_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "media_type": "application/vnd.svm.pop-group-candidates+json;version=0.1",
+      "import_metadata": {
+        "fixture": "synthetic-motion-recovery"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "entity:shared-camera-companion-a",
+      "name": "Target A Group Companion"
+    },
+    {
+      "id": "entity:shared-camera-companion-b",
+      "name": "Target B Group Companion"
+    },
+    {
+      "id": "entity:shared-camera-target-a",
+      "name": "Asymmetric Target A"
+    },
+    {
+      "id": "entity:shared-camera-target-b",
+      "name": "Asymmetric Target B"
+    },
+    {
+      "id": "entity:shared-camera-anchor",
+      "name": "Static Shared Camera Anchor"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "kind": "explicit-group",
+      "members": [
+        "entity:shared-camera-companion-a",
+        "entity:shared-camera-target-a"
+      ],
+      "transform": {
+        "translate": [
+          0,
+          0
+        ],
+        "rotation_degrees": 10,
+        "scale": 1,
+        "origin": [
+          37,
+          43
+        ]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:2222222222222222222222222222222222222222222222222222222222222222",
+        "inference_id": "inference:group:3333333333333333333333333333333333333333333333333333333333333333",
+        "inference_artifact_id": "artifact:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "id": "group:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "kind": "explicit-group",
+      "members": [
+        "entity:shared-camera-companion-b",
+        "entity:shared-camera-target-b"
+      ],
+      "transform": {
+        "translate": [
+          0,
+          0
+        ],
+        "rotation_degrees": -5,
+        "scale": 1,
+        "origin": [
+          145,
+          80
+        ]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:4444444444444444444444444444444444444444444444444444444444444444",
+        "inference_id": "inference:group:5555555555555555555555555555555555555555555555555555555555555555",
+        "inference_artifact_id": "artifact:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ],
+  "construction": {
+    "operations": [
+      {
+        "id": "op:s10a-target-a",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 30 30 L 70 33 L 63 70 L 46 57 L 30 61 Z",
+          "bounds": [
+            30,
+            30,
+            70,
+            70
+          ]
+        }
+      },
+      {
+        "id": "op:s10a-target-b",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 120 60 L 170 60 L 170 100 L 142 91 L 120 100 Z",
+          "bounds": [
+            120,
+            60,
+            170,
+            100
+          ]
+        }
+      },
+      {
+        "id": "op:s10a-anchor",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 86 18 L 112 21 L 108 42 L 97 34 L 82 39 Z",
+          "bounds": [
+            82,
+            18,
+            112,
+            42
+          ]
+        }
+      },
+      {
+        "id": "op:s10a-companion-a",
+        "type": "CreateEllipse",
+        "inputs": {},
+        "parameters": {
+          "cx": 45,
+          "cy": 45,
+          "rx": 2,
+          "ry": 2
+        }
+      },
+      {
+        "id": "op:s10a-companion-b",
+        "type": "CreateEllipse",
+        "inputs": {},
+        "parameters": {
+          "cx": 145,
+          "cy": 78,
+          "rx": 2,
+          "ry": 2
+        }
+      }
+    ],
+    "output_bindings": [
+      {
+        "entity": "entity:shared-camera-target-a",
+        "property": "geometry",
+        "slot": "op:s10a-target-a.geometry"
+      },
+      {
+        "entity": "entity:shared-camera-target-b",
+        "property": "geometry",
+        "slot": "op:s10a-target-b.geometry"
+      },
+      {
+        "entity": "entity:shared-camera-anchor",
+        "property": "geometry",
+        "slot": "op:s10a-anchor.geometry"
+      },
+      {
+        "entity": "entity:shared-camera-companion-a",
+        "property": "geometry",
+        "slot": "op:s10a-companion-a.geometry"
+      },
+      {
+        "entity": "entity:shared-camera-companion-b",
+        "property": "geometry",
+        "slot": "op:s10a-companion-b.geometry"
+      }
+    ],
+    "refinement_stages": []
+  },
+  "presentation": {
+    "render_stack": [
+      "entity:shared-camera-target-a",
+      "entity:shared-camera-target-b",
+      "entity:shared-camera-anchor"
+    ],
+    "styles": [
+      {
+        "entity": "entity:shared-camera-target-a",
+        "fill": "#CC3344",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:shared-camera-target-b",
+        "fill": "#4A69BD",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:shared-camera-anchor",
+        "fill": "#238A72",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      }
+    ],
+    "camera": {
+      "position": [
+        0,
+        0
+      ],
+      "rotation_degrees": 0,
+      "scale": 1
+    }
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {
+    "semantics_version": "svm-motion@0.6",
+    "timebase": {
+      "ticks_per_second": 12
+    },
+    "content": [
+      {
+        "id": "track:s10a-a-x",
+        "target": {
+          "group": "group:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "property": "translate.x"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:s10a-a-x-000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:s10a-a-x-012",
+            "tick": 12,
+            "value": 3
+          },
+          {
+            "id": "keyframe:s10a-a-x-024",
+            "tick": 24,
+            "value": 6
+          },
+          {
+            "id": "keyframe:s10a-a-x-036",
+            "tick": 36,
+            "value": 4
+          }
+        ]
+      },
+      {
+        "id": "track:s10a-a-y",
+        "target": {
+          "group": "group:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "property": "translate.y"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:s10a-a-y-000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:s10a-a-y-012",
+            "tick": 12,
+            "value": -2
+          },
+          {
+            "id": "keyframe:s10a-a-y-024",
+            "tick": 24,
+            "value": 1
+          },
+          {
+            "id": "keyframe:s10a-a-y-036",
+            "tick": 36,
+            "value": 3
+          }
+        ]
+      },
+      {
+        "id": "track:s10a-a-r",
+        "target": {
+          "group": "group:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "property": "rotation_degrees"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:s10a-a-r-000",
+            "tick": 0,
+            "value": 10
+          },
+          {
+            "id": "keyframe:s10a-a-r-012",
+            "tick": 12,
+            "value": 18
+          },
+          {
+            "id": "keyframe:s10a-a-r-024",
+            "tick": 24,
+            "value": 26
+          },
+          {
+            "id": "keyframe:s10a-a-r-036",
+            "tick": 36,
+            "value": 15
+          }
+        ]
+      },
+      {
+        "id": "track:s10a-a-s",
+        "target": {
+          "group": "group:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "property": "scale"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:s10a-a-s-000",
+            "tick": 0,
+            "value": 1
+          },
+          {
+            "id": "keyframe:s10a-a-s-012",
+            "tick": 12,
+            "value": 1.08
+          },
+          {
+            "id": "keyframe:s10a-a-s-024",
+            "tick": 24,
+            "value": 0.97
+          },
+          {
+            "id": "keyframe:s10a-a-s-036",
+            "tick": 36,
+            "value": 1.03
+          }
+        ]
+      },
+      {
+        "id": "track:s10a-b-x",
+        "target": {
+          "group": "group:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "property": "translate.x"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:s10a-b-x-000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:s10a-b-x-012",
+            "tick": 12,
+            "value": -4
+          },
+          {
+            "id": "keyframe:s10a-b-x-024",
+            "tick": 24,
+            "value": -8
+          },
+          {
+            "id": "keyframe:s10a-b-x-036",
+            "tick": 36,
+            "value": -12
+          }
+        ]
+      },
+      {
+        "id": "track:s10a-b-y",
+        "target": {
+          "group": "group:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "property": "translate.y"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:s10a-b-y-000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:s10a-b-y-012",
+            "tick": 12,
+            "value": 4
+          },
+          {
+            "id": "keyframe:s10a-b-y-024",
+            "tick": 24,
+            "value": 7
+          },
+          {
+            "id": "keyframe:s10a-b-y-036",
+            "tick": 36,
+            "value": 5
+          }
+        ]
+      },
+      {
+        "id": "track:s10a-b-r",
+        "target": {
+          "group": "group:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "property": "rotation_degrees"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:s10a-b-r-000",
+            "tick": 0,
+            "value": -5
+          },
+          {
+            "id": "keyframe:s10a-b-r-012",
+            "tick": 12,
+            "value": -14
+          },
+          {
+            "id": "keyframe:s10a-b-r-024",
+            "tick": 24,
+            "value": -23
+          },
+          {
+            "id": "keyframe:s10a-b-r-036",
+            "tick": 36,
+            "value": -12
+          }
+        ]
+      },
+      {
+        "id": "track:s10a-b-s",
+        "target": {
+          "group": "group:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "property": "scale"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:s10a-b-s-000",
+            "tick": 0,
+            "value": 1
+          },
+          {
+            "id": "keyframe:s10a-b-s-012",
+            "tick": 12,
+            "value": 0.95
+          },
+          {
+            "id": "keyframe:s10a-b-s-024",
+            "tick": 24,
+            "value": 1.03
+          },
+          {
+            "id": "keyframe:s10a-b-s-036",
+            "tick": 36,
+            "value": 1.1
+          }
+        ]
+      },
+      {
+        "id": "track:s10a-camera-x",
+        "target": {
+          "camera": "presentation",
+          "property": "position.x"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:s10a-camera-x-000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:s10a-camera-x-012",
+            "tick": 12,
+            "value": 2
+          },
+          {
+            "id": "keyframe:s10a-camera-x-024",
+            "tick": 24,
+            "value": 4
+          },
+          {
+            "id": "keyframe:s10a-camera-x-036",
+            "tick": 36,
+            "value": 6
+          }
+        ]
+      },
+      {
+        "id": "track:s10a-camera-y",
+        "target": {
+          "camera": "presentation",
+          "property": "position.y"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:s10a-camera-y-000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:s10a-camera-y-012",
+            "tick": 12,
+            "value": -1
+          },
+          {
+            "id": "keyframe:s10a-camera-y-024",
+            "tick": 24,
+            "value": 1
+          },
+          {
+            "id": "keyframe:s10a-camera-y-036",
+            "tick": 36,
+            "value": 0
+          }
+        ]
+      },
+      {
+        "id": "track:s10a-camera-r",
+        "target": {
+          "camera": "presentation",
+          "property": "rotation_degrees"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:s10a-camera-r-000",
+            "tick": 0,
+            "value": 0
+          },
+          {
+            "id": "keyframe:s10a-camera-r-012",
+            "tick": 12,
+            "value": 3
+          },
+          {
+            "id": "keyframe:s10a-camera-r-024",
+            "tick": 24,
+            "value": -2
+          },
+          {
+            "id": "keyframe:s10a-camera-r-036",
+            "tick": 36,
+            "value": 4
+          }
+        ]
+      },
+      {
+        "id": "track:s10a-camera-s",
+        "target": {
+          "camera": "presentation",
+          "property": "scale"
+        },
+        "value_type": "number",
+        "interpolation": "linear",
+        "keyframes": [
+          {
+            "id": "keyframe:s10a-camera-s-000",
+            "tick": 0,
+            "value": 1
+          },
+          {
+            "id": "keyframe:s10a-camera-s-012",
+            "tick": 12,
+            "value": 1.03
+          },
+          {
+            "id": "keyframe:s10a-camera-s-024",
+            "tick": 24,
+            "value": 0.98
+          },
+          {
+            "id": "keyframe:s10a-camera-s-036",
+            "tick": 36,
+            "value": 1.04
+          }
+        ]
+      }
+    ],
+    "construction_scheduling_hints": []
+  }
+}

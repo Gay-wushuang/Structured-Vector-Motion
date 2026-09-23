@@ -374,17 +374,21 @@ def _track_definitions(
     group_id: str,
     samples: tuple[tuple[int, int | float, int | float], ...],
     ticks_per_second: int,
+    policy_identity: str = POLICY_IDENTITY,
+    baseline_transform: dict[str, Any] | None = None,
 ) -> tuple[tuple[str, str, tuple[tuple[str, int, int | float], ...]], ...]:
     result = []
     for property_name, value_index in (("translate.x", 1), ("translate.y", 2)):
         subject = {
-            "policy_identity": POLICY_IDENTITY,
+            "policy_identity": policy_identity,
             "binding_id": binding_id,
             "evidence_artifact_id": artifact_id,
             "group_id": group_id,
             "property": property_name,
             "ticks_per_second": ticks_per_second,
         }
+        if baseline_transform is not None:
+            subject["baseline_transform"] = baseline_transform
         track_id = (
             "track:observed-translation:" + hashlib.sha256(canonical_bytes(subject)).hexdigest()
         )
@@ -409,6 +413,7 @@ def _document_tracks(
     binding_id: str,
     evidence_artifact_id: str,
     source_revision_id: str,
+    policy_identity: str = POLICY_IDENTITY,
 ) -> tuple[dict[str, Any], ...]:
     return tuple(
         {
@@ -422,7 +427,7 @@ def _document_tracks(
             ],
             "provenance": {
                 "type": "ObservedTranslationTrack",
-                "authoring_identity": POLICY_IDENTITY,
+                "authoring_identity": policy_identity,
                 "motion_target_binding_id": binding_id,
                 "evidence_artifact_id": evidence_artifact_id,
                 "source_revision_id": source_revision_id,

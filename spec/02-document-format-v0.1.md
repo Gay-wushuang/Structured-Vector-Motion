@@ -111,6 +111,14 @@ stage, or geometry Value identity.
 
 ### Control and animation collections
 
+Observed translation Track provenance allows the legacy
+`svm-verified-observed-translation-authoring@0.1` identity and the explicit
+`svm-geometry-correct-translation-authoring@0.1` identity. The latter derives
+translation from full similarities and the captured fixed Group origin; it
+does not reinterpret legacy observation displacement. See
+`52-geometry-correct-translation-authoring.md`. This extends the development
+schema's provenance allowlist without changing runtime Track targets or sampling.
+
 `constraints`, `evaluation_policies`, and `edit_permissions` are separate
 collections. `animation.content` and
 `animation.construction_scheduling_hints` remain separate time systems.

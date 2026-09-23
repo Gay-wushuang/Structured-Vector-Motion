@@ -8,6 +8,12 @@ Status values:
 - **specified** — normative behavior exists but does not yet have full runtime
   coverage.
 
+Geometry-correct translation authoring (spec 52) adds integration coverage for
+fixed-origin Group composition, explicit binding, preview purity, atomic
+acceptance, and immutable legacy displacement evidence. Its tests reconstruct
+arbitrary-pivot motion from accepted S4 and Camera-compensated similarities and
+compare rerendered landmarks. It introduces no new runtime motion semantics.
+
 | Invariant | Status | Coverage |
 | --- | --- | --- |
 | INV-ID-001 | covered | Golden A preserves Head identity across geometry reevaluation. |

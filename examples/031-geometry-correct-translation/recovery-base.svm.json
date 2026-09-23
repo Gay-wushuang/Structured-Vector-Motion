@@ -1,0 +1,231 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:shared-camera-multi-object-recovery-base",
+  "references": [
+    {
+      "id": "artifact:0000000000000000000000000000000000000000000000000000000000000000",
+      "uri": "artifact://0000000000000000000000000000000000000000000000000000000000000000",
+      "content_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "media_type": "application/vnd.svm.pop-group-candidates+json;version=0.1",
+      "import_metadata": {
+        "fixture": "synthetic-motion-recovery"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "entity:shared-camera-companion-a",
+      "name": "Target A Group Companion"
+    },
+    {
+      "id": "entity:shared-camera-companion-b",
+      "name": "Target B Group Companion"
+    },
+    {
+      "id": "entity:shared-camera-target-a",
+      "name": "Asymmetric Target A"
+    },
+    {
+      "id": "entity:shared-camera-target-b",
+      "name": "Asymmetric Target B"
+    },
+    {
+      "id": "entity:shared-camera-anchor",
+      "name": "Static Shared Camera Anchor"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "kind": "explicit-group",
+      "members": [
+        "entity:shared-camera-companion-a",
+        "entity:shared-camera-target-a"
+      ],
+      "transform": {
+        "translate": [
+          0,
+          0
+        ],
+        "rotation_degrees": 10,
+        "scale": 1,
+        "origin": [
+          37,
+          43
+        ]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:2222222222222222222222222222222222222222222222222222222222222222",
+        "inference_id": "inference:group:3333333333333333333333333333333333333333333333333333333333333333",
+        "inference_artifact_id": "artifact:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "id": "group:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "kind": "explicit-group",
+      "members": [
+        "entity:shared-camera-companion-b",
+        "entity:shared-camera-target-b"
+      ],
+      "transform": {
+        "translate": [
+          0,
+          0
+        ],
+        "rotation_degrees": -5,
+        "scale": 1,
+        "origin": [
+          145,
+          80
+        ]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:4444444444444444444444444444444444444444444444444444444444444444",
+        "inference_id": "inference:group:5555555555555555555555555555555555555555555555555555555555555555",
+        "inference_artifact_id": "artifact:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ],
+  "construction": {
+    "operations": [
+      {
+        "id": "op:s10a-target-a",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 30 30 L 70 33 L 63 70 L 46 57 L 30 61 Z",
+          "bounds": [
+            30,
+            30,
+            70,
+            70
+          ]
+        }
+      },
+      {
+        "id": "op:s10a-target-b",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 120 60 L 170 60 L 170 100 L 142 91 L 120 100 Z",
+          "bounds": [
+            120,
+            60,
+            170,
+            100
+          ]
+        }
+      },
+      {
+        "id": "op:s10a-anchor",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 86 18 L 112 21 L 108 42 L 97 34 L 82 39 Z",
+          "bounds": [
+            82,
+            18,
+            112,
+            42
+          ]
+        }
+      },
+      {
+        "id": "op:s10a-companion-a",
+        "type": "CreateEllipse",
+        "inputs": {},
+        "parameters": {
+          "cx": 45,
+          "cy": 45,
+          "rx": 2,
+          "ry": 2
+        }
+      },
+      {
+        "id": "op:s10a-companion-b",
+        "type": "CreateEllipse",
+        "inputs": {},
+        "parameters": {
+          "cx": 145,
+          "cy": 78,
+          "rx": 2,
+          "ry": 2
+        }
+      }
+    ],
+    "output_bindings": [
+      {
+        "entity": "entity:shared-camera-target-a",
+        "property": "geometry",
+        "slot": "op:s10a-target-a.geometry"
+      },
+      {
+        "entity": "entity:shared-camera-target-b",
+        "property": "geometry",
+        "slot": "op:s10a-target-b.geometry"
+      },
+      {
+        "entity": "entity:shared-camera-anchor",
+        "property": "geometry",
+        "slot": "op:s10a-anchor.geometry"
+      },
+      {
+        "entity": "entity:shared-camera-companion-a",
+        "property": "geometry",
+        "slot": "op:s10a-companion-a.geometry"
+      },
+      {
+        "entity": "entity:shared-camera-companion-b",
+        "property": "geometry",
+        "slot": "op:s10a-companion-b.geometry"
+      }
+    ],
+    "refinement_stages": []
+  },
+  "presentation": {
+    "render_stack": [
+      "entity:shared-camera-target-a",
+      "entity:shared-camera-target-b",
+      "entity:shared-camera-anchor"
+    ],
+    "styles": [
+      {
+        "entity": "entity:shared-camera-target-a",
+        "fill": "#CC3344",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:shared-camera-target-b",
+        "fill": "#4A69BD",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:shared-camera-anchor",
+        "fill": "#238A72",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      }
+    ],
+    "camera": {
+      "position": [
+        0,
+        0
+      ],
+      "rotation_degrees": 0,
+      "scale": 1
+    }
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {
+    "content": [],
+    "construction_scheduling_hints": []
+  }
+}

@@ -38,6 +38,7 @@ from .revisions import (
     SetKeyframeValueChange,
     SetOperationParameterChange,
     SplitEntityChange,
+    VerifyGeometryTranslationTrackSourceChange,
     VerifyObservedCameraTracksSourceChange,
     VerifyObservedRotationTrackSourceChange,
     VerifyObservedScaleTrackSourceChange,
@@ -239,6 +240,12 @@ def _verify_camera_compensation(change: Any, resolved: dict[str, ArtifactSnapsho
     from .adapters.camera_compensation import verify_camera_compensation_change
 
     verify_camera_compensation_change(change, resolved)
+
+
+def _verify_geometry_translation(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.geometry_translation_tracks import verify_geometry_translation_source
+
+    verify_geometry_translation_source(change, resolved)
 
 
 def _verify_pop_geometry_observations(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
@@ -443,6 +450,13 @@ CHANGE_AUTHORITIES = {
             frozenset({"author_observed_translation"}),
             _single("author_observed_translation"),
             _verify_observed_translation_tracks,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            VerifyGeometryTranslationTrackSourceChange,
+            frozenset({"author_observed_translation"}),
+            _single("author_observed_translation"),
+            _verify_geometry_translation,
             _source_revision,
         ),
         ChangeAuthority(
