@@ -25,9 +25,9 @@ from .camera_compensation import (
 from .camera_compensation import (
     SIMILARITY_MEDIA_TYPE as COMPENSATED_SIMILARITY_MEDIA_TYPE,
 )
-from .observed_similarity_motion import RASTER_POLICY_IDENTITY
 from .observed_similarity_motion import MEDIA_TYPE as SIMILARITY_MEDIA_TYPE
 from .observed_similarity_motion import POLICY_IDENTITY as SIMILARITY_POLICY_IDENTITY
+from .observed_similarity_motion import RASTER_POLICY_IDENTITY
 
 POLICY_IDENTITY = "svm-verified-observed-scale-authoring@0.1"
 ADAPTER_ID = "adapter:observed-scale-tracks"

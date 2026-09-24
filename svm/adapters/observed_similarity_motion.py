@@ -21,6 +21,7 @@ from ..proposals import (
 from ..revisions import (
     OBSERVED_SIMILARITY_MOTION_IDENTITY,
     AttachObservedSimilarityEvidenceChange,
+    AttachRasterSimilarityEvidenceChange,
     Transaction,
 )
 from .temporal_correspondence import (
@@ -132,6 +133,29 @@ class ObservedSimilarityMotionAdapter:
             )
         geometry_snapshots = {item.artifact_id: item for item in artifacts.resolve(geometry_ids)}
         _validate_geometry_snapshots(geometry_snapshots)
+        raster_references: tuple[dict[str, Any], ...] = ()
+        if self.policy_identity == RASTER_POLICY_IDENTITY:
+            from .raster_geometry_observations import raster_source_ids, verify_raster_observation
+
+            geometry_snapshots = {
+                aid: artifacts.resolve_reference(_accepted_reference(request.document, aid))
+                for aid in geometry_ids
+            }
+            raster_ids = sorted(
+                {
+                    aid
+                    for snapshot in geometry_snapshots.values()
+                    for aid in raster_source_ids(snapshot)
+                }
+            )
+            raster_references = tuple(
+                _accepted_reference(request.document, aid) for aid in raster_ids
+            )
+            raster_sources = {
+                ref["id"]: artifacts.resolve_reference(ref) for ref in raster_references
+            }
+            for snapshot in geometry_snapshots.values():
+                verify_raster_observation(snapshot, raster_sources)
         intervals = _derive_intervals(
             identity, selected, correspondence_snapshots, geometry_snapshots, self.policy_identity
         )
@@ -168,6 +192,10 @@ class ObservedSimilarityMotionAdapter:
             tuple(inference_ids),
             request.base_revision_id,
         )
+        if self.policy_identity == RASTER_POLICY_IDENTITY:
+            change = AttachRasterSimilarityEvidenceChange(
+                **asdict(change), raster_source_references=raster_references
+            )
         generator = GeneratorProvenance(
             self.adapter_id,
             self.adapter_version,
@@ -215,7 +243,11 @@ class ObservedSimilarityMotionAdapter:
                 temporal_identity_id=identity_id,
                 intervals=tuple(_preview(item) for item in intervals),
             ),
-            required_artifact_ids=(evidence.artifact_id, *expected_ids),
+            required_artifact_ids=(
+                evidence.artifact_id,
+                *expected_ids,
+                *(ref["id"] for ref in raster_references),
+            ),
             notes="Similarity observations are evidence only; no Track or Group is changed",
         )
 
@@ -250,6 +282,22 @@ def verify_observed_similarity_change(change: Any, resolved: dict[str, ArtifactS
     correspondences = {item: resolved[item] for item in correspondence_ids}
     geometries = {item: resolved[item] for item in geometry_ids}
     _validate_geometry_snapshots(geometries)
+    if policy == RASTER_POLICY_IDENTITY:
+        from .raster_geometry_observations import raster_source_ids, verify_raster_observation
+
+        if type(change) is not AttachRasterSimilarityEvidenceChange:
+            raise ValueError("Raster similarity requires verified pixel lineage Change")
+        expected_raster_ids = {
+            aid for snapshot in geometries.values() for aid in raster_source_ids(snapshot)
+        }
+        if tuple(ref["id"] for ref in change.raster_source_references) != tuple(
+            sorted(expected_raster_ids)
+        ):
+            raise ValueError("Raster similarity pixel dependencies are not exact")
+        for snapshot in geometries.values():
+            verify_raster_observation(snapshot, resolved)
+    elif type(change) is AttachRasterSimilarityEvidenceChange:
+        raise ValueError("Raster Change cannot relabel the exact vector policy")
     identity = change.temporal_identity
     provenance = {item["inference_id"]: item for item in identity["provenance"]}
     if len(change.inference_ids) != len(set(change.inference_ids)):
@@ -328,6 +376,8 @@ def _derive_intervals(
         if policy == RASTER_POLICY_IDENTITY:
             from .raster_geometry_observations import (
                 POLICY_IDENTITY as RASTER_GEOMETRY_POLICY,
+            )
+            from .raster_geometry_observations import (
                 PRIMITIVE_TYPE,
             )
 

@@ -160,7 +160,8 @@ def derive_raster_observations(
                 "connectivity": payload["connectivity"],
             }
         )
-        # Reuse the exact existing producer to verify bytes AND descriptors, including engine versions.
+        # Reuse the existing producer to verify bytes and descriptors,
+        # including exact engine versions.
         scratch = ArtifactStore()
         scratch.import_bytes(
             source.content,
@@ -319,3 +320,40 @@ def verify_raster_geometry_observations_change(
         or output.provenance != provenance
     ):
         raise ValueError("Raster occurrence does not match its exact PNG analysis lineage")
+
+
+def raster_source_ids(snapshot: ArtifactSnapshot) -> tuple[str, ...]:
+    """Exact immutable dependencies needed to reverify a raster observation."""
+    if snapshot.provenance.get("geometry_observation_policy") != POLICY_IDENTITY:
+        raise RasterGeometryObservationError("Raster similarity requires raster geometry policy")
+    occurrences = snapshot.provenance.get("source_occurrences")
+    if not isinstance(occurrences, list) or len(occurrences) != 2:
+        raise RasterGeometryObservationError("Raster geometry requires its pixel lineage")
+    return tuple(
+        sorted(
+            {
+                occurrence[key]
+                for occurrence in occurrences
+                for key in ("source_png_artifact_id", "analysis_artifact_id", "mask_artifact_id")
+            }
+        )
+    )
+
+
+def verify_raster_observation(
+    snapshot: ArtifactSnapshot, resolved: dict[str, ArtifactSnapshot]
+) -> None:
+    source_ids = raster_source_ids(snapshot)
+    occurrences = tuple(
+        {key: occurrence[key] for key in ("analysis_artifact_id", "component_id", "tick")}
+        for occurrence in snapshot.provenance["source_occurrences"]
+    )
+    verify_raster_geometry_observations_change(
+        AttachRasterGeometryObservationsChange(
+            snapshot.document_reference(),
+            tuple(resolved[aid].document_reference() for aid in source_ids),
+            occurrences,
+            POLICY_IDENTITY,
+        ),
+        {**resolved, snapshot.artifact_id: snapshot},
+    )

@@ -1004,6 +1004,24 @@ class AttachObservedSimilarityEvidenceChange:
 
 
 @dataclass(frozen=True)
+class AttachRasterSimilarityEvidenceChange(AttachObservedSimilarityEvidenceChange):
+    """Raster policy additionally verifies the complete pixel evidence closure."""
+
+    raster_source_references: tuple[dict[str, Any], ...]
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (*super().references, *self.raster_source_references)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        accepted = {ref["id"]: ref for ref in document["references"]}
+        for ref in (*self.geometry_references, *self.raster_source_references):
+            if accepted.get(ref["id"]) != ref:
+                raise DocumentError("Raster similarity requires accepted exact pixel lineage")
+        super().apply(document)
+
+
+@dataclass(frozen=True)
 class AttachCameraCompensationEvidenceChange:
     """Attach verified camera or compensated motion evidence only."""
 
