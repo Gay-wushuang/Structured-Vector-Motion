@@ -240,7 +240,16 @@ def request(store, *, artifact_ids=(), options=None):
     )
 
 
-def observe_lineage(store, artifacts, frames, shape_id, *, observation_adapter=None, ticks=TICKS):
+def observe_lineage(
+    store,
+    artifacts,
+    frames,
+    shape_id,
+    *,
+    observation_adapter=None,
+    ticks=TICKS,
+    identity_adapter=None,
+):
     geometry_ids, correspondence_ids, inference_ids = [], [], []
     identity_id = None
     for source, target, source_tick, target_tick in zip(
@@ -273,7 +282,7 @@ def observe_lineage(store, artifacts, frames, shape_id, *, observation_adapter=N
         if candidate["status"] != "SUPPORTED":
             raise AssertionError(f"S10A synthetic correspondence must be SUPPORTED: {candidate}")
         inference_ids.append(candidate["inference_id"])
-        identity = TemporalIdentityPromotionAdapter().propose(
+        identity = (identity_adapter or TemporalIdentityPromotionAdapter()).propose(
             request(
                 store,
                 artifact_ids=(correspondence_id,),

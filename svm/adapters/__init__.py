@@ -41,6 +41,8 @@ from .pop_group_candidates import POPGroupCandidateAdapter, POPGroupCandidateErr
 from .pop_group_promotion import POPGroupPromotionAdapter, POPGroupPromotionError
 from .pop_output import POPOutputAdapter, POPOutputError, POPTokenExporter
 from .pop_structure import POPStructureAdapter, POPStructureError
+from .sparse_camera_compensation import SparseCameraCompensatedMotionAdapter
+from .sparse_observation import SparseTemporalIdentityPromotionAdapter
 from .svg_geometry_observations import (
     SVGGeometryObservationAdapter,
     SVGGeometryObservationError,
@@ -61,6 +63,8 @@ from .temporal_motion_target_binding import (
 )
 
 __all__ = [
+    "SparseTemporalIdentityPromotionAdapter",
+    "SparseCameraCompensatedMotionAdapter",
     "MultiAnchorCameraConsensusAdapter",
     "GeometryTranslationTracksAdapter",
     "BitmapTraceAdapter",

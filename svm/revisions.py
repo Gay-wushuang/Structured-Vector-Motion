@@ -875,6 +875,51 @@ class PromoteTemporalIdentityChange:
 
 
 @dataclass(frozen=True)
+class AttachSparseObservationPolicyChange:
+    """Record an explicit short-gap policy after ordinary R1 promotion."""
+
+    evidence_reference: dict[str, Any]
+    correspondence_reference: dict[str, Any]
+    observation_reference: dict[str, Any]
+    expected_tick_schedule: list[int]
+    missing_tick: int
+    inference_id: str
+    temporal_identity: dict[str, Any]
+    source_revision_id: str
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (self.evidence_reference, self.correspondence_reference, self.observation_reference)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        identities = [
+            i
+            for i in document.get("temporal_identities", [])
+            if i["id"] == self.temporal_identity["id"]
+        ]
+        if identities != [self.temporal_identity]:
+            raise DocumentError("Sparse policy Temporal Identity does not match promotion")
+        accepted = {r["id"]: r for r in document["references"]}
+        current_policy = self.evidence_reference["import_metadata"]["provenance"]
+        for reference in accepted.values():
+            if reference.get("media_type") == self.evidence_reference["media_type"]:
+                previous = reference.get("import_metadata", {}).get("provenance", {})
+                if previous.get("temporal_identity_id") == self.temporal_identity["id"] and (
+                    previous.get("expected_tick_schedule")
+                    != current_policy["expected_tick_schedule"]
+                    or previous.get("missing_tick") != self.missing_tick
+                ):
+                    raise DocumentError("Sparse v0 rejects multiple gap policies for one identity")
+        if any(
+            accepted.get(r["id"]) != r
+            for r in (self.correspondence_reference, self.observation_reference)
+        ):
+            raise DocumentError("Sparse policy requires accepted endpoint evidence")
+        if self.evidence_reference["id"] not in accepted:
+            document["references"].append(copy.deepcopy(self.evidence_reference))
+
+
+@dataclass(frozen=True)
 class AttachObservedMotionEvidenceChange:
     """Attach verified observation motion without creating animation state."""
 
@@ -1006,6 +1051,21 @@ class AttachMultiAnchorCameraEvidenceChange:
                 raise DocumentError("Conflicting Camera consensus reference")
             if reference["id"] not in accepted:
                 document["references"].append(copy.deepcopy(reference))
+
+
+@dataclass(frozen=True)
+class AttachSparseCompensatedMotionChange(AttachMultiAnchorCameraEvidenceChange):
+    temporal_identity: dict[str, Any]
+
+    def apply(self, document: dict[str, Any]) -> None:
+        identities = [
+            i
+            for i in document.get("temporal_identities", [])
+            if i["id"] == self.temporal_identity["id"]
+        ]
+        if identities != [self.temporal_identity]:
+            raise DocumentError("STALE_TEMPORAL_IDENTITY: sparse compensation source changed")
+        super().apply(document)
 
 
 MOTION_TARGET_BINDING_POLICY_IDENTITY = "svm-explicit-motion-target-binding@0.1"

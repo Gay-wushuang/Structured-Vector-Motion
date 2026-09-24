@@ -363,6 +363,8 @@ def _read_evidence(snapshot: ArtifactSnapshot) -> dict[str, Any]:
         payload = json.loads(snapshot.content)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ObservedRotationTracksError("Similarity evidence is invalid JSON") from exc
+    from .sparse_camera_compensation import is_sparse_similarity
+
     standard = (
         snapshot.media_type == SIMILARITY_MEDIA_TYPE
         and snapshot.provenance.get("adapter_id") == "adapter:observed-similarity-motion"
@@ -383,7 +385,7 @@ def _read_evidence(snapshot: ArtifactSnapshot) -> dict[str, Any]:
         snapshot.kind != ArtifactKind.DERIVED
         or not isinstance(payload, dict)
         or canonical_bytes(payload) != snapshot.content
-        or not (standard or compensated)
+        or not (standard or compensated or is_sparse_similarity(snapshot, payload))
         or not isinstance(payload.get("temporal_identity_id"), str)
         or not isinstance(payload.get("intervals"), list)
         or not payload["intervals"]

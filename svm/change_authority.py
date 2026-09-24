@@ -16,6 +16,8 @@ from .revisions import (
     AttachObservedMotionEvidenceChange,
     AttachObservedSimilarityEvidenceChange,
     AttachPOPGeometryObservationsChange,
+    AttachSparseCompensatedMotionChange,
+    AttachSparseObservationPolicyChange,
     AttachSVGGeometryObservationsChange,
     BindTemporalMotionTargetChange,
     CreateCameraTransformTrackChange,
@@ -249,6 +251,18 @@ def _verify_camera_consensus(change: Any, resolved: dict[str, ArtifactSnapshot])
     verify_multi_anchor_camera_change(change, resolved)
 
 
+def _verify_sparse_policy(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.sparse_observation import verify_sparse_policy_change
+
+    verify_sparse_policy_change(change, resolved)
+
+
+def _verify_sparse_compensation(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.sparse_camera_compensation import verify_sparse_compensation_change
+
+    verify_sparse_compensation_change(change, resolved)
+
+
 def _verify_geometry_translation(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
     from .adapters.geometry_translation_tracks import verify_geometry_translation_source
 
@@ -451,6 +465,20 @@ CHANGE_AUTHORITIES = {
             frozenset({"attach_camera_compensation"}),
             _single("attach_camera_compensation"),
             _verify_camera_consensus,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            AttachSparseObservationPolicyChange,
+            frozenset({"attach_observed_motion"}),
+            _single("attach_observed_motion"),
+            _verify_sparse_policy,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            AttachSparseCompensatedMotionChange,
+            frozenset({"attach_camera_compensation"}),
+            _single("attach_camera_compensation"),
+            _verify_sparse_compensation,
             _source_revision,
         ),
         ChangeAuthority(

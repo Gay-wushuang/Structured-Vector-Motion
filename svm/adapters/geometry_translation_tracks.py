@@ -44,6 +44,12 @@ from .observed_translation_tracks import (
     _track_definitions,
     _translation_tracks,
 )
+from .sparse_camera_compensation import (
+    SIMILARITY_MEDIA_TYPE as SPARSE_MEDIA_TYPE,
+)
+from .sparse_camera_compensation import (
+    sparse_payloads,
+)
 
 POLICY_IDENTITY = "svm-geometry-correct-translation-authoring@0.1"
 
@@ -94,7 +100,9 @@ class GeometryTranslationTracksAdapter:
         snapshot = artifacts.resolve_reference(reference)
         payload = _read_evidence(snapshot)
         source_ids = (
-            payload["source_artifact_ids"] if snapshot.media_type == COMPENSATED_MEDIA_TYPE else []
+            payload["source_artifact_ids"]
+            if snapshot.media_type in {COMPENSATED_MEDIA_TYPE, SPARSE_MEDIA_TYPE}
+            else []
         )
         source_references = tuple(
             _accepted_reference(request.document, item) for item in source_ids
@@ -212,9 +220,11 @@ def _authored_tracks(
         raise ValueError("Similarity identity does not match explicit Group binding")
     intervals = payload["intervals"]
     camera_by_ticks = None
-    if snapshot.media_type == COMPENSATED_MEDIA_TYPE:
+    if snapshot.media_type in {COMPENSATED_MEDIA_TYPE, SPARSE_MEDIA_TYPE}:
         source_ids = payload["source_artifact_ids"]
-        if set(resolved) != {snapshot.artifact_id, *source_ids} or len(source_ids) != 3:
+        if set(resolved) != {snapshot.artifact_id, *source_ids} or len(source_ids) != (
+            4 if snapshot.media_type == SPARSE_MEDIA_TYPE else 3
+        ):
             raise ValueError("Compensated similarity requires its exact accepted source Artifacts")
         sources = tuple(resolved[item] for item in source_ids)
         from .camera_consensus import one_camera_evidence
@@ -228,18 +238,26 @@ def _authored_tracks(
         ):
             raise ValueError("Compensated similarity source identity mismatch")
         # Verify the accepted compensation result; never treat its bounds delta as matrix b.
-        _, expected = _compensated_payloads(
-            payload["source_revision_id"],
-            payload["temporal_identity_id"],
-            camera,
-            translation,
-            similarity,
-            tuple(source_ids),
+        _, expected = (
+            sparse_payloads(payload["source_revision_id"], sources)
+            if snapshot.media_type == SPARSE_MEDIA_TYPE
+            else _compensated_payloads(
+                payload["source_revision_id"],
+                payload["temporal_identity_id"],
+                camera,
+                translation,
+                similarity,
+                tuple(source_ids),
+            )
         )
         if canonical_bytes(expected) != snapshot.content:
             raise ValueError("Compensated similarity does not match its source Artifacts")
         recover_camera_samples(camera["intervals"])
-        camera_by_ticks = _by_ticks(camera["intervals"])
+        camera_by_ticks = _by_ticks(
+            expected["camera_spans"]
+            if snapshot.media_type == SPARSE_MEDIA_TYPE
+            else camera["intervals"]
+        )
         intervals = similarity["intervals"]
     elif set(resolved) != {snapshot.artifact_id}:
         raise ValueError("Unexpected geometry translation source Artifacts")
