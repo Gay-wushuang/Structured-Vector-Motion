@@ -1,0 +1,228 @@
+{
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1",
+  "document_id": "document:explicit-multi-object-raster-recovery",
+  "references": [
+    {
+      "id": "artifact:0000000000000000000000000000000000000000000000000000000000000000",
+      "uri": "artifact://0000000000000000000000000000000000000000000000000000000000000000",
+      "content_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "media_type": "application/vnd.svm.pop-group-candidates+json;version=0.1",
+      "import_metadata": {
+        "fixture": "synthetic-motion-recovery"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "entity:anchor-a",
+      "name": "entity:anchor-a"
+    },
+    {
+      "id": "entity:anchor-b",
+      "name": "entity:anchor-b"
+    },
+    {
+      "id": "entity:target-a",
+      "name": "entity:target-a"
+    },
+    {
+      "id": "entity:companion-a"
+    },
+    {
+      "id": "entity:target-b",
+      "name": "entity:target-b"
+    },
+    {
+      "id": "entity:companion-b"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group:1111111111111111111111111111111111111111111111111111111111111111",
+      "kind": "explicit-group",
+      "members": [
+        "entity:companion-a",
+        "entity:target-a"
+      ],
+      "transform": {
+        "translate": [
+          0,
+          0
+        ],
+        "rotation_degrees": 0,
+        "scale": 1,
+        "origin": [
+          470,
+          545
+        ]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:2222222222222222222222222222222222222222222222222222222222222222",
+        "inference_id": "inference:group:3333333333333333333333333333333333333333333333333333333333333333",
+        "inference_artifact_id": "artifact:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "id": "group:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "kind": "explicit-group",
+      "members": [
+        "entity:companion-b",
+        "entity:target-b"
+      ],
+      "transform": {
+        "translate": [
+          0,
+          0
+        ],
+        "rotation_degrees": 0,
+        "scale": 1,
+        "origin": [
+          135,
+          545
+        ]
+      },
+      "provenance": {
+        "candidate_id": "candidate:group:4444444444444444444444444444444444444444444444444444444444444444",
+        "inference_id": "inference:group:5555555555555555555555555555555555555555555555555555555555555555",
+        "inference_artifact_id": "artifact:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ],
+  "construction": {
+    "operations": [
+      {
+        "id": "op:raster-0",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 120 130 L 350 140 L 325 240 L 230 320 L 100 260 Z",
+          "bounds": [
+            100,
+            130,
+            350,
+            320
+          ]
+        }
+      },
+      {
+        "id": "op:raster-1",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 760 170 L 960 190 L 1000 340 L 840 400 L 730 290 Z",
+          "bounds": [
+            730,
+            170,
+            1000,
+            400
+          ]
+        }
+      },
+      {
+        "id": "op:raster-2",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 430 500 L 670 510 L 710 630 L 580 750 L 450 660 Z",
+          "bounds": [
+            430,
+            500,
+            710,
+            750
+          ]
+        }
+      },
+      {
+        "id": "op:raster-3",
+        "type": "CreatePath",
+        "inputs": {},
+        "parameters": {
+          "d": "M 90 500 L 300 510 L 330 600 L 260 725 L 100 670 Z",
+          "bounds": [
+            90,
+            500,
+            330,
+            725
+          ]
+        }
+      }
+    ],
+    "output_bindings": [
+      {
+        "entity": "entity:anchor-a",
+        "property": "geometry",
+        "slot": "op:raster-0.geometry"
+      },
+      {
+        "entity": "entity:anchor-b",
+        "property": "geometry",
+        "slot": "op:raster-1.geometry"
+      },
+      {
+        "entity": "entity:target-a",
+        "property": "geometry",
+        "slot": "op:raster-2.geometry"
+      },
+      {
+        "entity": "entity:target-b",
+        "property": "geometry",
+        "slot": "op:raster-3.geometry"
+      }
+    ],
+    "refinement_stages": []
+  },
+  "presentation": {
+    "render_stack": [
+      "entity:anchor-a",
+      "entity:anchor-b",
+      "entity:target-a",
+      "entity:target-b"
+    ],
+    "styles": [
+      {
+        "entity": "entity:anchor-a",
+        "fill": "#000000",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:anchor-b",
+        "fill": "#000000",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:target-a",
+        "fill": "#000000",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      },
+      {
+        "entity": "entity:target-b",
+        "fill": "#000000",
+        "stroke": "none",
+        "stroke_width": 0,
+        "opacity": 1
+      }
+    ],
+    "camera": {
+      "position": [
+        0,
+        0
+      ],
+      "rotation_degrees": 0,
+      "scale": 1
+    }
+  },
+  "constraints": [],
+  "evaluation_policies": [],
+  "edit_permissions": [],
+  "animation": {
+    "content": [],
+    "construction_scheduling_hints": []
+  }
+}

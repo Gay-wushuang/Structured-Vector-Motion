@@ -1,0 +1,139 @@
+{
+  "baseline": "3b80c7bd0e7963b56545a7ac234ab07ba83a6405",
+  "temporal_identities": {
+    "entity:anchor-a": "temporal-identity:932e306465811a86fbfbf8b2df2be8b87bbce6db2ce68450dc71215edc4b9855",
+    "entity:anchor-b": "temporal-identity:24d90f0e86b76ce6666fbdfb0231108cff858feb00f55bc02573ff80ea10f1fc",
+    "entity:target-a": "temporal-identity:7c66d0cc4f75ce026e033c4ca0b4fee21bb1844b4c63fb78e1d3a45506ec67b4",
+    "entity:target-b": "temporal-identity:456e0b959465b51c5971546558a8a5eb7acceec53fa9a6753fba8e5b4e4a2baa"
+  },
+  "camera_hypotheses": [
+    "artifact:5ade4c8be90e6850706b4fdb19ab732f62da945d4cb51d10f2c5b2d891dda70a",
+    "artifact:68d9b81cfead4fe73c6ed0807a7733b544cca5f03778b17fe7c24afa479482bd"
+  ],
+  "shared_camera_consensus": "artifact:40a92c1b9abf3d613e89da95500f2739de1dcf34b88e2ddfe1e5bc5bacf17293",
+  "targets": {
+    "entity:target-a": {
+      "binding_id": "motion-target-binding:079527793e71501db28a93f8bd5173a4ad72831a464294f71a5f06171e88059f",
+      "compensated_artifacts": [
+        "artifact:7fb82af05b5de630e410ae1ed4d78b711284ebecf631c66083dec2cd9a990b16",
+        "artifact:60b854fa3a10714a5876d26ef83e38e05194d0a192e69b136f37f2cf6c7e7829"
+      ]
+    },
+    "entity:target-b": {
+      "binding_id": "motion-target-binding:c36191ca11729e723064cf308b221ee35572faf949dcee1381bf41dcb97c6924",
+      "compensated_artifacts": [
+        "artifact:36438dae036bae6d9c0bf44036f95fd3d023962bb3b937b78bf7baa05c1cef5b",
+        "artifact:cc0097c13614eeb8a71c9fbf015bb40b45ed4852b1997f486892968784aff76a"
+      ]
+    }
+  },
+  "tracks": [
+    {
+      "id": "track:observed-translation:466d9b7873df3be86cca9aaaaa9e5303b1dabecc9d939f7ef36facd6e02d9ae9",
+      "target": {
+        "group": "group:1111111111111111111111111111111111111111111111111111111111111111",
+        "property": "translate.x"
+      }
+    },
+    {
+      "id": "track:observed-translation:71f39480631d46b9eaf27f559807bbe3e8e696b7317ff88306feba88b98bade6",
+      "target": {
+        "group": "group:1111111111111111111111111111111111111111111111111111111111111111",
+        "property": "translate.y"
+      }
+    },
+    {
+      "id": "track:observed-rotation:abe98de07425b746d906bf38840a7edce32773c37ecff21333c77fef2cdce84a",
+      "target": {
+        "group": "group:1111111111111111111111111111111111111111111111111111111111111111",
+        "property": "rotation_degrees"
+      }
+    },
+    {
+      "id": "track:observed-scale:6a9848dfd620cb92a585dbb1ab7bc09b6d0df455da56271250dd851d8ec3da17",
+      "target": {
+        "group": "group:1111111111111111111111111111111111111111111111111111111111111111",
+        "property": "scale"
+      }
+    },
+    {
+      "id": "track:observed-camera:b1ded2f8e7c63700becdeef505f77c7da2a289f9eac4b0d381a3e4d804f41872",
+      "target": {
+        "camera": "presentation",
+        "property": "position.x"
+      }
+    },
+    {
+      "id": "track:observed-camera:65435cc0bc6c45028de3e63b14b774fc848e3f98b60ca6dcbd1ec76402cd037a",
+      "target": {
+        "camera": "presentation",
+        "property": "position.y"
+      }
+    },
+    {
+      "id": "track:observed-camera:b588c84061246c49800481cfd3d352a401e16aa7ae5638f5ff0232a846e435ef",
+      "target": {
+        "camera": "presentation",
+        "property": "rotation_degrees"
+      }
+    },
+    {
+      "id": "track:observed-camera:dfaacff29adbd8a96db3cfdca6619337db665b350d380c9a379fe8fa5f7f77e8",
+      "target": {
+        "camera": "presentation",
+        "property": "scale"
+      }
+    },
+    {
+      "id": "track:observed-translation:d6b45e4262a3c4cf00488798a8399f13a71689da50458ac8433842cc12494654",
+      "target": {
+        "group": "group:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "property": "translate.x"
+      }
+    },
+    {
+      "id": "track:observed-translation:78fd498dca0c8b16f160d75323b546c42238560c0625de3acfbea13ab635e72c",
+      "target": {
+        "group": "group:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "property": "translate.y"
+      }
+    },
+    {
+      "id": "track:observed-rotation:c576184a324a2181849e8d40fbb623bce7fbed7698ead1b8a5913688d66a0982",
+      "target": {
+        "group": "group:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "property": "rotation_degrees"
+      }
+    },
+    {
+      "id": "track:observed-scale:2130300935aefcc1827520876e4be6a31579d00a1413b87c945a95a84ba29997",
+      "target": {
+        "group": "group:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "property": "scale"
+      }
+    }
+  ],
+  "maximum_errors": {
+    "entity:target-a": {
+      "position": 0.678730817526565,
+      "rotation": 0.08591815594999996,
+      "scale": 0.003162973693901172
+    },
+    "entity:target-b": {
+      "position": 0.36945119592632203,
+      "rotation": 0.08181691352000087,
+      "scale": 0.0017557493390647494
+    },
+    "camera": {
+      "position": 0.6247164436618134,
+      "rotation": 0.07788237561,
+      "scale": 0.0009771211600000385
+    }
+  },
+  "maximum_geometry_errors_pixels": {
+    "entity:anchor-a": 0.4798157606251631,
+    "entity:anchor-b": 1.4348757672998185,
+    "entity:target-a": 0.5850286193138365,
+    "entity:target-b": 0.931733660347215
+  }
+}

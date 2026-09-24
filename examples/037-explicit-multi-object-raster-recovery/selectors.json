@@ -1,0 +1,26 @@
+{
+  "0": {
+    "entity:anchor-a": "candidate:component-0001",
+    "entity:anchor-b": "candidate:component-0002",
+    "entity:target-a": "candidate:component-0004",
+    "entity:target-b": "candidate:component-0003"
+  },
+  "12": {
+    "entity:anchor-a": "candidate:component-0001",
+    "entity:anchor-b": "candidate:component-0002",
+    "entity:target-a": "candidate:component-0003",
+    "entity:target-b": "candidate:component-0004"
+  },
+  "24": {
+    "entity:anchor-a": "candidate:component-0001",
+    "entity:anchor-b": "candidate:component-0002",
+    "entity:target-a": "candidate:component-0004",
+    "entity:target-b": "candidate:component-0003"
+  },
+  "36": {
+    "entity:anchor-a": "candidate:component-0001",
+    "entity:anchor-b": "candidate:component-0002",
+    "entity:target-a": "candidate:component-0004",
+    "entity:target-b": "candidate:component-0003"
+  }
+}
