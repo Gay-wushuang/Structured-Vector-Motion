@@ -19,6 +19,7 @@ from .revisions import (
     AttachSparseCompensatedMotionChange,
     AttachSparseObservationPolicyChange,
     AttachSVGGeometryObservationsChange,
+    AttachRasterGeometryObservationsChange,
     BindTemporalMotionTargetChange,
     CreateCameraTransformTrackChange,
     CreateGroupTransformTrackChange,
@@ -275,6 +276,14 @@ def _verify_pop_geometry_observations(change: Any, resolved: dict[str, ArtifactS
     verify_pop_geometry_observations_change(change, resolved)
 
 
+def _verify_raster_geometry_observations(
+    change: Any, resolved: dict[str, ArtifactSnapshot]
+) -> None:
+    from .adapters.raster_geometry_observations import verify_raster_geometry_observations_change
+
+    verify_raster_geometry_observations_change(change, resolved)
+
+
 def _verify_svg_geometry_observations(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
     from .adapters.svg_geometry_observations import verify_svg_geometry_observations_change
 
@@ -414,6 +423,12 @@ CHANGE_AUTHORITIES = {
             frozenset({"attach_pop_geometry_observations"}),
             _single("attach_pop_geometry_observations"),
             _verify_pop_geometry_observations,
+        ),
+        ChangeAuthority(
+            AttachRasterGeometryObservationsChange,
+            frozenset({"attach_analysis"}),
+            _single("attach_analysis"),
+            _verify_raster_geometry_observations,
         ),
         ChangeAuthority(
             AttachSVGGeometryObservationsChange,

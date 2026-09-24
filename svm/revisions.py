@@ -613,6 +613,26 @@ class AttachPOPGeometryObservationsChange:
 
 
 @dataclass(frozen=True)
+class AttachRasterGeometryObservationsChange:
+    """Attach pixel-derived evidence after exact lineage verification."""
+
+    observation_reference: dict[str, Any]
+    source_references: tuple[dict[str, Any], ...]
+    occurrences: tuple[dict[str, Any], ...]
+    policy_identity: str
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (self.observation_reference, *self.source_references)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        accepted = {ref["id"]: ref for ref in document["references"]}
+        if any(accepted.get(ref["id"]) != ref for ref in self.source_references):
+            raise DocumentError("Raster geometry requires accepted exact analysis lineage")
+        AppendReferencesChange((self.observation_reference,)).apply(document)
+
+
+@dataclass(frozen=True)
 class AttachSVGGeometryObservationsChange:
     """Attach verified SVG-derived observation geometry and its exact sources."""
 

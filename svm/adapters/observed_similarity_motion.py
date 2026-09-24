@@ -36,6 +36,9 @@ from .temporal_correspondence import (
 
 MEDIA_TYPE = "application/vnd.svm.observed-similarity-motion+json;version=0.1"
 POLICY_IDENTITY = "svm-geometry-similarity-observation-policy@0.1"
+RASTER_POLICY_IDENTITY = "svm-controlled-raster-similarity-policy@0.1"
+RASTER_SUPPORTED_RESIDUAL = 0.01
+RASTER_RMS_PIXELS = 0.75
 SUPPORTED_RESIDUAL = 1e-6
 UNCERTAIN_RESIDUAL = 0.02
 
@@ -66,6 +69,7 @@ class ObservedSimilarityMotionPreview(ProposalPreview):
 class ObservedSimilarityMotionAdapter:
     adapter_id = "adapter:observed-similarity-motion"
     adapter_version = "0.1"
+    policy_identity = POLICY_IDENTITY
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactRepository) -> Proposal:
         if request.scope not in {(), ("document",)}:
@@ -129,7 +133,7 @@ class ObservedSimilarityMotionAdapter:
         geometry_snapshots = {item.artifact_id: item for item in artifacts.resolve(geometry_ids)}
         _validate_geometry_snapshots(geometry_snapshots)
         intervals = _derive_intervals(
-            identity, selected, correspondence_snapshots, geometry_snapshots
+            identity, selected, correspondence_snapshots, geometry_snapshots, self.policy_identity
         )
         payload = _payload(
             request.base_revision_id,
@@ -137,6 +141,7 @@ class ObservedSimilarityMotionAdapter:
             correspondence_ids,
             geometry_ids,
             intervals,
+            self.policy_identity,
         )
         evidence = artifacts.import_bytes(
             canonical_bytes(payload),
@@ -147,7 +152,7 @@ class ObservedSimilarityMotionAdapter:
                 "adapter_version": self.adapter_version,
                 "engine": "svm-geometry-similarity-observation",
                 "engine_version": OBSERVED_SIMILARITY_MOTION_IDENTITY,
-                "policy_identity": POLICY_IDENTITY,
+                "policy_identity": self.policy_identity,
                 "source_correspondence_artifact_ids": list(correspondence_ids),
                 "source_geometry_artifact_ids": list(geometry_ids),
             },
@@ -171,8 +176,10 @@ class ObservedSimilarityMotionAdapter:
             {
                 "temporal_identity_id": identity_id,
                 "inference_ids": inference_ids,
-                "policy_identity": POLICY_IDENTITY,
-                "supported_residual": SUPPORTED_RESIDUAL,
+                "policy_identity": self.policy_identity,
+                "supported_residual": RASTER_SUPPORTED_RESIDUAL
+                if self.policy_identity == RASTER_POLICY_IDENTITY
+                else SUPPORTED_RESIDUAL,
                 "uncertain_residual": UNCERTAIN_RESIDUAL,
             },
         )
@@ -213,18 +220,28 @@ class ObservedSimilarityMotionAdapter:
         )
 
 
+class RasterObservedSimilarityMotionAdapter(ObservedSimilarityMotionAdapter):
+    """Explicit quantized-pixel policy; exact S4 remains unchanged."""
+
+    adapter_version = "0.2"
+    policy_identity = RASTER_POLICY_IDENTITY
+
+
 def verify_observed_similarity_change(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
     output = resolved.get(change.evidence_reference.get("id"))
     if output is None or output.kind != ArtifactKind.DERIVED or output.media_type != MEDIA_TYPE:
         raise ValueError("Observed similarity output Artifact was not resolved")
     correspondence_ids = tuple(sorted(item["id"] for item in change.correspondence_references))
     geometry_ids = tuple(sorted(item["id"] for item in change.geometry_references))
+    policy = output.provenance.get("policy_identity")
+    if policy not in {POLICY_IDENTITY, RASTER_POLICY_IDENTITY}:
+        raise ValueError("Unsupported similarity measurement policy")
     expected_provenance = {
         "adapter_id": "adapter:observed-similarity-motion",
-        "adapter_version": "0.1",
+        "adapter_version": "0.2" if policy == RASTER_POLICY_IDENTITY else "0.1",
         "engine": "svm-geometry-similarity-observation",
         "engine_version": OBSERVED_SIMILARITY_MOTION_IDENTITY,
-        "policy_identity": POLICY_IDENTITY,
+        "policy_identity": policy,
         "source_correspondence_artifact_ids": list(correspondence_ids),
         "source_geometry_artifact_ids": list(geometry_ids),
     }
@@ -259,7 +276,8 @@ def verify_observed_similarity_change(change: Any, resolved: dict[str, ArtifactS
         identity["id"],
         correspondence_ids,
         geometry_ids,
-        _derive_intervals(identity, selected, correspondences, geometries),
+        _derive_intervals(identity, selected, correspondences, geometries, policy),
+        policy,
     )
     if canonical_bytes(expected) != output.content:
         raise ValueError("Observed similarity evidence does not match frozen geometry")
@@ -270,6 +288,7 @@ def _derive_intervals(
     selected: list[dict[str, Any]],
     correspondences: dict[str, ArtifactSnapshot],
     geometries: dict[str, ArtifactSnapshot],
+    policy: str = POLICY_IDENTITY,
 ) -> list[dict[str, Any]]:
     bindings = {(item["tick"], item["observation_id"]) for item in identity["bindings"]}
     intervals = []
@@ -306,7 +325,21 @@ def _derive_intervals(
         observations = _observation_payload(geometry_snapshot)
         source = _observation(observations, pair[0])
         target = _observation(observations, pair[1])
-        observation = _similarity_observation(source, target)
+        if policy == RASTER_POLICY_IDENTITY:
+            from .raster_geometry_observations import (
+                POLICY_IDENTITY as RASTER_GEOMETRY_POLICY,
+                PRIMITIVE_TYPE,
+            )
+
+            if geometry_snapshot.provenance.get(
+                "geometry_observation_policy"
+            ) != RASTER_GEOMETRY_POLICY or any(
+                item["primitive_type"] != PRIMITIVE_TYPE for item in (source, target)
+            ):
+                raise ObservedSimilarityMotionError(
+                    "Raster measurement requires raster geometry evidence"
+                )
+        observation = _similarity_observation(source, target, policy=policy)
         content = {
             "temporal_identity_id": identity["id"],
             "source_tick": pair[0][0],
@@ -318,7 +351,7 @@ def _derive_intervals(
             "correspondence_inference_id": candidate["inference_id"],
             "correspondence_evidence_artifact_id": correspondence.artifact_id,
             "temporal_identity_promotion_policy_identity": provenance["promotion_policy_identity"],
-            "similarity_observation_policy_identity": POLICY_IDENTITY,
+            "similarity_observation_policy_identity": policy,
             **observation,
         }
         intervals.append(
@@ -339,7 +372,9 @@ def _derive_intervals(
     return intervals
 
 
-def _similarity_observation(source: dict[str, Any], target: dict[str, Any]) -> dict[str, Any]:
+def _similarity_observation(
+    source: dict[str, Any], target: dict[str, Any], *, policy: str = POLICY_IDENTITY
+) -> dict[str, Any]:
     source_geometry = source.get("geometry")
     target_geometry = target.get("geometry")
     if source_geometry is None or target_geometry is None:
@@ -358,7 +393,12 @@ def _similarity_observation(source: dict[str, Any], target: dict[str, Any]) -> d
     if fitted is None:
         return _abstention("degenerate_geometry", source_geometry, target_geometry)
     scale, angle, source_center, target_center, rms, normalized = fitted
-    if normalized <= SUPPORTED_RESIDUAL:
+    supported_threshold = (
+        RASTER_SUPPORTED_RESIDUAL if policy == RASTER_POLICY_IDENTITY else SUPPORTED_RESIDUAL
+    )
+    if normalized <= supported_threshold and (
+        policy != RASTER_POLICY_IDENTITY or rms <= RASTER_RMS_PIXELS
+    ):
         fit_status = "SUPPORTED"
     elif normalized <= UNCERTAIN_RESIDUAL:
         fit_status = "UNCERTAIN"
@@ -404,7 +444,7 @@ def _similarity_observation(source: dict[str, Any], target: dict[str, Any]) -> d
         "fit": {
             "rms_error": _round(rms),
             "normalized_rms": _round(normalized),
-            "supported_threshold": SUPPORTED_RESIDUAL,
+            "supported_threshold": supported_threshold,
             "uncertain_threshold": UNCERTAIN_RESIDUAL,
         },
     }
@@ -515,11 +555,12 @@ def _payload(
     correspondence_ids: tuple[str, ...],
     geometry_ids: tuple[str, ...],
     intervals: list[dict[str, Any]],
+    policy: str = POLICY_IDENTITY,
 ) -> dict[str, Any]:
     return {
         "schema_version": "svm-observed-similarity-motion-0.1",
         "identity": OBSERVED_SIMILARITY_MOTION_IDENTITY,
-        "policy_identity": POLICY_IDENTITY,
+        "policy_identity": policy,
         "source_revision_id": revision_id,
         "temporal_identity_id": identity_id,
         "source_correspondence_artifact_ids": list(correspondence_ids),

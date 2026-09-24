@@ -73,56 +73,8 @@ class OpenCVAnalysisAdapter:
             )
         )
         options = OpenCVAnalysisOptions.from_mapping(request.options)
-        cv2, np = _opencv()
-        width, height, bit_depth, color_type = _png_header(source.content)
-        if width * height > 16_000_000:
-            raise OpenCVAnalysisError("PNG exceeds the 16 megapixel analysis limit")
-        if bit_depth != 8 or color_type != 0:
-            raise OpenCVAnalysisError("OpenCV analysis v0.2 requires an 8-bit opaque grayscale PNG")
-        encoded = np.frombuffer(source.content, dtype=np.uint8)
-        grayscale = cv2.imdecode(encoded, cv2.IMREAD_UNCHANGED)
-        if grayscale is None or grayscale.shape != (height, width) or grayscale.dtype != np.uint8:
-            raise OpenCVAnalysisError("OpenCV could not decode the declared PNG image")
-        comparison = cv2.CMP_LE if options.foreground == "dark" else cv2.CMP_GE
-        mask = cv2.compare(grayscale, options.threshold, comparison)
-        count, labels, stats, centroids = cv2.connectedComponentsWithStats(
-            mask, connectivity=options.connectivity, ltype=cv2.CV_32S
-        )
-        candidates = []
-        for label in range(1, count):
-            x = int(stats[label, cv2.CC_STAT_LEFT])
-            y = int(stats[label, cv2.CC_STAT_TOP])
-            component_width = int(stats[label, cv2.CC_STAT_WIDTH])
-            component_height = int(stats[label, cv2.CC_STAT_HEIGHT])
-            area = int(stats[label, cv2.CC_STAT_AREA])
-            centroid = (
-                _canonical_number(float(centroids[label, 0])),
-                _canonical_number(float(centroids[label, 1])),
-            )
-            component_digest = _component_digest(
-                labels, label, x, y, component_width, component_height
-            )
-            candidates.append(
-                {
-                    "bounds": [x, y, x + component_width, y + component_height],
-                    "pixel_area": area,
-                    "centroid": list(centroid),
-                    "component_digest": component_digest,
-                }
-            )
-        candidates.sort(
-            key=lambda item: (
-                item["bounds"][1],
-                item["bounds"][0],
-                item["bounds"][3],
-                item["bounds"][2],
-                item["pixel_area"],
-                item["centroid"],
-                item["component_digest"],
-            )
-        )
-        for index, candidate in enumerate(candidates, start=1):
-            candidate["candidate_id"] = f"candidate:component-{index:04d}"
+        mask, _, candidates, width, height = analyze_png(source, options)
+        cv2, _ = _opencv()
 
         engine_version = importlib.metadata.version("opencv-python-headless")
         parameters = {
@@ -229,6 +181,63 @@ class OpenCVAnalysisAdapter:
             confidence=None,
             notes="Deterministic pixel analysis; candidates are not Entities",
         )
+
+
+def analyze_png(
+    source: ArtifactSnapshot, options: OpenCVAnalysisOptions
+) -> tuple[Any, Any, list[dict[str, Any]], int, int]:
+    """Shared v0.2 pixel analysis; no Document or Proposal mutation."""
+    _select_source((source,))
+    cv2, np = _opencv()
+    width, height, bit_depth, color_type = _png_header(source.content)
+    if width * height > 16_000_000:
+        raise OpenCVAnalysisError("PNG exceeds the 16 megapixel analysis limit")
+    if bit_depth != 8 or color_type != 0:
+        raise OpenCVAnalysisError("OpenCV analysis v0.2 requires an 8-bit opaque grayscale PNG")
+    encoded = np.frombuffer(source.content, dtype=np.uint8)
+    grayscale = cv2.imdecode(encoded, cv2.IMREAD_UNCHANGED)
+    if grayscale is None or grayscale.shape != (height, width) or grayscale.dtype != np.uint8:
+        raise OpenCVAnalysisError("OpenCV could not decode the declared PNG image")
+    comparison = cv2.CMP_LE if options.foreground == "dark" else cv2.CMP_GE
+    mask = cv2.compare(grayscale, options.threshold, comparison)
+    count, labels, stats, centroids = cv2.connectedComponentsWithStats(
+        mask, connectivity=options.connectivity, ltype=cv2.CV_32S
+    )
+    candidates = []
+    for label in range(1, count):
+        x = int(stats[label, cv2.CC_STAT_LEFT])
+        y = int(stats[label, cv2.CC_STAT_TOP])
+        component_width = int(stats[label, cv2.CC_STAT_WIDTH])
+        component_height = int(stats[label, cv2.CC_STAT_HEIGHT])
+        area = int(stats[label, cv2.CC_STAT_AREA])
+        centroid = (
+            _canonical_number(float(centroids[label, 0])),
+            _canonical_number(float(centroids[label, 1])),
+        )
+        component_digest = _component_digest(labels, label, x, y, component_width, component_height)
+        candidates.append(
+            {
+                "bounds": [x, y, x + component_width, y + component_height],
+                "pixel_area": area,
+                "centroid": list(centroid),
+                "component_digest": component_digest,
+            }
+        )
+    candidates.sort(
+        key=lambda item: (
+            item["bounds"][1],
+            item["bounds"][0],
+            item["bounds"][3],
+            item["bounds"][2],
+            item["pixel_area"],
+            item["centroid"],
+            item["component_digest"],
+        )
+    )
+    for index, candidate in enumerate(candidates, start=1):
+        candidate["candidate_id"] = f"candidate:component-{index:04d}"
+
+    return mask, labels, candidates, width, height
 
 
 def _select_source(snapshots: tuple[ArtifactSnapshot, ...]) -> ArtifactSnapshot:

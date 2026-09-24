@@ -25,6 +25,7 @@ from .camera_compensation import (
 from .camera_compensation import (
     SIMILARITY_MEDIA_TYPE as COMPENSATED_SIMILARITY_MEDIA_TYPE,
 )
+from .observed_similarity_motion import RASTER_POLICY_IDENTITY
 from .observed_similarity_motion import MEDIA_TYPE as SIMILARITY_MEDIA_TYPE
 from .observed_similarity_motion import POLICY_IDENTITY as SIMILARITY_POLICY_IDENTITY
 
@@ -368,10 +369,11 @@ def _read_evidence(snapshot: ArtifactSnapshot) -> dict[str, Any]:
     standard = (
         snapshot.media_type == SIMILARITY_MEDIA_TYPE
         and snapshot.provenance.get("adapter_id") == "adapter:observed-similarity-motion"
-        and snapshot.provenance.get("policy_identity") == SIMILARITY_POLICY_IDENTITY
+        and snapshot.provenance.get("policy_identity")
+        in {SIMILARITY_POLICY_IDENTITY, RASTER_POLICY_IDENTITY}
         and payload.get("schema_version") == "svm-observed-similarity-motion-0.1"
         and payload.get("identity") == "svm-observed-similarity-motion@0.1"
-        and payload.get("policy_identity") == SIMILARITY_POLICY_IDENTITY
+        and payload.get("policy_identity") == snapshot.provenance.get("policy_identity")
     )
     compensated = (
         snapshot.media_type == COMPENSATED_SIMILARITY_MEDIA_TYPE
