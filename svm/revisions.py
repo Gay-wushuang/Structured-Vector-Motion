@@ -1036,6 +1036,14 @@ class AttachCameraCompensationEvidenceChange:
         return (*self.evidence_references, *self.source_references)
 
     def apply(self, document: dict[str, Any]) -> None:
+        from .adapters.camera_compensation import MEASURED_CAMERA_POLICY, _static_anchor
+
+        if any(
+            ref.get("import_metadata", {}).get("provenance", {}).get("policy_identity")
+            == MEASURED_CAMERA_POLICY
+            for ref in self.evidence_references
+        ):
+            _static_anchor(document, self.anchor_entity["id"])
         anchors = [
             item
             for item in document.get("entities", [])

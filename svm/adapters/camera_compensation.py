@@ -24,6 +24,7 @@ TRANSLATION_MEDIA_TYPE = (
 )
 SIMILARITY_MEDIA_TYPE = "application/vnd.svm.camera-compensated-similarity-motion+json;version=0.1"
 CAMERA_POLICY = "svm-static-anchor-camera-similarity@0.1"
+MEASURED_CAMERA_POLICY = "svm-static-anchor-camera-similarity@0.2"
 COMPENSATION_POLICY = "svm-camera-similarity-compensation@0.1"
 
 
@@ -64,7 +65,13 @@ class ObservedCameraSimilarityAdapter:
         geometry_snapshots = tuple(
             artifacts.resolve_reference(item) for item in geometry_references
         )
-        _validate_anchor_geometry(geometry_snapshots, anchor_id)
+        dependencies = camera_geometry_dependencies(similarity, geometry_snapshots)
+        source_references = (
+            reference,
+            *(_accepted_reference(request.document, item) for item in dependencies),
+        )
+        resolved = {ref["id"]: artifacts.resolve_reference(ref) for ref in source_references}
+        _validate_anchor_geometry(geometry_snapshots, anchor_id, similarity, resolved)
         payload = _camera_payload(
             request.base_revision_id, anchor_id, source.artifact_id, similarity
         )
@@ -72,11 +79,11 @@ class ObservedCameraSimilarityAdapter:
             canonical_bytes(payload),
             media_type=CAMERA_MEDIA_TYPE,
             kind=ArtifactKind.DERIVED,
-            provenance=_camera_provenance(source.artifact_id),
+            provenance=_camera_provenance(source.artifact_id, payload["policy_identity"]),
         )
         change = AttachCameraCompensationEvidenceChange(
             (evidence.document_reference(),),
-            (reference, *geometry_references),
+            source_references,
             anchor,
             copy.deepcopy(request.document["animation"]),
             request.base_revision_id,
@@ -90,7 +97,7 @@ class ObservedCameraSimilarityAdapter:
             CameraEvidencePreview(
                 anchor_entity_id=anchor_id, interval_count=len(payload["intervals"])
             ),
-            {"anchor_entity_id": anchor_id, "policy_identity": CAMERA_POLICY},
+            {"anchor_entity_id": anchor_id, "policy_identity": payload["policy_identity"]},
         )
 
 
@@ -217,9 +224,18 @@ def verify_camera_compensation_change(change: Any, resolved: dict[str, ArtifactS
             ]
         )
         similarity = _standard_similarity(source)
+        geometry_ids = similarity["source_geometry_artifact_ids"]
+        geometry_snapshots = tuple(resolved[item] for item in geometry_ids)
+        if {item.artifact_id for item in source_snapshots} != {
+            source.artifact_id,
+            *camera_geometry_dependencies(similarity, geometry_snapshots),
+        }:
+            raise ValueError("Camera similarity dependencies must match exact geometry lineage")
         _validate_anchor_geometry(
-            tuple(item for item in source_snapshots if item.artifact_id != source.artifact_id),
+            geometry_snapshots,
             change.anchor_entity["id"],
+            similarity,
+            resolved,
         )
         expected = _camera_payload(
             change.source_revision_id,
@@ -228,7 +244,7 @@ def verify_camera_compensation_change(change: Any, resolved: dict[str, ArtifactS
             similarity,
         )
         if output_snapshots[0].provenance != _camera_provenance(
-            source.artifact_id
+            source.artifact_id, expected["policy_identity"]
         ) or output_snapshots[0].content != canonical_bytes(expected):
             raise ValueError("Camera similarity evidence does not match static-anchor observations")
         return
@@ -271,6 +287,9 @@ def verify_camera_compensation_change(change: Any, resolved: dict[str, ArtifactS
 
 
 def _camera_payload(revision_id: str, anchor_id: str, source_id: str, similarity: dict) -> dict:
+    from .observed_similarity_motion import RASTER_POLICY_IDENTITY
+
+    measured = similarity.get("policy_identity") == RASTER_POLICY_IDENTITY
     intervals = []
     current = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
     for item in similarity["intervals"]:
@@ -289,7 +308,8 @@ def _camera_payload(revision_id: str, anchor_id: str, source_id: str, similarity
     return {
         "schema_version": "svm-observed-camera-similarity-0.1",
         "identity": "svm-observed-camera-similarity@0.1",
-        "policy_identity": CAMERA_POLICY,
+        "policy_identity": MEASURED_CAMERA_POLICY if measured else CAMERA_POLICY,
+        **({"measurement_policy_identity": RASTER_POLICY_IDENTITY} if measured else {}),
         "source_revision_id": revision_id,
         "anchor_entity_id": anchor_id,
         "source_similarity_artifact_id": source_id,
@@ -458,9 +478,62 @@ def _static_anchor(document: dict, anchor_id: Any) -> dict:
     return copy.deepcopy(matches[0])
 
 
-def _validate_anchor_geometry(snapshots: tuple[ArtifactSnapshot, ...], anchor_id: str) -> None:
+def camera_geometry_dependencies(
+    similarity: dict, snapshots: tuple[ArtifactSnapshot, ...]
+) -> tuple[str, ...]:
+    from .observed_similarity_motion import RASTER_POLICY_IDENTITY
+    from .raster_geometry_observations import raster_source_ids
+
+    geometry_ids = tuple(similarity["source_geometry_artifact_ids"])
+    if similarity.get("policy_identity") != RASTER_POLICY_IDENTITY:
+        return geometry_ids
+    return tuple(
+        sorted({*geometry_ids, *(aid for item in snapshots for aid in raster_source_ids(item))})
+    )
+
+
+def _validate_anchor_geometry(
+    snapshots: tuple[ArtifactSnapshot, ...],
+    anchor_id: str,
+    similarity: dict | None = None,
+    resolved: dict[str, ArtifactSnapshot] | None = None,
+) -> None:
     if not snapshots:
         raise CameraCompensationError("Camera evidence lacks anchor geometry lineage")
+    from .observed_similarity_motion import RASTER_POLICY_IDENTITY
+
+    if similarity is not None and similarity.get("policy_identity") == RASTER_POLICY_IDENTITY:
+        from .observed_similarity_motion import (
+            _observation,
+            _observation_payload,
+            _similarity_observation,
+        )
+        from .raster_geometry_observations import verify_raster_observation
+
+        if resolved is None:
+            raise CameraCompensationError("Measured Camera requires complete pixel lineage")
+        geometries = {snapshot.artifact_id: snapshot for snapshot in snapshots}
+        for snapshot in snapshots:
+            verify_raster_observation(snapshot, resolved)
+        for interval in similarity["intervals"]:
+            geometry = _observation_payload(geometries[interval["source_geometry_artifact_id"]])
+            source = _observation(
+                geometry, (interval["source_tick"], interval["source_observation_id"])
+            )
+            target = _observation(
+                geometry, (interval["target_tick"], interval["target_observation_id"])
+            )
+            expected = _similarity_observation(source, target, policy=RASTER_POLICY_IDENTITY)
+            content = {key: value for key, value in interval.items() if key != "interval_id"}
+            if (
+                any(interval.get(key) != value for key, value in expected.items())
+                or interval.get("similarity_observation_policy_identity") != RASTER_POLICY_IDENTITY
+                or interval.get("interval_id") != _id("observed-similarity-interval", content)
+            ):
+                raise CameraCompensationError(
+                    "Measured Camera similarity does not match raster observations"
+                )
+        return
     for snapshot in snapshots:
         if snapshot.provenance.get("shape_id") != anchor_id:
             raise CameraCompensationError("Camera similarity evidence belongs to another anchor")
@@ -470,6 +543,24 @@ def _standard_similarity(snapshot: ArtifactSnapshot) -> dict:
     payload = _json(snapshot)
     if snapshot.media_type != "application/vnd.svm.observed-similarity-motion+json;version=0.1":
         raise CameraCompensationError("Camera anchor requires accepted S4 similarity evidence")
+    from .observed_similarity_motion import RASTER_POLICY_IDENTITY
+
+    if payload.get("policy_identity") == RASTER_POLICY_IDENTITY:
+        from .observed_rotation_tracks import _read_evidence
+
+        _read_evidence(snapshot)
+        if snapshot.provenance != {
+            "adapter_id": "adapter:observed-similarity-motion",
+            "adapter_version": "0.2",
+            "engine": "svm-geometry-similarity-observation",
+            "engine_version": "svm-observed-similarity-motion@0.1",
+            "policy_identity": RASTER_POLICY_IDENTITY,
+            "source_correspondence_artifact_ids": payload["source_correspondence_artifact_ids"],
+            "source_geometry_artifact_ids": payload["source_geometry_artifact_ids"],
+        }:
+            raise CameraCompensationError(
+                "Measured Camera requires verified raster similarity provenance"
+            )
     return payload
 
 
@@ -579,13 +670,13 @@ def _accepted_reference(document: dict, artifact_id: str) -> dict:
     return copy.deepcopy(matches[0])
 
 
-def _camera_provenance(source_id: str) -> dict:
+def _camera_provenance(source_id: str, policy: str = CAMERA_POLICY) -> dict:
     return {
         "adapter_id": "adapter:observed-camera-similarity",
-        "adapter_version": "0.1",
+        "adapter_version": "0.2" if policy == MEASURED_CAMERA_POLICY else "0.1",
         "engine": "svm-static-anchor-camera-similarity",
         "engine_version": "svm-static-anchor-camera-similarity@0.1",
-        "policy_identity": CAMERA_POLICY,
+        "policy_identity": policy,
         "source_similarity_artifact_id": source_id,
     }
 

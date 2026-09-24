@@ -16,7 +16,7 @@ from ..revisions import (
     Transaction,
     VerifyObservedCameraTracksSourceChange,
 )
-from .camera_compensation import CAMERA_MEDIA_TYPE, CAMERA_POLICY
+from .camera_compensation import CAMERA_MEDIA_TYPE, CAMERA_POLICY, MEASURED_CAMERA_POLICY
 
 POLICY_IDENTITY = "svm-verified-observed-camera-authoring@0.1"
 ADAPTER_ID = "adapter:observed-camera-tracks"
@@ -283,17 +283,27 @@ def _read_single_evidence(snapshot: ArtifactSnapshot) -> dict[str, Any]:
         snapshot.kind != ArtifactKind.DERIVED
         or snapshot.media_type != CAMERA_MEDIA_TYPE
         or snapshot.provenance.get("adapter_id") != "adapter:observed-camera-similarity"
-        or snapshot.provenance.get("policy_identity") != CAMERA_POLICY
+        or snapshot.provenance.get("policy_identity") not in {CAMERA_POLICY, MEASURED_CAMERA_POLICY}
         or not isinstance(payload, dict)
         or canonical_bytes(payload) != snapshot.content
         or payload.get("schema_version") != "svm-observed-camera-similarity-0.1"
         or payload.get("identity") != "svm-observed-camera-similarity@0.1"
-        or payload.get("policy_identity") != CAMERA_POLICY
+        or payload.get("policy_identity") != snapshot.provenance.get("policy_identity")
         or not isinstance(payload.get("anchor_entity_id"), str)
         or not isinstance(payload.get("source_similarity_artifact_id"), str)
         or not isinstance(payload.get("intervals"), list)
     ):
         raise ObservedCameraTracksError("Camera authoring requires canonical S9B evidence")
+    if payload["policy_identity"] == MEASURED_CAMERA_POLICY:
+        from .camera_compensation import _camera_provenance
+        from .observed_similarity_motion import RASTER_POLICY_IDENTITY
+
+        if payload.get(
+            "measurement_policy_identity"
+        ) != RASTER_POLICY_IDENTITY or snapshot.provenance != _camera_provenance(
+            payload["source_similarity_artifact_id"], MEASURED_CAMERA_POLICY
+        ):
+            raise ObservedCameraTracksError("Measured Camera evidence provenance is invalid")
     return payload
 
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import itertools
+import math
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any
@@ -11,12 +13,14 @@ from ..proposals import AdapterRequest, Proposal, ProposalPreview
 from ..revisions import AttachMultiAnchorCameraEvidenceChange
 from .camera_compensation import (
     CAMERA_MEDIA_TYPE,
+    MEASURED_CAMERA_POLICY,
     CameraCompensationError,
     _accepted_reference,
     _id,
     _json,
     _proposal,
     _static_anchor,
+    camera_geometry_dependencies,
     verify_camera_compensation_change,
 )
 
@@ -26,6 +30,10 @@ SCHEMA = "svm-camera-consensus-0.1"
 IDENTITY = "svm-camera-consensus@0.1"
 ADAPTER_ID = "adapter:multi-anchor-camera-consensus"
 TOLERANCE = 1e-8
+MEASURED_POLICY = "svm-controlled-raster-camera-agreement@0.1"
+POSITION_TOLERANCE = 2.5
+ROTATION_TOLERANCE = 0.2
+SCALE_RATIO_TOLERANCE = 0.003
 MATRICES = ("relative_view_transform", "source_view_transform", "target_view_transform")
 
 
@@ -40,10 +48,14 @@ class MultiAnchorCameraConsensusAdapter:
     adapter_version = "0.1"
 
     def propose(self, request: AdapterRequest, artifacts: ArtifactRepository) -> Proposal:
-        if request.scope not in {(), ("document",)} or set(request.options) != {
-            "anchor_entity_ids"
-        }:
+        if request.scope not in {(), ("document",)} or set(request.options) not in (
+            {"anchor_entity_ids"},
+            {"anchor_entity_ids", "agreement_policy"},
+        ):
             raise CameraCompensationError("Consensus requires explicit anchor_entity_ids")
+        policy = request.options.get("agreement_policy", POLICY)
+        if policy not in {POLICY, MEASURED_POLICY}:
+            raise CameraCompensationError("Unsupported Camera agreement policy")
         ids = canonical_anchor_ids(request.options["anchor_entity_ids"])
         if len(request.artifact_ids) != len(ids) or len(set(request.artifact_ids)) != len(ids):
             raise CameraCompensationError("Consensus requires one distinct evidence per anchor")
@@ -59,11 +71,16 @@ class MultiAnchorCameraConsensusAdapter:
             ref = _accepted_reference(request.document, similarity_id)
             similarity = artifacts.resolve_reference(ref)
             references[similarity_id], snapshots[similarity_id] = ref, similarity
-            for geometry_id in _json(similarity).get("source_geometry_artifact_ids", []):
+            similarity_payload = _json(similarity)
+            geometry_snapshots = tuple(
+                artifacts.resolve_reference(_accepted_reference(request.document, aid))
+                for aid in similarity_payload["source_geometry_artifact_ids"]
+            )
+            for geometry_id in camera_geometry_dependencies(similarity_payload, geometry_snapshots):
                 ref = _accepted_reference(request.document, geometry_id)
                 references[geometry_id] = ref
                 snapshots[geometry_id] = artifacts.resolve_reference(ref)
-        payload = consensus_payload(request.base_revision_id, ids, snapshots)
+        payload = consensus_payload(request.base_revision_id, ids, snapshots, policy=policy)
         evidence = artifacts.import_bytes(
             canonical_bytes(payload),
             media_type=MEDIA_TYPE,
@@ -83,7 +100,7 @@ class MultiAnchorCameraConsensusAdapter:
             (evidence,),
             change,
             CameraConsensusPreview(anchor_entity_ids=ids, interval_count=len(payload["intervals"])),
-            {"anchor_entity_ids": list(ids), "policy_identity": POLICY},
+            {"anchor_entity_ids": list(ids), "policy_identity": policy},
         )
 
 
@@ -131,7 +148,7 @@ def read_camera_evidence(snapshot: ArtifactSnapshot) -> dict[str, Any]:
         or snapshot.kind != ArtifactKind.DERIVED
         or payload.get("schema_version") != SCHEMA
         or payload.get("identity") != IDENTITY
-        or payload.get("policy_identity") != POLICY
+        or payload.get("policy_identity") not in {POLICY, MEASURED_POLICY}
         or canonical_bytes(payload) != snapshot.content
     ):
         raise CameraCompensationError("Unsupported Camera evidence contract")
@@ -147,7 +164,7 @@ def read_camera_evidence(snapshot: ArtifactSnapshot) -> dict[str, Any]:
         or len(set(payload["source_camera_evidence_artifact_ids"])) != len(ids)
         or payload.get("anchor_entity_ids") != list(ids)
         or payload.get("representative") != supports[0]
-        or payload.get("agreement_absolute_tolerance") != TOLERANCE
+        or not _valid_agreement_contract(payload)
         or snapshot.provenance != consensus_provenance(payload)
     ):
         raise CameraCompensationError("Invalid consensus provenance")
@@ -171,8 +188,8 @@ def one_camera_evidence(snapshots: tuple[ArtifactSnapshot, ...]) -> dict[str, An
 def consensus_provenance(payload: dict) -> dict:
     return {
         "adapter_id": ADAPTER_ID,
-        "adapter_version": "0.1",
-        "policy_identity": POLICY,
+        "adapter_version": "0.2" if payload["policy_identity"] == MEASURED_POLICY else "0.1",
+        "policy_identity": payload["policy_identity"],
         "anchor_entity_ids": payload["anchor_entity_ids"],
         "supporting_hypotheses": payload["supporting_hypotheses"],
         "source_camera_evidence_artifact_ids": payload["source_camera_evidence_artifact_ids"],
@@ -180,20 +197,51 @@ def consensus_provenance(payload: dict) -> dict:
 
 
 def consensus_payload(
-    revision_id: str, anchor_ids: tuple[str, ...], sources: dict[str, ArtifactSnapshot]
+    revision_id: str,
+    anchor_ids: tuple[str, ...],
+    sources: dict[str, ArtifactSnapshot],
+    *,
+    policy: str = POLICY,
 ) -> dict:
     from .observed_camera_tracks import recover_camera_samples
 
+    if policy not in {POLICY, MEASURED_POLICY}:
+        raise CameraCompensationError("Unsupported Camera agreement policy")
     hypotheses = []
     used = set()
+    measurement_identities: set[str] = set()
+    measurement_occurrences: set[str] = set()
     for source in sources.values():
         if source.media_type != CAMERA_MEDIA_TYPE:
             continue
         camera = read_single_camera(source)
+        if (camera["policy_identity"] == MEASURED_CAMERA_POLICY) != (policy == MEASURED_POLICY):
+            raise CameraCompensationError("Camera measurement policy must match agreement policy")
         similarity_id = camera["source_similarity_artifact_id"]
         similarity = sources[similarity_id]
+        if policy == MEASURED_POLICY:
+            measured = _json(similarity)
+            occurrences = {
+                item[key]
+                for item in measured["intervals"]
+                for key in ("source_observation_id", "target_observation_id")
+            }
+            if (
+                measured["temporal_identity_id"] in measurement_identities
+                or occurrences & measurement_occurrences
+            ):
+                raise CameraCompensationError(
+                    "Measured anchors require independent observation lineages"
+                )
+            measurement_identities.add(measured["temporal_identity_id"])
+            measurement_occurrences.update(occurrences)
         geometry_ids = _json(similarity)["source_geometry_artifact_ids"]
-        dependency_ids = [similarity_id, *geometry_ids]
+        dependency_ids = [
+            similarity_id,
+            *camera_geometry_dependencies(
+                _json(similarity), tuple(sources[aid] for aid in geometry_ids)
+            ),
+        ]
         verify_camera_compensation_change(
             SimpleNamespace(
                 evidence_references=(source.document_reference(),),
@@ -220,10 +268,16 @@ def consensus_payload(
     intervals = []
     for index, reference in enumerate(representative):
         for key in MATRICES:
-            for coefficient in range(6):
-                values = [c["intervals"][index][key][coefficient] for _, _, c in hypotheses]
-                if max(values) - min(values) > TOLERANCE:
-                    raise CameraCompensationError("Camera hypotheses disagree; consensus rejected")
+            matrices = [c["intervals"][index][key] for _, _, c in hypotheses]
+            if policy == MEASURED_POLICY:
+                _verify_measured_agreement(matrices)
+            else:
+                for coefficient in range(6):
+                    values = [matrix[coefficient] for matrix in matrices]
+                    if max(values) - min(values) > TOLERANCE:
+                        raise CameraCompensationError(
+                            "Camera hypotheses disagree; consensus rejected"
+                        )
         content = {
             "source_tick": reference["source_tick"],
             "target_tick": reference["target_tick"],
@@ -232,19 +286,23 @@ def consensus_payload(
                 c["intervals"][index]["interval_id"] for _, _, c in hypotheses
             ],
             "supporting_hypotheses": supports,
-            "policy_identity": POLICY,
+            "policy_identity": policy,
         }
         intervals.append({"interval_id": _id("camera-consensus-interval", content), **content})
     return {
         "schema_version": SCHEMA,
         "identity": IDENTITY,
-        "policy_identity": POLICY,
+        "policy_identity": policy,
         "source_revision_id": revision_id,
         "anchor_entity_ids": list(anchor_ids),
         "source_camera_evidence_artifact_ids": [e for _, e, _ in hypotheses],
         "supporting_hypotheses": supports,
         "representative": supports[0],
-        "agreement_absolute_tolerance": TOLERANCE,
+        **(
+            {"agreement_tolerances": _measured_tolerances()}
+            if policy == MEASURED_POLICY
+            else {"agreement_absolute_tolerance": TOLERANCE}
+        ),
         "intervals": intervals,
     }
 
@@ -266,7 +324,10 @@ def verify_multi_anchor_camera_change(change: Any, resolved: dict[str, ArtifactS
     if len(outputs) == 1 and outputs[0].media_type == MEDIA_TYPE:
         if outputs[0].kind != ArtifactKind.DERIVED:
             raise ValueError("Consensus must be a Derived Artifact")
-        expected = consensus_payload(change.source_revision_id, ids, sources)
+        policy = _json(outputs[0]).get("policy_identity")
+        if not isinstance(policy, str):
+            raise ValueError("Consensus requires an explicit agreement policy")
+        expected = consensus_payload(change.source_revision_id, ids, sources, policy=policy)
         if outputs[0].content != canonical_bytes(expected) or outputs[
             0
         ].provenance != consensus_provenance(expected):
@@ -278,3 +339,43 @@ def verify_multi_anchor_camera_change(change: Any, resolved: dict[str, ArtifactS
     if len(outputs) != 2 or len(sources) != 3:
         raise ValueError("Consensus compensation requires exactly three sources and two outputs")
     verify_camera_compensation_change(change, resolved)
+
+
+def _measured_tolerances() -> dict[str, float]:
+    return {
+        "position_pixels": POSITION_TOLERANCE,
+        "rotation_degrees": ROTATION_TOLERANCE,
+        "scale_ratio": SCALE_RATIO_TOLERANCE,
+    }
+
+
+def _valid_agreement_contract(payload: dict) -> bool:
+    if payload["policy_identity"] == MEASURED_POLICY:
+        return (
+            payload.get("agreement_tolerances") == _measured_tolerances()
+            and "agreement_absolute_tolerance" not in payload
+        )
+    return (
+        payload.get("agreement_absolute_tolerance") == TOLERANCE
+        and "agreement_tolerances" not in payload
+    )
+
+
+def _verify_measured_agreement(matrices: list) -> None:
+    from .observed_camera_tracks import recover_camera_state
+
+    states = [recover_camera_state(matrix) for matrix in matrices]
+    for left, right in itertools.combinations(states, 2):
+        position = math.hypot(
+            left["position.x"] - right["position.x"], left["position.y"] - right["position.y"]
+        )
+        rotation = abs((left["rotation_degrees"] - right["rotation_degrees"] + 180) % 360 - 180)
+        scale = max(left["scale"], right["scale"]) / min(left["scale"], right["scale"]) - 1
+        if (
+            position > POSITION_TOLERANCE
+            or rotation > ROTATION_TOLERANCE
+            or scale > SCALE_RATIO_TOLERANCE
+        ):
+            raise CameraCompensationError(
+                "Camera hypotheses disagree under measured agreement policy"
+            )
