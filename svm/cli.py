@@ -672,9 +672,53 @@ def command_promote_components(args: argparse.Namespace) -> dict[str, Any]:
     return result
 
 
+def command_ingest_video(args: argparse.Namespace) -> dict[str, Any]:
+    from .video_ingestion import VideoSampling, ingest_video
+
+    output = Path(args.output_directory)
+    if output.exists():
+        raise CliError("Video output directory must not already exist")
+    fps = None
+    if args.source_fps is not None:
+        parts = args.source_fps.split("/")
+        if len(parts) != 2:
+            raise CliError("source-fps must be NUMERATOR/DENOMINATOR")
+        fps = (int(parts[0]), int(parts[1]))
+    artifacts = ArtifactStore()
+    source = artifacts.import_bytes(Path(args.video).read_bytes(), media_type="video/x-msvideo")
+    result = ingest_video(
+        artifacts,
+        source.document_reference(),
+        VideoSampling(tuple(args.frame_index), args.ticks_per_second, fps),
+    )
+    output.mkdir(parents=True)
+    (output / "source.avi").write_bytes(source.content)
+    (output / "frame-manifest.json").write_bytes(result.manifest.content)
+    for frame in result.frames:
+        (output / (frame.content_hash.removeprefix("sha256:") + ".png")).write_bytes(frame.content)
+    return {
+        "manifest": result.manifest.document_reference(),
+        "output_directory": str(output),
+        "occurrences": list(result.occurrences),
+        "frame_count": len(result.frames),
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="svm", description="SVM v0.1 reference CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    video = subparsers.add_parser(
+        "ingest-video", help="extract explicit controlled AVI/FFV1 frames"
+    )
+    video.add_argument("video")
+    video.add_argument("--frame-index", type=int, action="append", required=True)
+    video.add_argument("--ticks-per-second", type=int, required=True)
+    video.add_argument(
+        "--source-fps", help="optional exact AVI FPS assertion: numerator/denominator"
+    )
+    video.add_argument("--output-directory", required=True)
+    video.set_defaults(handler=command_ingest_video)
 
     validate = subparsers.add_parser("validate", help="validate schema and semantics")
     validate.add_argument("document", type=Path)

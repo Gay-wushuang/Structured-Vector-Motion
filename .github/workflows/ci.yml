@@ -39,6 +39,9 @@ jobs:
       - name: Type check
         run: python -m pyright
 
+      - name: Verify controlled AVI FFV1 ingestion on this platform
+        run: python -m unittest discover -s tests -p test_video_ingestion.py -v
+
       - name: Run tests
         run: python -m unittest discover -s tests -v
 
