@@ -704,6 +704,14 @@ def command_ingest_video(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def command_demo_phase1(args: argparse.Namespace) -> dict[str, Any]:
+    from .phase1_demo import load_config, run_demo
+
+    root = Path(__file__).resolve().parents[1]
+    config = load_config(root, args.config)
+    return run_demo(root, config, Path(args.output_directory), replace=args.replace)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="svm", description="SVM v0.1 reference CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -719,6 +727,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     video.add_argument("--output-directory", required=True)
     video.set_defaults(handler=command_ingest_video)
+
+    demo = subparsers.add_parser(
+        "demo-phase1",
+        help="run the Controlled Video -> Editable SVM v0 demonstration",
+    )
+    demo.add_argument("--config", help="optional demo configuration locator")
+    demo.add_argument("--output-directory", required=True)
+    demo.add_argument(
+        "--replace",
+        action="store_true",
+        help="explicitly replace an existing demo output directory",
+    )
+    demo.set_defaults(handler=command_demo_phase1)
 
     validate = subparsers.add_parser("validate", help="validate schema and semantics")
     validate.add_argument("document", type=Path)
