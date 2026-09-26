@@ -302,6 +302,39 @@ a deterministic fixture; replacing it with an AI does not widen acceptance
 authority. See `spec/25-editor-anchored-regeneration.md` and
 `tests/test_editor_motion.py`.
 
+## Phase 1 demo and D1 freeze
+
+The Phase 1 demonstrator packages the proven recovery chain into one reproducible
+command:
+
+```text
+real AVI/FFV1
+-> deterministic video ingestion
+-> explicit raster observations -> temporal identity evidence
+-> observed translation / similarity evidence
+-> multi-anchor Camera consensus -> camera compensation
+-> explicit Motion Target Binding -> 12 ordinary editable SVM Tracks
+-> ordinary Revision / Transaction Keyframe edit
+-> MotionEvaluator -> SVG re-render
+```
+
+```powershell
+svm demo-phase1 --output-directory build/phase1-demo
+```
+
+It adds no recovery semantics: it calls S11D ingestion, the frozen S11A/S11B/S11C
+adapters, ordinary Document/Revision authoring, `MotionEvaluator` and
+`SVGRenderer`. It requires no Ground Truth at run time, yields one ordinary
+12-Track Document, and proves that one explicit edit changes only its intended
+Target/tick while the unrelated Target B and the Camera stay unchanged. See
+`examples/039-controlled-video-editable-svm/README.md`.
+
+- `spec/60-phase1-d1-freeze.md` — the D1 freeze record: guarantees, non-claims
+  and change control.
+- `spec/61-d2-showcase-packaging.md` — the D2 showcase specification (a
+  projection of D1 evidence, not a new inference stage). Specification only;
+  not yet implemented.
+
 ## Development
 
 Install the project and development tools in editable mode:
