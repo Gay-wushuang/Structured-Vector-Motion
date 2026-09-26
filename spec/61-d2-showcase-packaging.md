@@ -26,7 +26,8 @@ in the D1 artifacts, D2 shows nothing rather than deriving it.
 
 ## What a person must be able to see
 
-1. **Input video** — play the real recovered input (`source/scene.avi`).
+1. **Input** — reach the authoritative input (`source/scene.avi`) and preview it
+   in the browser through the existing canonical D1 PNG Frames.
 2. **Recovered result** — the recovered Document's re-rendered Frames.
 3. **Edited result** — the edited Document's re-rendered Frames.
 4. **What the edit changed** — the exact Target, property, tick, before/after
@@ -59,9 +60,53 @@ in the D1 artifacts, D2 shows nothing rather than deriving it.
 
 Because browsers restrict `fetch()`/XHR on `file://`, the showcase's runtime
 data must not depend on those APIs. The projection index is embedded at
-generation time (for example an inline JSON block in `index.html`), and D1 media
-is loaded through native relative references (`<video>`, `<img>`, download
-links).
+generation time (for example an inline JSON block in `index.html`); the browser
+loads D1 media through ordinary relative references — `<img>` elements, or
+`img.src` changes in JS, for the rendered SVG and PNG Frames, plus download
+links for the Documents and the input video. No server, no `fetch()` and no
+runtime API is introduced.
+
+## Input media: authoritative source versus browser preview
+
+### Authoritative input
+
+`source/scene.avi` remains the original, authoritative D1 video artifact: it is
+the recovery input and the D1 provenance anchor. The showcase must:
+
+- provide a direct relative link to that file;
+- display the already-recorded D1 metadata for it — container, codec and
+  dimensions — read from `report.json` (`input.container`, `input.codec`,
+  `input.width`, `input.height`, plus related `input.*` fields).
+
+The original AVI is never replaced, transcoded or superseded as the source of
+truth.
+
+### Browser-visible input preview
+
+Native browser playback of AVI/FFV1 is not a supported or reliable capability:
+FFV1 is not a codec a general web browser can be depended on to decode. The
+browser-visible input preview is therefore built only from D1 artifacts that
+already exist:
+
+- the canonical frames `frames/<sha256>.png`;
+- the frame/tick relationship from `report.json` (`input.tick_mapping`) and the
+  verified `source/video-manifest.json`.
+
+The showcase presents these as a simple frame/tick selector or a frame-sequence
+playback. The preview must not:
+
+- re-decode the AVI;
+- transcode to MP4/WebM or any other video format;
+- generate a new video derivative;
+- invoke recovery or ingestion;
+- infer anything from pixels;
+- derive the PNG/tick relationship from anywhere except the existing D1
+  report/manifest.
+
+A `<video>` element pointed at the original AVI is permitted only as best-effort
+native playback. It must never be a portability or acceptance guarantee: if the
+browser cannot play FFV1, the showcase must remain fully usable through the PNG
+frame preview.
 
 ## Proposed artifact layout
 
@@ -104,10 +149,10 @@ may be deleted at any time.
 
 | D1 file | D2 usage |
 | --- | --- |
-| `source/scene.avi` | **Direct reference** — input video playback element. |
+| `source/scene.avi` | **Direct reference** — authoritative input; direct relative link with D1 metadata, optional best-effort `<video>` playback, never a required preview. |
 | `rendered/recovered/tick_0NN.svg` | **Direct reference** — recovered Frame images. |
 | `rendered/edited/tick_0NN.svg` | **Direct reference** — edited Frame images. |
-| `frames/<sha256>.png` | **Direct reference** — optional input-frame thumbnails. |
+| `frames/<sha256>.png` | **Direct reference** — primary browser-visible input preview, joined to ticks via `report.json`/manifest. |
 | `documents/recovered.svm.json` | **Direct reference** — optional inspect/download link; never modified. |
 | `documents/edited.svm.json` | **Direct reference** — optional inspect/download link; never modified. |
 | `report.json` | **Read at generation time** — the only source for the derived projection values below. |
@@ -129,20 +174,42 @@ Rules:
 
 ### Projection index (proposed minimal contents)
 
-All fields are copied from `report.json` unless noted; none are inferred.
+Every field is copied verbatim from `report.json` or resolved by pure lookup in
+it, except the two explicitly marked D2 generator metadata items. No value is
+inferred or recomputed.
+
+D2 generator metadata (not present in `report.json`):
 
 - generator identity and D2 `schema_version`;
-- the D1 bundle's relative location and the D1 report identity;
-- input video relative path, container, codec, dimensions and the frame/tick
-  mapping (`input.tick_mapping`);
-- the edit record: role, property, tick, track ID, keyframe ID, before, after,
-  delta, base Revision ID, edited Revision ID, document hash;
-- the validation summary: `track_count`, `changed_ticks`,
-  `re_rendered_changed_ticks`, `other_targets_unchanged`, `camera_unchanged`,
-  `edited_target_other_properties_unchanged`;
-- the recovered Track summary (`recovery.scene_summary`);
-- relative artifact pointers for the three Documents, the two rendered
-  directories and the source video.
+- the D1 bundle's relative location and the D1 report identity.
+
+Copied from `report.json`:
+
+- input metadata and frame/tick mapping: `input.container`, `input.codec`,
+  `input.width`, `input.height`, `input.frame_count`, `input.selected_frames`,
+  `input.tick_mapping`;
+- the edit record: `edit.role`, `edit.property`, `edit.tick`, `edit.track_id`,
+  `edit.keyframe_id`, `edit.before`, `edit.after`, `edit.delta`,
+  `edit.base_revision_id`, `edit.revision_id`, `edit.document_hash`;
+- the validation summary: `validation.track_count_expected`,
+  `validation.track_count_observed`, `validation.edited_target`,
+  `validation.edited_group`, `validation.edited_tick`,
+  `validation.changed_ticks`, `validation.re_rendered_changed_ticks`,
+  `validation.other_targets_unchanged`, `validation.camera_unchanged`,
+  `validation.edited_target_other_properties_unchanged`,
+  `validation.recovered_revision_id`, `validation.edited_revision_id`;
+- the recovered Track count and summary: `recovery.track_count`,
+  `recovery.track_ids`, `recovery.scene_summary`;
+- relative artifact pointers from `outputs`: `recovered_document`,
+  `edited_document`, `recovered_rendered`, `edited_rendered`, the source video and
+  the canonical frames.
+
+The D1 bundle contains exactly **two** ordinary SVM Documents
+(`documents/recovered.svm.json` and `documents/edited.svm.json`); the config and
+manifest are provenance sidecars, not Documents. There is no
+`validation.track_count` field — the track counts are
+`validation.track_count_expected`, `validation.track_count_observed` and
+`recovery.track_count`.
 
 ## Acceptance criteria
 
@@ -151,26 +218,37 @@ all of the following hold.
 
 1. **Bundle-only generation.** The showcase can be generated from a completed
    D1 bundle alone, using no other input.
-2. **No recovery adapters invoked.** Generating the showcase imports and calls
-   no recovery adapter, ingestion or the D1 orchestrator. A test can assert this
-   by patching those entry points to fail.
-3. **No Ground Truth required.** Generation and viewing succeed with
+2. **Authoritative source reachable.** `source/scene.avi` remains the
+   authoritative input and is directly reachable from the showcase through a
+   relative link, with its D1 metadata (container, codec, dimensions) displayed.
+3. **Browser preview without FFV1 support.** The browser-visible input preview
+   works using the existing canonical D1 PNG Frames joined to ticks through the
+   D1 report/manifest. Browser support for AVI/FFV1 is **not** required, and the
+   showcase stays fully usable when the browser cannot play FFV1.
+4. **No transcoding or derivative video.** Generation produces no MP4/WebM or
+   other video derivative and does not re-decode the AVI.
+5. **No recovery or ingestion invoked.** Generating the showcase imports and
+   calls no recovery adapter, ingestion or the D1 orchestrator. A test can assert
+   this by patching those entry points to fail.
+6. **No Ground Truth required.** Generation and viewing succeed with
    `ground-truth.json` and `verification.json` absent or forbidden.
-4. **D1 Documents remain byte-identical.** The recovered and edited Documents
-   (and every other declared D1 file) are byte-identical before and after
-   generation.
-5. **Derived from existing D1 artifacts.** Every displayed motion, transform and
+7. **No Document mutation; D1 byte-identical.** The recovered and edited
+   Documents, and every other declared D1 file, are byte-identical before and
+   after generation.
+8. **Derived from existing D1 artifacts.** Every displayed motion, transform and
    render value comes from an existing D1 artifact; nothing is recomputed.
-6. **Identifiable edit.** A person can visually identify the one edited tick and
-   property, and confirm the before/after values.
-7. **Unchanged subjects shown unchanged.** The unrelated Target and the Camera
-   are visibly presented as unchanged, consistent with the D1 validation
-   summary.
-8. **No absolute machine paths.** No generated file contains an absolute
-   machine path.
-9. **Deterministic output.** Repeated generation from the same D1 bundle
-   produces equivalent, byte-identical output.
-10. **Deletion-safe.** Deleting the showcase directory leaves the D1 bundle
+9. **Recovered versus edited comparison.** A person can compare the recovered
+   and edited rendered Frames for each tick, including a before/after toggle.
+10. **Identifiable edit.** A person can visually identify the one edited tick and
+    property, and confirm the before/after values.
+11. **Unchanged subjects shown unchanged.** The unrelated Target B and the Camera
+    are visibly presented as unchanged, consistent with the D1 validation
+    summary.
+12. **No absolute machine paths.** No generated file contains an absolute machine
+    path.
+13. **Deterministic output.** Repeated generation from the same D1 bundle
+    produces equivalent, byte-identical output.
+14. **Deletion-safe.** Deleting the showcase directory leaves the D1 bundle
     intact and still re-generable.
 
 Browser automation is **not** required unless the repository already has
@@ -198,7 +276,7 @@ svm showcase-phase1 --bundle <completed-d1-bundle> --output <showcase-dir>
 - one CLI subcommand in `svm/cli.py`;
 - one test (`tests/test_phase1_showcase.py`) that generates a D1 bundle through
   the existing demo entry point, generates the showcase, and asserts acceptance
-  criteria 1–10 above without browser automation.
+  criteria 1–14 above without browser automation.
 
 No implementation is part of this freeze step; D2 remains specification-only
 until that slice is explicitly scheduled.
