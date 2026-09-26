@@ -62,23 +62,52 @@ class RecoveryConfig:
         """Return the explicit component selector for one tick and role."""
         try:
             return self.selectors[str(tick)][role]
-        except KeyError as exc:
+        except (KeyError, TypeError) as exc:
             raise RecoveryOrchestrationError(
                 f"Missing explicit selector for tick {tick} role {role}"
             ) from exc
 
     def validate(self) -> None:
-        if len(self.ticks) < 2 or tuple(sorted(set(self.ticks))) != self.ticks:
-            raise RecoveryOrchestrationError("Ticks must be increasing and unique")
-        if self.ticks_per_second <= 0:
-            raise RecoveryOrchestrationError("ticks_per_second must be positive")
-        if not self.anchors or len(self.targets) != len(self.groups):
+        if (
+            not isinstance(self.ticks, tuple)
+            or len(self.ticks) < 2
+            or any(type(tick) is not int or tick < 0 for tick in self.ticks)
+            or tuple(sorted(set(self.ticks))) != self.ticks
+        ):
+            raise RecoveryOrchestrationError("Ticks must be nonnegative increasing unique integers")
+        if type(self.ticks_per_second) is not int or self.ticks_per_second <= 0:
+            raise RecoveryOrchestrationError("ticks_per_second must be a positive integer")
+        if (
+            any(
+                not isinstance(values, tuple)
+                for values in (self.anchors, self.targets, self.groups)
+            )
+            or not self.anchors
+            or not self.targets
+            or len(self.targets) != len(self.groups)
+        ):
             raise RecoveryOrchestrationError(
-                "Recovery requires anchors and one explicit group per target"
+                "Recovery requires anchors, targets and one explicit group per target"
+            )
+        roles = (*self.anchors, *self.targets)
+        if (
+            any(not isinstance(value, str) or not value for value in (*roles, *self.groups))
+            or len(set(roles)) != len(roles)
+            or len(set(self.groups)) != len(self.groups)
+        ):
+            raise RecoveryOrchestrationError(
+                "Recovery roles and target groups must be distinct IDs"
             )
         for tick in self.ticks:
-            for role in (*self.anchors, *self.targets):
-                self.selector(tick, role)
+            selected = [self.selector(tick, role) for role in roles]
+            if any(not isinstance(value, str) or not value for value in selected):
+                raise RecoveryOrchestrationError(
+                    "Explicit selectors must be nonempty component IDs"
+                )
+            if len(set(selected)) != len(selected):
+                raise RecoveryOrchestrationError(
+                    "Roles must select distinct components at each tick"
+                )
 
 
 @dataclass
@@ -323,6 +352,7 @@ def author_recovered_document(
     state: RecoveryState, config: RecoveryConfig
 ) -> tuple[dict[str, Any], list[Proposal]]:
     """Author all twelve Tracks: Target A, four Camera Tracks, Target B."""
+    config.validate()
     proposals = author_target_tracks(state, config.targets[0], config)
     proposals.append(
         _accept(

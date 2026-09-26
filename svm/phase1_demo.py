@@ -19,6 +19,9 @@ from __future__ import annotations
 
 import json
 import shutil
+import stat
+import tempfile
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -207,16 +210,133 @@ def _render_document(
     return {str(tick): renderer.render(evaluator.evaluate(tick).scene) for tick in ticks}
 
 
+def _resolved_output_path(path: Path) -> Path:
+    """Reject links/reparse points before resolving, including existing ancestors."""
+    try:
+        absolute = path.absolute()
+        for part in (absolute, *absolute.parents):
+            try:
+                info = part.lstat()
+            except FileNotFoundError:
+                continue
+            if stat.S_ISLNK(info.st_mode) or (
+                getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT
+            ):
+                raise DemoError("Demo output safety: links and reparse points are not allowed")
+        return absolute.resolve()
+    except (OSError, RuntimeError, ValueError) as exc:
+        if isinstance(exc, DemoError):
+            raise
+        raise DemoError("Demo output safety: cannot safely resolve path") from exc
+
+
+def _contains_directory(parent: Path, child: Path) -> bool:
+    """Canonical containment, including Windows namespace/drive aliases."""
+    if child.is_relative_to(parent):
+        return True
+    try:
+        parent.stat()
+    except FileNotFoundError:
+        return False
+    for ancestor in (child, *child.parents):
+        try:
+            if parent.samefile(ancestor):
+                return True
+        except FileNotFoundError:
+            continue
+    return False
+
+
+def _validate_output(root: Path, config: DemoConfig, output: Path, replace: bool) -> Path:
+    output = _resolved_output_path(output)
+    try:
+        repository = root.resolve(strict=True)
+        cwd = Path.cwd().resolve(strict=True)
+        protected = [(repository / "examples").resolve(strict=True)]
+        protected.extend(
+            (root / locator).resolve(strict=True).parent
+            for locator in (
+                config.video_locator,
+                config.base_document_locator,
+                config.selectors_locator,
+            )
+        )
+        if (
+            output == Path(output.anchor)
+            or _contains_directory(output, repository)
+            or _contains_directory(output, cwd)
+            or any(
+                _contains_directory(p, output) or _contains_directory(output, p) for p in protected
+            )
+        ):
+            raise DemoError("Demo output safety: protected directory")
+        if output.exists():
+            if not output.is_dir():
+                raise DemoError("Demo output directory must be a directory")
+            if not replace:
+                raise DemoError("Demo output directory must not already exist")
+    except (OSError, RuntimeError) as exc:
+        raise DemoError("Demo output safety: cannot verify protected paths") from exc
+    return output
+
+
 def run_demo(
     root: Path, config: DemoConfig, output: Path, *, replace: bool = False
 ) -> dict[str, Any]:
-    """Run the complete demonstration and write a deterministic output bundle."""
+    """Build privately, then publish with a same-parent rename/rollback boundary."""
     config.validate()
-    if output.exists():
-        if not replace:
-            raise DemoError("Demo output directory must not already exist")
-        shutil.rmtree(output)
-    output.mkdir(parents=True)
+    output = _validate_output(root, config, output, replace)
+    selectors = json.loads((root / config.selectors_locator).read_text(encoding="utf-8"))
+    config.recovery(selectors).validate()
+    json.loads((root / config.base_document_locator).read_text(encoding="utf-8"))
+    VideoSampling(config.frame_indices, config.ticks_per_second).validate()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=f".{output.name}-staging-", dir=output.parent))
+    pending, previous = staging / "bundle", staging / "previous"
+    preserve_backup = False
+    published = False
+    try:
+        report = _build_bundle(root, config, pending)
+        # Recheck after the long-running build, before touching the old bundle.
+        _validate_output(root, config, output, replace)
+        try:
+            if output.exists():
+                output.rename(previous)
+            pending.rename(output)
+        except BaseException as exc:
+            # Roll back interruptions as well as filesystem errors: cleanup must
+            # never delete the only surviving copy of the previous bundle.
+            if previous.exists():
+                try:
+                    previous.rename(output)
+                except OSError as rollback_error:
+                    preserve_backup = True
+                    raise DemoError(
+                        f"Demo publication rollback failed; original bundle retained at {previous}"
+                    ) from rollback_error
+            if isinstance(exc, OSError):
+                raise DemoError("Demo publication failed; original output preserved") from exc
+            raise
+        published = True
+        return report
+    finally:
+        if not published and previous.exists():
+            preserve_backup = True
+        if not preserve_backup:
+            try:
+                if _resolved_output_path(staging) != staging or staging.parent != output.parent:
+                    raise DemoError("Demo output safety: cannot safely clean staging directory")
+                shutil.rmtree(staging)
+            except OSError:
+                if not published:
+                    raise
+                # Publication has committed. A cleanup error must not masquerade
+                # as failed recovery or destroy the successfully published output.
+                warnings.warn("Demo published; staging cleanup requires attention", stacklevel=2)
+
+
+def _build_bundle(root: Path, config: DemoConfig, output: Path) -> dict[str, Any]:
+    """Build only inside the private staging directory; no publication authority."""
 
     video_path = root / config.video_locator
     base_document = json.loads((root / config.base_document_locator).read_text(encoding="utf-8"))

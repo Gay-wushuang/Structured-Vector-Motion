@@ -30,6 +30,38 @@ The output directory must not already exist. Pass `--replace` to explicitly
 replace it. `--config` selects an alternative configuration locator; the default
 is `examples/039-controlled-video-editable-svm/config/phase1-demo.json`.
 
+Output publication has a separate safety contract, including with `--replace`:
+
+- Canonical path containment rejects the repository root and its ancestors,
+  the current working directory and its ancestors, filesystem/drive roots,
+  and any overlap with the repository's `examples` tree or configured input
+  directories. Directory identity checks also cover Windows namespace/drive
+  aliases. A normal `build/phase1-demo` output is allowed.
+- Output paths and their existing ancestors must not be symbolic links or
+  Windows reparse points (including junctions). Unresolvable or inaccessible
+  paths fail closed with `DemoError`, reported by the CLI as exit code 2.
+- Configuration, input locations and output safety are checked before creating
+  a private staging directory in the output's parent. All recovery, editing,
+  rendering, validation and bundle writes finish there before publication.
+- For replacement, the completed staging bundle is published by first renaming
+  the old output into a private backup, then renaming the new bundle to output.
+  If the second rename fails, the old directory is restored. Failed staging
+  leaves the old output byte-identical and removes the incomplete staging tree.
+
+Replacing a nonempty directory is not a single atomic rename on all supported
+platforms: readers may briefly see no final directory between the two renames.
+This is an exception rollback strategy, not a crash/power-loss transaction or
+support for concurrent writers. If the filesystem also refuses rollback, the
+original bundle is retained in the backup location reported by `DemoError`;
+it is never deleted during failed publication. After publication commits, a
+backup-cleanup failure emits a warning and retains the successfully published
+bundle. Staging names and absolute paths never enter the report or bundle.
+
+Recovery configuration requires at least one anchor and one target, distinct
+roles, one distinct Group per target, increasing nonnegative integer ticks, a
+positive integer timebase and complete explicit component selectors. Invalid
+configuration fails at the orchestration boundary before authoring any Tracks.
+
 The command prints the machine-readable report to stdout and returns exit code 2
 with a JSON error object on stderr if any check fails.
 
