@@ -332,8 +332,8 @@ Target/tick while the unrelated Target B and the Camera stay unchanged. See
 - `spec/60-phase1-d1-freeze.md` — the D1 freeze record: guarantees, non-claims
   and change control.
 - `spec/61-d2-showcase-packaging.md` — the D2 showcase specification (a
-  projection of D1 evidence, not a new inference stage). Specification only;
-  not yet implemented.
+  projection of D1 evidence, not a new inference stage). The minimal static,
+  offline projection is available through `svm showcase-phase1`.
 
 ## Development
 

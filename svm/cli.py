@@ -712,6 +712,12 @@ def command_demo_phase1(args: argparse.Namespace) -> dict[str, Any]:
     return run_demo(root, config, Path(args.output_directory), replace=args.replace)
 
 
+def command_showcase_phase1(args: argparse.Namespace) -> dict[str, Any]:
+    from .phase1_showcase import generate_showcase
+
+    return generate_showcase(Path(args.bundle), Path(args.output))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="svm", description="SVM v0.1 reference CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -740,6 +746,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="explicitly replace an existing demo output directory",
     )
     demo.set_defaults(handler=command_demo_phase1)
+
+    showcase = subparsers.add_parser(
+        "showcase-phase1",
+        help="project a completed D1 bundle into a static Phase 1 showcase",
+    )
+    showcase.add_argument("--bundle", required=True)
+    showcase.add_argument("--output", required=True)
+    showcase.set_defaults(handler=command_showcase_phase1)
 
     validate = subparsers.add_parser("validate", help="validate schema and semantics")
     validate.add_argument("document", type=Path)

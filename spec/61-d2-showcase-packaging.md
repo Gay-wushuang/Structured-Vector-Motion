@@ -1,6 +1,6 @@
 # D2 — Human-readable Phase 1 Showcase Packaging
 
-Status: specification only, not implemented. D2 adds no recovery, inference,
+Status: minimal projection implemented. D2 adds no recovery, inference,
 Document, Change Authority, evaluation or rendering semantics. It consumes a
 completed D1 evidence bundle and projects it into a human-readable showcase.
 
@@ -262,9 +262,9 @@ Revision changes, a server, a runtime API, new dependencies, an alternate
 renderer, or any Phase 2 capability. It does not change `MotionEvaluator`,
 `SVGRenderer`, or any frozen Phase 1 adapter.
 
-## Suggested minimal implementation slice
+## Implemented minimal slice
 
-A smallest implementation that satisfies this specification:
+The implemented command is:
 
 ```text
 svm showcase-phase1 --bundle <completed-d1-bundle> --output <showcase-dir>
@@ -278,5 +278,5 @@ svm showcase-phase1 --bundle <completed-d1-bundle> --output <showcase-dir>
   the existing demo entry point, generates the showcase, and asserts acceptance
   criteria 1–14 above without browser automation.
 
-No implementation is part of this freeze step; D2 remains specification-only
-until that slice is explicitly scheduled.
+This slice remains a static evidence projection. Visual polish and any broader
+presentation work require separate scope and must preserve the boundary above.
