@@ -309,6 +309,47 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
                 bad = replace(self.with_change(proposal, changed), base_revision_id=self.store.head)
                 self.fails_atomically(lambda bad=bad: self.accept(bad))
 
+    def test_malformed_nonfinite_and_boolean_payloads_reject_atomically(self):
+        proposal = self.propose()
+        change = proposal.transaction.changes[0]
+        original_document = self.store.get_document(self.store.head)
+        original_analysis = self.analysis
+        original_manifest = self.manifest
+        analysis_nan = json.loads(original_analysis.content)
+        analysis_nan["threshold"]["value"] = float("nan")
+        manifest_infinity = json.loads(original_manifest.content)
+        manifest_infinity["sampling"]["ticks_per_second"] = float("inf")
+        manifest_boolean = json.loads(original_manifest.content)
+        manifest_boolean["sampling"]["frame_indices"][0] = True
+        cases = (
+            (original_analysis, "analysis_artifact_id", b"{"),
+            (original_manifest, "manifest_artifact_id", b"{"),
+            (original_analysis, "analysis_artifact_id", canonical_bytes(analysis_nan)),
+            (original_manifest, "manifest_artifact_id", canonical_bytes(manifest_infinity)),
+            (original_manifest, "manifest_artifact_id", canonical_bytes(manifest_boolean)),
+        )
+        for original, field, content in cases:
+            with self.subTest(field=field, content=content):
+                self.store = RevisionStore.create(original_document)
+                self.analysis = original_analysis
+                self.manifest = original_manifest
+                altered = self.artifacts.import_bytes(
+                    content,
+                    media_type=original.media_type,
+                    kind=original.kind,
+                    provenance=original.provenance,
+                )
+                self.replace_accepted(original, altered)
+                refs = tuple(
+                    altered.document_reference() if ref["id"] == original.artifact_id else ref
+                    for ref in change.source_references
+                )
+                changed = replace(change, source_references=refs, **{field: altered.artifact_id})
+                forged = replace(
+                    self.with_change(proposal, changed), base_revision_id=self.store.head
+                )
+                self.fails_atomically(lambda forged=forged: self.accept(forged))
+
     def test_manifest_raster_and_tick_tampering(self):
         original = self.manifest
         document = self.store.get_document(self.store.head)
@@ -434,6 +475,106 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
         self.fails_atomically(lambda: self.accept(forged))
         self.accept_refs(extra)
         self.fails_atomically(lambda: self.accept(proposal))
+
+    def test_p2a_acceptance_stales_existing_revision_bound_group_candidate(self):
+        import tests.test_pop_group_candidates as qv1
+        from svm.adapters import (
+            POPGroupCandidateAdapter,
+            POPGroupPromotionAdapter,
+            POPStructureAdapter,
+        )
+        from svm.adapters.pop_group_promotion import POPGroupPromotionError
+        from svm.adapters.pop_structure import ANALYSIS_MEDIA_TYPE, MASK_BUNDLE_MEDIA_TYPE
+
+        setup = qv1.POPGroupCandidatesGoldenQv1Test()
+        setup.setUp()
+        artifacts = setup.artifacts
+        pop_revision_id = setup.store.revisions[setup.q0_revision.revision_id].parent_ids[0]
+        store = RevisionStore.create(setup.store.get_document(pop_revision_id))
+
+        source = artifacts.import_bytes(FIXTURE.read_bytes(), media_type="video/x-msvideo")
+        video = ingest_video(artifacts, source.document_reference(), VideoSampling((1,), 12))
+        store.commit(
+            store.head,
+            Transaction(
+                "transaction:p2a-stale-lineage",
+                (
+                    AppendReferencesChange(
+                        tuple(
+                            snapshot.document_reference()
+                            for snapshot in (source, *video.frames, video.manifest)
+                        )
+                    ),
+                ),
+            ),
+        )
+        analysis_proposal = OpenCVAnalysisAdapter().propose(
+            AdapterRequest.from_store(
+                store,
+                store.head,
+                ("document",),
+                artifact_ids=(video.frames[0].artifact_id,),
+            ),
+            artifacts,
+        )
+        ProposalAcceptor().accept(store, analysis_proposal, artifacts)
+        analysis_id = analysis_proposal.preview_artifacts[1].artifact_id
+
+        pop_input_ids = tuple(
+            reference["id"]
+            for reference in store.get_document(store.head)["references"]
+            if reference["media_type"]
+            in {
+                "application/vnd.svm.pop-token-prefix+json",
+                "application/vnd.svm.pop-output+json",
+            }
+        )
+        q0 = POPStructureAdapter().propose(
+            AdapterRequest.from_store(store, store.head, ("document",), artifact_ids=pop_input_ids),
+            artifacts,
+        )
+        ProposalAcceptor().accept(store, q0, artifacts)
+        q0_ids = tuple(
+            preview.artifact_id
+            for preview in q0.preview_artifacts
+            if preview.media_type in {MASK_BUNDLE_MEDIA_TYPE, ANALYSIS_MEDIA_TYPE}
+        )
+
+        inference = POPGroupCandidateAdapter().propose(
+            AdapterRequest.from_store(store, store.head, ("document",), artifact_ids=q0_ids),
+            artifacts,
+        )
+        inference_revision = ProposalAcceptor().accept(store, inference, artifacts)
+        inference_id = inference.preview_artifacts[0].artifact_id
+        payload = json.loads(artifacts.get(inference_id).content)
+        candidate = next(item for item in payload["candidates"] if item["status"] == "SUPPORTED")
+
+        def promotion_request():
+            return AdapterRequest.from_store(
+                store,
+                store.head,
+                ("document",),
+                artifact_ids=(inference_id,),
+                options={"candidate_ids": [candidate["candidate_id"]]},
+            )
+
+        promotable = POPGroupPromotionAdapter().propose(promotion_request(), artifacts)
+        ProposalAcceptor().validate(store, promotable, artifacts)
+        self.assertEqual(store.head, inference_revision.revision_id)
+
+        p2a = RasterPrimitiveObservationProposalAdapter().propose(
+            AdapterRequest.from_store(
+                store,
+                store.head,
+                ("document",),
+                artifact_ids=(analysis_id, video.manifest.artifact_id),
+            ),
+            artifacts,
+        )
+        p2a_revision = ProposalAcceptor().accept(store, p2a, artifacts)
+        self.assertEqual(store.head, p2a_revision.revision_id)
+        with self.assertRaisesRegex(POPGroupPromotionError, "STALE_CANDIDATE"):
+            POPGroupPromotionAdapter().propose(promotion_request(), artifacts)
 
     def test_measurements_fail_closed_and_exact_area_edge_boundaries(self):
         import cv2
