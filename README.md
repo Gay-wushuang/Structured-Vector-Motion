@@ -302,7 +302,10 @@ a deterministic fixture; replacing it with an AI does not widen acceptance
 authority. See `spec/25-editor-anchored-regeneration.md` and
 `tests/test_editor_motion.py`.
 
-## Phase 1 demo and D1 freeze
+## Phase 1 — FINAL / FROZEN
+
+Phase 1 is final and frozen at the implementation baseline
+`0caae5b8061bfd12901bdb0898f171d4ad5d48a4`.
 
 The Phase 1 demonstrator packages the proven recovery chain into one reproducible
 command:
@@ -334,6 +337,9 @@ Target/tick while the unrelated Target B and the Camera stay unchanged. See
 - `spec/61-d2-showcase-packaging.md` — the D2 showcase specification (a
   projection of D1 evidence, not a new inference stage). The minimal static,
   offline projection is available through `svm showcase-phase1`.
+- `spec/62-phase1-final-freeze.md` — the Phase 1 final freeze record:
+  implementation baseline, verified pipeline, D1/D2 acceptance, and the
+  conservative Phase 1 non-claims.
 
 ## Development
 
@@ -362,3 +368,13 @@ not yet an editor or production renderer.
 
 See `spec/04-invariant-coverage.md` for the distinction between implemented,
 fail-closed, and specification-only normative behavior.
+
+### Local environment note
+
+Phase 1 is verified against an isolated project-local Python environment. The
+ignored, machine-local `.venv` can be contaminated — for example, resolving part
+of the Python standard library through a separate installation — and then fail to
+import `pyexpat` with a Windows DLL access error, which makes every
+XML-dependent test error. That is a local interpreter/environment issue, not a
+Phase 1 product defect; use the isolated project-local environment to reproduce
+the full-suite result.
