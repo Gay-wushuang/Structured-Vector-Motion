@@ -32,8 +32,8 @@ SCHEMA = "svm-raster-primitive-observation-proposal-0.1"
 MEDIA = "application/vnd.svm.raster-primitive-observation-proposal+json;version=0.1"
 REASONS = (
     "NO_CONTOUR",
-    "MULTIPLE_CONTOURS",
     "HAS_HOLE",
+    "MULTIPLE_CONTOURS",
     "DEGENERATE_CONTOUR",
     "AREA_BELOW_256",
     "CANONICALIZATION_FAILED",
@@ -49,6 +49,10 @@ class RasterPrimitiveObservationProposalError(ValueError):
 
 def _digest(value: Any) -> str:
     return hashlib.sha256(canonical_bytes(value)).hexdigest()[:32]
+
+
+def _identity_digest(value: Any) -> str:
+    return hashlib.sha256(canonical_bytes(value)).hexdigest()
 
 
 def measure_component(mask: Any) -> dict[str, Any]:
@@ -129,15 +133,15 @@ def _dependencies(
                 "P2A requires analysis and video manifest"
             )
         data, video = json.loads(analysis.content), json.loads(manifest.content)
-        ids = {
-            analysis_id,
-            manifest_id,
-            data["source_artifact_id"],
-            data["binary_mask_artifact_id"],
-            video["source_video_reference"]["id"],
-        }
-        ids.update(o["raster_artifact_id"] for o in video["occurrences"])
-        refs = tuple(references[aid] for aid in sorted(ids))
+        raster_ids = [occurrence["raster_artifact_id"] for occurrence in video["occurrences"]]
+        if data["source_artifact_id"] not in raster_ids:
+            raise RasterPrimitiveObservationProposalError(
+                "P2A requires exactly one matching video occurrence"
+            )
+        ordered_ids = [manifest_id, video["source_video_reference"]["id"], *raster_ids]
+        ordered_ids.extend((analysis_id, data["binary_mask_artifact_id"]))
+        ids = tuple(dict.fromkeys(ordered_ids))
+        refs = tuple(references[aid] for aid in ids)
         scratch = ArtifactStore()
         for ref in refs:
             snapshot = artifacts.resolve_reference(ref)
@@ -256,17 +260,16 @@ def derive(
             "component_digest": component["component_digest"],
         }
         identity.pop("analysis_options")
-        identity.pop("source_timestamp")
         evaluations.append(
             {
                 **result,
                 "component_id": component["candidate_id"],
                 "component_digest": component["component_digest"],
                 "evaluation_id": "evaluation:primitive-observation:"
-                + _digest(
+                + _identity_digest(
                     {**identity, "status": result["status"], "reason_codes": result["reason_codes"]}
                 ),
-                "candidate_id": "candidate:primitive-observation:" + _digest(identity)
+                "candidate_id": "candidate:primitive-observation:" + _identity_digest(identity)
                 if result["status"] != "REJECTED"
                 else None,
                 "provenance": {

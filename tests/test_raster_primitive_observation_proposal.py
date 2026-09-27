@@ -23,7 +23,9 @@ from svm.revisions import AppendReferencesChange, AttachRasterPrimitiveObservati
 from svm.video_ingestion import VideoSampling, canonical_frame_png, ingest_video
 
 ROOT = Path(__file__).resolve().parents[1]
-FIXTURE = ROOT / "examples/040-raster-primitive-observation-proposal/scene.avi"
+FIXTURE_DIR = ROOT / "examples/040-raster-primitive-observation-proposal"
+FIXTURE = FIXTURE_DIR / "scene.avi"
+REPEATED_FIXTURE = FIXTURE_DIR / "repeated.avi"
 
 
 class RasterPrimitiveObservationProposalTest(unittest.TestCase):
@@ -118,26 +120,34 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
         data = json.loads(evidence.content)
         self.assertEqual((evidence.kind, evidence.media_type), (ArtifactKind.DERIVED, MEDIA))
         self.assertEqual(data["schema_version"], SCHEMA)
-        self.assertEqual(data["status_counts"], {"SUPPORTED": 1, "UNCERTAIN": 1, "REJECTED": 2})
+        self.assertEqual(data["status_counts"], {"SUPPORTED": 1, "UNCERTAIN": 1, "REJECTED": 1})
         entries = data["evaluations"]
         self.assertEqual(
             [e["component_id"] for e in entries],
-            [f"candidate:component-{i:04}" for i in range(1, 5)],
+            [f"candidate:component-{i:04}" for i in range(1, 4)],
         )
-        self.assertEqual(
-            [e["status"] for e in entries], ["SUPPORTED", "UNCERTAIN", "REJECTED", "REJECTED"]
-        )
+        self.assertEqual([e["status"] for e in entries], ["SUPPORTED", "UNCERTAIN", "REJECTED"])
         self.assertEqual(entries[0]["reason_codes"], [])
         self.assertEqual(entries[1]["reason_codes"], ["AMBIGUOUS_LANDMARK_ORIGIN"])
-        self.assertEqual(entries[2]["reason_codes"], ["HAS_HOLE"])
-        self.assertEqual(entries[3]["reason_codes"], ["AREA_BELOW_256"])
+        self.assertEqual(entries[2]["reason_codes"], ["AREA_BELOW_256"])
+        self.assertEqual(entries[0]["measurements"]["contour_area"], 2390.0)
+        self.assertEqual(entries[0]["measurements"]["simplified_vertex_count"], 4)
+        self.assertEqual(entries[0]["measurements"]["minimum_edge_pixels"], 40.0)
+        self.assertEqual(entries[0]["measurements"]["longest_edge_margin_pixels"], 20.0)
+        self.assertEqual(entries[1]["measurements"]["contour_area"], 600.0)
+        self.assertEqual(entries[1]["measurements"]["simplified_vertex_count"], 3)
+        self.assertEqual(entries[1]["measurements"]["minimum_edge_pixels"], 20.0)
+        self.assertAlmostEqual(
+            entries[1]["measurements"]["longest_edge_margin_pixels"], 3.245553203367585
+        )
+        self.assertEqual(entries[2]["measurements"]["contour_area"], 128.0)
+        self.assertIsNotNone(entries[0]["candidate_id"])
+        self.assertIsNotNone(entries[1]["candidate_id"])
+        self.assertIsNone(entries[2]["candidate_id"])
         self.assertEqual(data["proposed_candidates"], entries[:2])
         _, labels, _, _, _ = analyze_png(self.video.frames[0], OpenCVAnalysisOptions())
-        selected = np.where(labels == labels[10, 10], 255, 0).astype(np.uint8)
+        selected = np.where(labels == labels[30, 30], 255, 0).astype(np.uint8)
         self.assertEqual(entries[0]["ordered_landmarks"], contour_landmarks(selected))
-        self.assertEqual(
-            entries[0]["ordered_landmarks"], [[25.0, 65.0], [90.0, 10.0], [10.0, 10.0]]
-        )
         self.assertEqual(data["occurrence_provenance"]["frame_index"], 1)
         self.assertEqual(data["occurrence_provenance"]["tick"], 12)
         self.assertEqual(data["occurrence_provenance"]["source_timestamp"], [1, 1])
@@ -149,14 +159,10 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
         b = self.artifacts.get(second.preview_artifacts[0].artifact_id)
         self.assertEqual(a.content, b.content)
         for entry in json.loads(a.content)["evaluations"]:
-            identity = {
-                k: v
-                for k, v in entry["provenance"].items()
-                if k not in {"analysis_options", "source_timestamp"}
-            }
+            identity = {k: v for k, v in entry["provenance"].items() if k != "analysis_options"}
 
             def digest(value):
-                return hashlib.sha256(canonical_bytes(value)).hexdigest()[:32]
+                return hashlib.sha256(canonical_bytes(value)).hexdigest()
 
             if entry["status"] != "REJECTED":
                 self.assertEqual(
@@ -172,12 +178,27 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
                 ),
             )
             self.assertRegex(
-                entry["evaluation_id"], r"^evaluation:primitive-observation:[0-9a-f]{32}$"
+                entry["evaluation_id"], r"^evaluation:primitive-observation:[0-9a-f]{64}$"
             )
             if entry["candidate_id"] is not None:
                 self.assertRegex(
-                    entry["candidate_id"], r"^candidate:primitive-observation:[0-9a-f]{32}$"
+                    entry["candidate_id"], r"^candidate:primitive-observation:[0-9a-f]{64}$"
                 )
+
+    def test_verification_references_follow_normative_order(self):
+        proposal = self.propose()
+        change = proposal.transaction.changes[0]
+        analysis = json.loads(self.analysis.content)
+        expected = (
+            proposal.preview_artifacts[0].artifact_id,
+            self.manifest.artifact_id,
+            self.source.artifact_id,
+            self.video.frames[0].artifact_id,
+            self.analysis.artifact_id,
+            analysis["binary_mask_artifact_id"],
+        )
+        self.assertEqual(tuple(ref["id"] for ref in change.references), expected)
+        self.assertEqual(proposal.required_artifact_ids, expected)
 
     def test_preview_then_accept_only_appends_evidence(self):
         before = self.state()
@@ -305,23 +326,48 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
         import numpy as np
 
         gray = cv2.imdecode(np.frombuffer(self.video.frames[0].content, np.uint8), 0)
-        gray[90:101, 120:131] = 255
+        gray[210:227, 30:47] = 255
         frame = self.artifacts.import_bytes(canonical_frame_png(gray), media_type="image/png")
         self.accept_refs(frame)
         self.analysis = self.analyze(frame)
         self.fails_atomically(self.propose)
 
     def test_real_duplicate_matching_occurrences_rejected(self):
-        video = ingest_video(
-            self.artifacts, self.source.document_reference(), VideoSampling((0, 1), 12)
+        source = self.artifacts.import_bytes(
+            REPEATED_FIXTURE.read_bytes(), media_type="video/x-msvideo"
         )
+        video = ingest_video(self.artifacts, source.document_reference(), VideoSampling((0, 1), 12))
         self.assertEqual(video.frames[0].artifact_id, video.frames[1].artifact_id)
         self.assertNotEqual(
             video.occurrences[0]["occurrence_id"], video.occurrences[1]["occurrence_id"]
         )
-        self.accept_refs(video.manifest)
+        self.accept_refs(source, *video.frames, video.manifest)
         self.manifest = video.manifest
         self.fails_atomically(self.propose)
+
+    def test_valid_manifest_authorities_change_temporal_identity(self):
+        source = self.artifacts.import_bytes(
+            REPEATED_FIXTURE.read_bytes(), media_type="video/x-msvideo"
+        )
+        first = ingest_video(self.artifacts, source.document_reference(), VideoSampling((0,), 12))
+        second = ingest_video(self.artifacts, source.document_reference(), VideoSampling((1,), 12))
+        self.assertEqual(first.frames[0].artifact_id, self.video.frames[0].artifact_id)
+        self.assertEqual(second.frames[0].artifact_id, self.video.frames[0].artifact_id)
+        self.accept_refs(source, *first.frames, first.manifest, *second.frames, second.manifest)
+        self.manifest = first.manifest
+        first_data = json.loads(
+            self.artifacts.get(self.propose().preview_artifacts[0].artifact_id).content
+        )
+        self.manifest = second.manifest
+        second_data = json.loads(
+            self.artifacts.get(self.propose().preview_artifacts[0].artifact_id).content
+        )
+        self.assertEqual(first_data["occurrence_provenance"]["source_timestamp"], [0, 1])
+        self.assertEqual(second_data["occurrence_provenance"]["source_timestamp"], [1, 1])
+        self.assertNotEqual(
+            first_data["evaluations"][0]["candidate_id"],
+            second_data["evaluations"][0]["candidate_id"],
+        )
 
     def test_tampered_evidence_rederived_at_acceptance(self):
         proposal = self.propose()
@@ -412,6 +458,13 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
         self.assertIn("DEGENERATE_CONTOUR", measure_component(empty)["reason_codes"])
         cv2.rectangle(empty, (30, 30), (60, 60), 255, -1)
         self.assertIn("MULTIPLE_CONTOURS", measure_component(empty)["reason_codes"])
+        ring_and_outer = np.zeros((100, 100), np.uint8)
+        cv2.rectangle(ring_and_outer, (5, 5), (35, 35), 255, -1)
+        cv2.rectangle(ring_and_outer, (12, 12), (28, 28), 0, -1)
+        cv2.rectangle(ring_and_outer, (60, 5), (90, 35), 255, -1)
+        self.assertEqual(
+            measure_component(ring_and_outer)["reason_codes"], ["HAS_HOLE", "MULTIPLE_CONTOURS"]
+        )
         # Scaled 5-12-13 triangles give exact margins of 4 and 5 pixels,
         # with every other eligibility condition valid.
         for scale, status in ((4, "UNCERTAIN"), (5, "SUPPORTED")):

@@ -7,24 +7,13 @@ FINAL / FROZEN (`spec/62-phase1-final-freeze.md`).
 Charter and slice selection: `spec/63-phase2-charter.md`. This document is the
 detailed normative contract for the slice chosen there.
 
-## Conformance status (read before implementing or relying on this)
+## Conformance status
 
-This contract is normative going forward. The implementation currently committed
-at `420176e36ecadd81cd2dc96011d08c96d4635940` (`svm/adapters/raster_primitive_observation_proposal.py`)
-**predates** this contract and does not yet conform in four places. Aligning the
-implementation, the Golden fixture and the tests is a separate implementation
-round; this document does not change code, tests or fixtures.
-
-Known deltas at that commit:
-
-| This contract | Committed implementation |
-| --- | --- |
-| candidate/evaluation ids use the full 64-hex SHA-256 | `_digest` truncates SHA-256 to 32 hex |
-| reason order: `HAS_HOLE` before `MULTIPLE_CONTOURS` | `REASONS` has `MULTIPLE_CONTOURS` before `HAS_HOLE` |
-| fixed reference ordering (see "Acceptance") | references are `sorted(ids)` |
-| Golden fixture: 320×240, three components | fixture is 240×180 with four pixel components |
-
-Everything else in this document already matches the committed behaviour.
+The P2A implementation, Golden fixtures and focused tests conform to this
+contract. Candidate/evaluation identities use full SHA-256 and bind the complete
+§6 occurrence authority, reasons and verification references use their normative
+orders, and the primary Golden fixture is the three-component 320×240 scene
+defined in §10.
 
 ## 1. Eligibility parity with the frozen Phase 1 contract
 
@@ -260,6 +249,11 @@ occurrence is `frame_index = 1`, `tick = 12`, `source_timestamp = [1, 1]`.
 Adversarial lineage cases are independent tamper variants, **not** a fourth pixel
 component. The charter's earlier "exactly four components" wording is superseded:
 the fixture has exactly three components.
+
+The independent `repeated.avi` adversarial fixture contains the same scene in both
+frames. Sampling `(0, 1)` proves duplicate matching occurrences fail closed;
+sampling either frame separately provides two valid manifest authorities with
+different occurrence timing for identity-binding coverage.
 
 ## 11. Golden acceptance requirements
 

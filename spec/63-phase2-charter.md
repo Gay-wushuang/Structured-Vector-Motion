@@ -13,9 +13,10 @@ Implementation: `svm/adapters/raster_primitive_observation_proposal.py`, with
 focused Golden coverage in `tests/test_raster_primitive_observation_proposal.py`
 and the checked-in `examples/040-raster-primitive-observation-proposal/scene.avi`.
 The implementation first landed at `e527a74` and was hardened at `420176e`; it
-predates `spec/64` and does not yet conform to it everywhere. `spec/64` records the
-four known deltas. Aligning the implementation, the Golden fixture and the tests
-with `spec/64` is a separate implementation round; it is not part of this charter.
+now conforms to the detailed normative contract in `spec/64`, including full
+candidate/evaluation hashes, occurrence-authority identity inputs, fixed reason
+and verification-reference ordering, and the normative three-component Golden
+fixture.
 
 ## 1. What Phase 1 actually assumes
 
