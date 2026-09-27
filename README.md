@@ -341,8 +341,10 @@ Target/tick while the unrelated Target B and the Camera stay unchanged. See
   implementation baseline, verified pipeline, D1/D2 acceptance, and the
   conservative Phase 1 non-claims.
 
-Phase 2 planning: `spec/63-phase2-charter.md` — the Phase 2 charter and the first
-planned inference slice (P2A). Planning only; not implemented.
+Phase 2: `spec/63-phase2-charter.md` (charter). The first slice P2A, Raster
+Primitive Observation Proposal, is **FINAL / FROZEN** — see
+`spec/64-p2a-raster-primitive-observation-proposal.md` (normative contract) and
+`spec/65-p2a-final-freeze.md` (freeze record).
 
 ## Development
 
