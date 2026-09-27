@@ -208,7 +208,7 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
             "tick",
         ):
             with self.subTest(key=key):
-                self.fails_atomically(lambda: self.propose(options={key: "forbidden"}))
+                self.fails_atomically(lambda key=key: self.propose(options={key: "forbidden"}))
 
     def test_forged_analysis_digest_bytes_provenance_kind_media(self):
         original = self.analysis
@@ -286,7 +286,7 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
                 )
                 changed = replace(change, source_references=refs, **{field: forged.artifact_id})
                 bad = replace(self.with_change(proposal, changed), base_revision_id=self.store.head)
-                self.fails_atomically(lambda: self.accept(bad))
+                self.fails_atomically(lambda bad=bad: self.accept(bad))
 
     def test_manifest_raster_and_tick_tampering(self):
         original = self.manifest
@@ -341,7 +341,7 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
                 forged = self.with_change(
                     proposal, replace(change, evidence_reference=altered.document_reference())
                 )
-                self.fails_atomically(lambda: self.accept(forged))
+                self.fails_atomically(lambda forged=forged: self.accept(forged))
         for kwargs in (
             {"provenance": {}},
             {"media_type": "application/json"},
@@ -351,7 +351,7 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
             forged = self.with_change(
                 proposal, replace(change, evidence_reference=altered.document_reference())
             )
-            self.fails_atomically(lambda: self.accept(forged))
+            self.fails_atomically(lambda forged=forged: self.accept(forged))
 
     def test_wrong_policy_missing_dependency_and_unregistered_change(self):
         proposal = self.propose()
@@ -371,7 +371,7 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
                 change.policy_identity,
             ),
         ):
-            self.fails_atomically(lambda: self.accept(self.with_change(proposal, bad)))
+            self.fails_atomically(lambda bad=bad: self.accept(self.with_change(proposal, bad)))
 
     def test_stale_proposal_and_multi_change_atomic_rejection(self):
         proposal = self.propose()
