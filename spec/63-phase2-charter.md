@@ -103,21 +103,23 @@ Each candidate adds exactly one primary inference authority.
 
 ### Candidate A — Raster Primitive Observation Proposal
 
-- **Input**: an already-accepted OpenCV analysis artifact for one canonical
-  frame, its source PNG artifact, and the frame's tick. No `component_id`.
+- **Input**: an already-accepted OpenCV component-analysis artifact, its accepted
+  source canonical PNG and binary mask, and one accepted video-frame manifest
+  artifact with exactly one matching occurrence. No `component_id`, no free
+  `tick`.
 - **New inference authority**: deciding which automatically detected components
   are candidate primitive observations (subject candidacy / eligibility).
 - **Output**: an observation-proposal evidence artifact listing candidate
   primitive observations, each with a deterministic candidate id, measurements
   and status. No cross-frame identity.
 - **Status**: `SUPPORTED` = satisfies every frozen observation-eligibility
-  condition; `UNCERTAIN` = geometrically plausible primitive but a secondary
-  condition is near its boundary (ambiguous landmark origin, near-floor edge);
-  `REJECTED` = clearly outside the frozen subset (holes, multiple contours,
-  degenerate, area < 256, vertex count outside 3–32, non-flat region).
-- **Provenance**: source PNG id, analysis id, mask id, component id + digest,
-  tick, recorded analysis options, tolerance, policy identity, adapter
-  identity/version.
+  condition; `UNCERTAIN` = topology/area/vertex-count/flat-solid are valid and the
+  minimum edge is ≥ 8 px, but the longest-edge margin is ≤ 4 px; `REJECTED` =
+  every other failed eligibility condition (holes, multiple contours, degenerate,
+  area < 256, vertex count outside 3..32, minimum edge < 8 px, non-flat region).
+- **Provenance**: manifest id, occurrence id, frame index, tick, source PNG id,
+  analysis id, mask id, component id + digest, recorded analysis options,
+  tolerance, policy identity, adapter identity/version.
 - **Forbidden side effects**: no Entity, no Track, no Group, no identity, no
   Document geometry/Render Stack change.
 - **Fixture difficulty**: **low** — deterministic pixels, exact numeric
@@ -209,26 +211,55 @@ Proposed policy/schema identity (new, versioned, not reusing Phase 1 identities)
 
 The system is allowed to know only:
 
-- one accepted OpenCV analysis artifact (already produced by the frozen
-  `OpenCVAnalysisAdapter`) for one canonical PNG frame;
-- that analysis's source PNG artifact and binary-mask artifact;
-- the integer `tick` of that frame.
+- one accepted OpenCV component-analysis artifact (already produced by the frozen
+  `OpenCVAnalysisAdapter`);
+- that analysis's accepted source canonical PNG artifact
+  (`analysis.source_artifact_id`) and its accepted binary-mask artifact;
+- one accepted video-frame manifest artifact whose occurrence lineage verifies
+  under the existing video ingestion authority.
+
+P2A v0.1 does **not** accept a free, unverifiable `tick`. The tick is obtained
+from the manifest occurrence, never supplied independently:
+
+- the manifest must already be accepted;
+- exactly one manifest occurrence must satisfy
+  `occurrence["raster_artifact_id"] == analysis.source_artifact_id`; zero or more
+  than one matching occurrence fails closed;
+- the manifest/source lineage must reproduce under the existing
+  `verify_video_manifest` authority (`svm/video_ingestion.py:301-331`), including
+  canonical bytes, provenance and canonical frame bytes;
+- `occurrence_id`, `frame_index`, `source_timestamp` and `tick` are read from that
+  verified occurrence.
+
+If the analysis source PNG is not derived from an accepted, verifying video-frame
+manifest, P2A v0.1 fails closed. P2A v0.1 defines no generic still-image time
+semantics; that remains out of scope for this version.
 
 ### Forbidden input authority
 
 To prove generalization, P2A must **not** be given: any `component_id` or
 `selectors.json`; any role / anchor / target / object count; any correspondence,
-pairing or identity; any Camera, binding, Group or Track information; any
-Ground Truth. The subject set must be derived from evidence alone.
+pairing or identity; any Camera, binding, Group or Track information; any Ground
+Truth; or any independently supplied `tick`. The subject set and the timing both
+come from evidence alone.
 
 ### Output
 
 A single accepted evidence artifact containing, for the frame:
 
-- the ordered list of candidate primitive observations (one per detected
-  component that is not `REJECTED`), each with status, measurements and
-  provenance;
+- an **ordered evaluation entry for every component** reported by the accepted
+  OpenCV analysis, in the canonical component ordering already produced by
+  component-analysis v0.2. Each entry binds the original `component_id`, its
+  `component_digest`, a deterministic evaluation identity, the exact measured
+  eligibility values, the status, the reason code(s) and provenance;
+- `proposed_candidates`: exactly the `SUPPORTED` and `UNCERTAIN` evaluation
+  entries. A `REJECTED` component is never a proposal candidate and can never be
+  promoted;
 - the counts per status and the exact policy/adapter identity.
+
+Rejection is never expressed by silently omitting a component. Every detected
+component is represented, and `REJECTED` entries remain in the evidence artifact
+for auditability.
 
 No Entity, Track, Group, identity, Document geometry or Render Stack entry is
 created or changed.
@@ -241,39 +272,65 @@ path-free:
 ```text
 candidate:primitive-observation:<sha256-prefix of canonical bytes of {
   policy_identity, adapter_id, adapter_version,
+  manifest_artifact_id, occurrence_id, frame_index, tick,
   source_png_artifact_id, analysis_artifact_id, binary_mask_artifact_id,
-  component_id, component_digest, tick, contour_tolerance_pixels
+  component_id, component_digest, contour_tolerance_pixels
 }>
 ```
 
-Equivalent recorded inputs produce identical candidate IDs; a different frame,
-component, digest, tick or policy produces a different ID.
+Every detected component also receives a deterministic evaluation identity over
+the same inputs plus its status and reason codes, so `REJECTED` entries are
+auditable and stable too. Equivalent recorded inputs produce identical ids; a
+different occurrence, frame, component, digest, status or policy produces a
+different id. No filesystem path participates.
 
 ### Provenance
 
-Every candidate binds: source PNG artifact id, analysis artifact id, binary mask
-artifact id, `component_id`, `component_digest`, `tick`, the analysis options
-(`threshold`/`foreground`/`connectivity`) exactly as recorded in the accepted
-analysis, `contour_tolerance_pixels`, the policy identity and the adapter
-identity/version. Provenance contains no role, no identity, no pairing, no
-Camera and no filesystem path.
+Every evaluation entry, including rejected ones, binds: the accepted manifest
+artifact id; `occurrence_id`, `frame_index`, `tick` and `source_timestamp` read
+from the verified occurrence; the source PNG artifact id
+(`analysis.source_artifact_id`, equal to the occurrence `raster_artifact_id`), the
+analysis artifact id and the binary-mask artifact id; `component_id` and
+`component_digest`; the analysis options (`threshold`/`foreground`/`connectivity`)
+exactly as recorded in the accepted analysis; `contour_tolerance_pixels`; the
+policy identity; and the adapter identity/version. Provenance contains no role, no
+identity, no pairing, no Camera and no filesystem path.
 
 ### Status
 
-- **SUPPORTED** — satisfies every frozen observation-eligibility condition:
-  exactly one hole-free nondegenerate contour, contour area ≥ 256, 3–32
-  simplified vertices, minimum polygon edge ≥ 8 px, and longest-edge margin > 4 px
-  (unambiguous landmark origin). A SUPPORTED candidate is exactly what the frozen
-  `contour_landmarks` contract accepts.
-- **UNCERTAIN** — a plausible primitive whose contour topology and area are
-  acceptable, but a secondary condition is near its boundary: ambiguous landmark
-  origin (longest-edge margin ≤ 4 px) or a near-floor minimum edge. Such a
-  component is *proposed as uncertain* rather than silently dropped, and cannot be
-  promoted without explicit review.
-- **REJECTED** — clearly outside the frozen subset: no contour, multiple
-  contours, a hole, degenerate/zero-area contour, area < 256, vertex count outside
-  3–32, or a region that is not a flat solid foreground under the recorded
-  analysis options.
+P2A v0.1 introduces no new distance threshold. The eligibility constants are
+exactly the frozen controlled raster geometry constants
+(`svm/adapters/raster_geometry_observations.py:277-295`).
+
+- **SUPPORTED** — satisfies the complete frozen controlled raster geometry
+  eligibility contract: exactly one hole-free nondegenerate contour; contour area
+  ≥ 256; simplified vertex count 3..32; minimum polygon edge ≥ 8 px;
+  longest-edge margin > 4 px; and the required flat solid raster conditions hold.
+- **UNCERTAIN** — contour topology, area, vertex count and flat-solid conditions
+  are valid, and the minimum polygon edge is ≥ 8 px, but the longest-edge margin
+  is ≤ 4 px. The primitive geometry is plausible, but the frozen canonical
+  landmark-origin choice is ambiguous. Such a component is proposed as uncertain,
+  never silently dropped, and cannot be promoted without explicit review.
+- **REJECTED** — every other failed eligibility condition, including: no contour
+  or multiple contours; a hole; a degenerate or zero-area contour; area < 256;
+  vertex count outside 3..32; minimum polygon edge < 8 px; or a non-flat /
+  non-solid controlled raster violation.
+
+Reason codes are an enumerable, fixed set — not free text — so Golden assertions
+are exact:
+
+```text
+SUPPORTED                    (no reason code)
+AMBIGUOUS_LANDMARK_ORIGIN    -> UNCERTAIN
+NO_CONTOUR                   -> REJECTED
+MULTIPLE_CONTOURS            -> REJECTED
+HAS_HOLE                     -> REJECTED
+DEGENERATE_CONTOUR           -> REJECTED
+AREA_BELOW_256               -> REJECTED
+VERTEX_COUNT_OUT_OF_RANGE    -> REJECTED
+MIN_EDGE_BELOW_8             -> REJECTED
+NON_FLAT_SOLID_RASTER        -> REJECTED
+```
 
 ### Acceptance
 
@@ -299,33 +356,49 @@ Explicitly forbidden, at proposal and acceptance time:
 
 ## 5. Golden P2A
 
-A minimal deterministic fixture (`examples/040-...`), one canonical opaque
-grayscale PNG frame (plus its accepted analysis and mask), containing exactly four
-components:
+A minimal deterministic fixture (`examples/040-...`): one canonical opaque
+grayscale PNG frame, its accepted component-analysis and accepted mask, and the
+accepted video-frame manifest that verifies that frame's occurrence. The frame
+contains exactly four components:
 
-1. **Clear positive** — a solid asymmetric polygon meeting every condition →
-   exactly one `SUPPORTED` candidate with exact ordered landmarks.
-2. **Ambiguous** — a solid polygon whose longest-edge margin is ≤ 4 px (or whose
-   minimum edge is near 8 px) → exactly one `UNCERTAIN` candidate, with the
-   ambiguous measurement recorded.
-3. **Rejected** — a component with a hole (or area < 256, or > 32 vertices) →
-   `REJECTED`, absent from the proposed list.
-4. **Adversarial** — a tampered lineage: a forged/absent `component_digest`, an
-   analysis artifact whose bytes do not re-derive from the PNG, an unregistered
-   policy identity, a wrong `tick`, or analysis not yet accepted → the proposal
-   fails closed, attaches no evidence, leaves HEAD/Document/Revision count
-   unchanged, and creates no candidate.
+1. **SUPPORTED** — a solid asymmetric polygon meeting every eligibility condition
+   → exactly one `SUPPORTED` evaluation with exact ordered landmarks and no reason
+   code.
+2. **UNCERTAIN** — a solid polygon whose longest-edge margin is ≤ 4 px while every
+   other condition holds → exactly one `UNCERTAIN` evaluation with reason code
+   `AMBIGUOUS_LANDMARK_ORIGIN`.
+3. **REJECTED** — a component with a hole, or area < 256, or a vertex count
+   outside 3..32 → a `REJECTED` evaluation entry that remains present in the
+   evidence with its reason code.
+4. **Adversarial** — a tampered lineage/manifest: a forged or absent
+   `component_digest`; an analysis artifact whose bytes do not re-derive from the
+   PNG; an unregistered policy identity; a manifest occurrence whose
+   `raster_artifact_id` does not equal the analysis `source_artifact_id` (or
+   matches more than one occurrence); or a forged occurrence tick inside a
+   manifest whose canonical bytes/provenance do not verify → the proposal fails
+   closed, attaches no evidence, leaves HEAD/Document/Revision count unchanged,
+   and creates no candidate.
 
-Assertions are exact and machine-checkable: the number of candidates, each
-candidate's status, each candidate's deterministic id (recomputed twice and
-compared), the recorded measurements, and the atomic rejection of every
-adversarial case. No visual judgement, no model randomness, no natural video.
+Assertions are exact and machine-checkable:
+
+- the exact evaluation count — every detected component is represented;
+- the exact status and reason code(s) for every component;
+- the rejected component is still present in the evaluation evidence;
+- `proposed_candidates` equals exactly the SUPPORTED and UNCERTAIN entries and
+  excludes `REJECTED`;
+- each deterministic evaluation/candidate id (recomputed twice and compared);
+- the exact `occurrence_id`, `frame_index` and `tick` provenance read from the
+  manifest;
+- atomic rejection of every adversarial case.
+
+No visual judgement, no randomness, no natural video.
 
 **Removed manual authority vs Phase 1**: the fixture supplies **no
 `selectors.json`** — no per-tick, per-role `component_id` mapping, no role,
-anchor or target list. Phase 1 required a human to name which component was the
-subject at each tick; Golden P2A requires the system to propose the subject
-observations from the frame and its analysis alone.
+anchor or target list — and no independently supplied tick. Phase 1 required a
+human to name which component was the subject at each tick; Golden P2A requires
+the system to propose the subject observations from the frame and its analysis
+alone, with timing taken from the verified manifest occurrence.
 
 ## 6. P2A completion definition
 
@@ -337,8 +410,14 @@ P2A is complete when:
 - candidate evidence and candidate identity are deterministic and
   content-addressed (equivalent inputs → identical ids; repeated runs →
   byte-identical output);
-- provenance binds the exact source artifacts, component, tick, analysis options,
-  policy and adapter version, with no filesystem paths;
+- every detected component is represented by an evaluation entry, with `REJECTED`
+  entries retained for audit and `proposed_candidates` limited to `SUPPORTED` and
+  `UNCERTAIN`;
+- provenance binds the exact source artifacts, the verified manifest occurrence
+  (`occurrence_id`, `frame_index`, `tick`, `source_timestamp`), the component,
+  analysis options, policy and adapter version, with no filesystem paths;
+- the tick comes only from a verified manifest occurrence, and a non-verifying or
+  ambiguous occurrence fails closed;
 - behaviour is fail-closed for every doctored, missing, stale or unregistered
   input, with atomic rejection and no partial evidence;
 - the change crosses the ordinary `Proposal -> ProposalAcceptor -> RevisionStore`
