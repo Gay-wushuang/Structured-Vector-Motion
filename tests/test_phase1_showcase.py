@@ -102,7 +102,7 @@ class Phase1ShowcaseTest(unittest.TestCase):
 
         index = (output / "index.html").read_text("utf-8")
         script = (output / "showcase.js").read_text("utf-8")
-        self.assertIn('../bundle/source/scene.avi', index)
+        self.assertIn("../bundle/source/scene.avi", index)
         self.assertIn('id="projection-data"', index)
         self.assertNotIn("fetch(", script)
         self.assertNotIn("XMLHttpRequest", script)
