@@ -1,26 +1,21 @@
 # Phase 2 Charter — First Inference Slice (P2A)
 
-Status: P2A v0.1 implemented under the contract below. P2B and subsequent slices
-remain planning only. This does not modify any frozen Phase 1 contract. Phase 1 remains
-FINAL / FROZEN (`spec/62-phase1-final-freeze.md`, implementation baseline
+Status: charter. The slice chosen here is P2A, Raster Primitive Observation
+Proposal. Its detailed normative contract lives in
+`spec/64-p2a-raster-primitive-observation-proposal.md`; this charter does not
+duplicate it. P2B and subsequent slices remain planning only.
+
+This charter modifies no frozen Phase 1 contract. Phase 1 remains FINAL / FROZEN
+(`spec/62-phase1-final-freeze.md`, implementation baseline
 `0caae5b8061bfd12901bdb0898f171d4ad5d48a4`).
 
-The purpose of this charter is to pick exactly one first Phase 2 slice (P2A) that
-adds the **minimum new inference authority** while removing the **single most
-artificial Phase 1 precondition**, and to specify it precisely enough to
-implement as an independent evidence-only adapter.
-
 Implementation: `svm/adapters/raster_primitive_observation_proposal.py`, with
-focused Golden coverage in `tests/test_raster_primitive_observation_proposal.py`.
-The checked-in `examples/040-raster-primitive-observation-proposal/scene.avi`
-is a 240×180 grayscale AVI/FFV1 with two identical frames at 1 fps. Selecting
-frame 1 gives one supported asymmetric triangle, one uncertain square, a rejected
-holed component and a rejected small component. Selecting both frames proves
-the required duplicate-occurrence rejection. Forged lineage is tested separately;
-it aborts the whole proposal rather than becoming a component classification.
-The request supplies only the accepted analysis and manifest IDs, with no options.
-PNG, mask, source video and all manifest-selected frames must have exact accepted
-references, so acceptance can reproduce both the analysis and the full manifest.
+focused Golden coverage in `tests/test_raster_primitive_observation_proposal.py`
+and the checked-in `examples/040-raster-primitive-observation-proposal/scene.avi`.
+The implementation first landed at `e527a74` and was hardened at `420176e`; it
+predates `spec/64` and does not yet conform to it everywhere. `spec/64` records the
+four known deltas. Aligning the implementation, the Golden fixture and the tests
+with `spec/64` is a separate implementation round; it is not part of this charter.
 
 ## 1. What Phase 1 actually assumes
 
@@ -107,7 +102,7 @@ all?"**
 
 Everything downstream (pairing, matching, promotion, camera, binding, tracks)
 requires that a component was first named. Phase 1 answers this question with
-`selectors.json`; Phase 2's first slice should answer it from evidence.
+`selectors.json`; Phase 2's first slice answers it from evidence.
 
 ## 2. Candidate Phase 2 slices
 
@@ -121,18 +116,13 @@ Each candidate adds exactly one primary inference authority.
   `tick`.
 - **New inference authority**: deciding which automatically detected components
   are candidate primitive observations (subject candidacy / eligibility).
-- **Output**: an observation-proposal evidence artifact listing candidate
-  primitive observations, each with a deterministic candidate id, measurements
-  and status. No cross-frame identity.
-- **Status**: `SUPPORTED` = satisfies every frozen observation-eligibility
-  condition; `UNCERTAIN` = topology/area/vertex-count are valid and the
-  minimum edge is ≥ 8 px, but the longest-edge margin is ≤ 4 px; `REJECTED` =
-  every other failed eligibility condition (holes, multiple contours, degenerate,
-  area < 256, canonicalization failure, vertex count outside 3..32, minimum edge
-  < 8 px).
-- **Provenance**: manifest id, occurrence id, frame index, tick, source PNG id,
-  analysis id, mask id, component id + digest, recorded analysis options,
-  tolerance, policy identity, adapter identity/version.
+- **Output**: an observation-proposal evidence artifact listing an evaluation for
+  every component, plus candidates for the non-rejected ones. No cross-frame
+  identity.
+- **Status**: `SUPPORTED` / `UNCERTAIN` / `REJECTED` (see `spec/64` §3).
+- **Provenance**: manifest id, occurrence id, frame index, tick, source timestamp,
+  source PNG id, analysis id, mask id, component id + digest, recorded analysis
+  options, tolerance, policy identity, adapter identity/version.
 - **Forbidden side effects**: no Entity, no Track, no Group, no identity, no
   Document geometry/Render Stack change.
 - **Fixture difficulty**: **low** — deterministic pixels, exact numeric
@@ -212,277 +202,26 @@ rewrite Phase 1 evidence.
 
 ## 4. P2A contract
 
-Proposed policy/schema identity (new, versioned, not reusing Phase 1 identities):
+The detailed normative contract — eligibility parity, the frame-level flat/solid
+precondition, the fixed reason taxonomy, evaluation/candidate identity,
+deterministic reasons and numeric bytes, manifest authority, acceptance-time
+manifest verification closure, policy action, revision staleness, the Golden
+fixture and Golden acceptance requirements, and the closed scope — is specified in:
 
-- adapter id: `adapter:raster-primitive-observation-proposal`
-- adapter version: `0.1`
-- policy identity: `svm-raster-primitive-observation-proposal@0.1`
-- schema: `svm-raster-primitive-observation-proposal-0.1`
-- media: `application/vnd.svm.raster-primitive-observation-proposal+json;version=0.1`
+`spec/64-p2a-raster-primitive-observation-proposal.md`
 
-### Input authority
+Summary: P2A consumes one accepted component-analysis artifact, its accepted
+source canonical PNG and binary mask, and one accepted video-frame manifest whose
+single matching occurrence supplies the timing. It emits one evidence artifact
+containing a deterministic evaluation for every detected component and candidates
+for the non-rejected ones, crosses the ordinary `Proposal -> ProposalAcceptor ->
+RevisionStore` boundary, and appends evidence only. It never creates an Entity,
+Group, Track or identity, never compares frames, and never modifies Phase 1.
 
-The system is allowed to know only:
-
-- one accepted OpenCV component-analysis artifact (already produced by the frozen
-  `OpenCVAnalysisAdapter`);
-- that analysis's accepted source canonical PNG artifact
-  (`analysis.source_artifact_id`) and its accepted binary-mask artifact;
-- one accepted video-frame manifest artifact whose occurrence lineage verifies
-  under the existing video ingestion authority.
-
-The request selects that one exact accepted manifest as the authority for this
-inference. P2A does not scan other accepted manifests and defines no repository-
-global uniqueness rule. If another valid accepted manifest gives the same PNG a
-different temporal meaning, using it is a separate inference authority and its
-different manifest/occurrence lineage produces different identities.
-
-P2A v0.1 does **not** accept a free, unverifiable `tick`. The tick is obtained
-from the manifest occurrence, never supplied independently:
-
-- the manifest must already be accepted;
-- exactly one manifest occurrence must satisfy
-  `occurrence["raster_artifact_id"] == analysis.source_artifact_id`; zero or more
-  than one matching occurrence fails closed;
-- the manifest/source lineage must reproduce under the existing
-  `verify_video_manifest` authority (`svm/video_ingestion.py:301-331`), including
-  canonical bytes, provenance and canonical frame bytes;
-- `occurrence_id`, `frame_index`, `source_timestamp` and `tick` are read from that
-  verified occurrence.
-
-If the analysis source PNG is not derived from an accepted, verifying video-frame
-manifest, P2A v0.1 fails closed. P2A v0.1 defines no generic still-image time
-semantics; that remains out of scope for this version.
-
-### Forbidden input authority
-
-To prove generalization, P2A must **not** be given: any `component_id` or
-`selectors.json`; any role / anchor / target / object count; any correspondence,
-pairing or identity; any Camera, binding, Group or Track information; any Ground
-Truth; or any independently supplied `tick`. The subject set and the timing both
-come from evidence alone.
-
-### Output
-
-A single accepted evidence artifact containing, for the frame:
-
-- an **ordered evaluation entry for every component** reported by the accepted
-  OpenCV analysis, in the canonical component ordering already produced by
-  component-analysis v0.2. Each entry binds the original `component_id`, its
-  `component_digest`, a deterministic evaluation identity, the exact measured
-  eligibility values, the status, the reason code(s) and provenance;
-- `proposed_candidates`: exactly the `SUPPORTED` and `UNCERTAIN` evaluation
-  entries. A `REJECTED` component is never a proposal candidate and can never be
-  promoted;
-- the counts per status and the exact policy/adapter identity.
-
-Rejection is never expressed by silently omitting a component. Every detected
-component is represented, and `REJECTED` entries remain in the evidence artifact
-for auditability.
-
-No Entity, Track, Group, identity, Document geometry or Render Stack entry is
-created or changed.
-
-### Identity
-
-Candidate observation identity is deterministic, content-addressed and
-path-free:
-
-```text
-candidate:primitive-observation:<32 lowercase hex>
-
-where the suffix is the SHA-256 prefix of canonical bytes of {
-  policy_identity, adapter_id, adapter_version,
-  manifest_artifact_id, occurrence_id, frame_index, tick,
-  source_png_artifact_id, analysis_artifact_id, binary_mask_artifact_id,
-  component_id, component_digest, contour_tolerance_pixels
-}
-```
-
-The suffix is exactly the first 32 lowercase hexadecimal characters of SHA-256
-over `canonical_bytes` of that mapping (128 identifier bits). Evaluation ids use
-the same fixed-width suffix over those inputs plus status and ordered reason
-codes:
-
-```text
-evaluation:primitive-observation:<32 lowercase hex>
-```
-
-Every detected component also receives a deterministic evaluation identity over
-the same inputs plus its status and reason codes, so `REJECTED` entries are
-auditable and stable too. Equivalent recorded inputs produce identical ids; a
-different occurrence, frame, component, digest, status or policy produces a
-different id. No filesystem path participates.
-
-### Provenance
-
-Every evaluation entry, including rejected ones, binds: the accepted manifest
-artifact id; `occurrence_id`, `frame_index`, `tick` and `source_timestamp` read
-from the verified occurrence; the source PNG artifact id
-(`analysis.source_artifact_id`, equal to the occurrence `raster_artifact_id`), the
-analysis artifact id and the binary-mask artifact id; `component_id` and
-`component_digest`; the analysis options (`threshold`/`foreground`/`connectivity`)
-exactly as recorded in the accepted analysis; `contour_tolerance_pixels`; the
-policy identity; and the adapter identity/version. Provenance contains no role, no
-identity, no pairing, no Camera and no filesystem path.
-
-### Status
-
-P2A v0.1 introduces no new distance threshold. The eligibility constants are
-exactly the frozen controlled raster geometry constants
-(`svm/adapters/raster_geometry_observations.py:277-295`).
-
-Before component evaluation begins, the source frame must satisfy the frozen
-flat-background / solid-foreground controlled-raster precondition. Failure aborts
-the entire derivation: no evidence, evaluations or candidates are produced. This
-is a frame-level input precondition, not a component rejection reason.
-
-- **SUPPORTED** — satisfies the complete frozen controlled raster geometry
-  eligibility contract: exactly one hole-free nondegenerate contour; contour area
-  ≥ 256; simplified vertex count 3..32; minimum polygon edge ≥ 8 px;
-  longest-edge margin > 4 px.
-- **UNCERTAIN** — contour topology, area and vertex count are valid, and the
-  minimum polygon edge is ≥ 8 px, but the longest-edge margin
-  is ≤ 4 px. The primitive geometry is plausible, but the frozen canonical
-  landmark-origin choice is ambiguous. Such a component is proposed as uncertain,
-  never silently dropped, and cannot be promoted without explicit review.
-- **REJECTED** — every other failed eligibility condition, including: no contour
-  or multiple contours; a hole; a degenerate or zero-area contour; area < 256;
-  canonicalization failure; vertex count outside 3..32; or minimum polygon edge
-  < 8 px.
-
-Reason codes are an enumerable, fixed set — not free text — so Golden assertions
-are exact:
-
-```text
-NO_CONTOUR                   -> REJECTED
-MULTIPLE_CONTOURS            -> REJECTED
-HAS_HOLE                     -> REJECTED
-DEGENERATE_CONTOUR           -> REJECTED
-AREA_BELOW_256               -> REJECTED
-CANONICALIZATION_FAILED      -> REJECTED
-VERTEX_COUNT_OUT_OF_RANGE    -> REJECTED
-MIN_EDGE_BELOW_8             -> REJECTED
-AMBIGUOUS_LANDMARK_ORIGIN    -> UNCERTAIN
-```
-
-Reason lists use the order shown above, with
-`AMBIGUOUS_LANDMARK_ORIGIN` last when applicable. When an earlier failure makes a
-later measurement undefined, the later consequence reason is not manufactured.
-In particular, `CANONICALIZATION_FAILED` does not also imply
-`VERTEX_COUNT_OUT_OF_RANGE`, and edge measurements remain undefined.
-
-### Acceptance
-
-`ProposalAcceptor` may attach the proposal as evidence through a new registered
-Change (proposed `AttachRasterPrimitiveObservationProposalChange`) that appends
-references and the evidence artifact to a new Revision. Acceptance may only add
-evidence. It must reproduce and verify the exact candidate bytes, provenance,
-statuses and identities from the accepted analysis lineage; any mismatch, missing
-dependency, stale base or forged policy rejects the whole transaction atomically.
-
-Acceptance creates a new Revision and appends only the P2A evidence reference. It
-does not alter Phase 1 code or evidence bytes. An existing candidate bound to an
-older Revision or whole-Document hash may become `STALE` under the existing
-Revision semantics; P2A does not promise that such older candidates remain valid,
-and does not change Phase 1 hashing or promotion semantics.
-
-### Forbidden effects
-
-Explicitly forbidden, at proposal and acceptance time:
-
-- authoring a Track;
-- mutating the Render Stack;
-- mutating an existing Entity's geometry;
-- changing hierarchy;
-- silently assigning identity (no cross-frame comparison at all);
-- deleting or tombstoning Entities;
-- modifying Phase 1 evidence or any accepted Document outside appending this
-  evidence reference.
-
-## 5. Golden P2A
-
-A minimal deterministic fixture (`examples/040-...`) is a 240×180, two-identical-
-frame AVI/FFV1 at 1 fps. Golden sampling selects frame index 1 at 12 ticks per
-second, giving `frame_index = 1`, `tick = 12` and `source_timestamp = [1, 1]`.
-Its canonical opaque grayscale PNG frame, accepted component-analysis, accepted
-mask and accepted manifest contain exactly four pixel components:
-
-1. **SUPPORTED** — a solid asymmetric polygon meeting every eligibility condition
-   → exactly one `SUPPORTED` evaluation with exact ordered landmarks and no reason
-   code.
-2. **UNCERTAIN** — a solid polygon whose longest-edge margin is ≤ 4 px while every
-   other condition holds → exactly one `UNCERTAIN` evaluation with reason code
-   `AMBIGUOUS_LANDMARK_ORIGIN`.
-3. **REJECTED** — a component with a hole → a retained `REJECTED` evaluation with
-   `HAS_HOLE`.
-4. **REJECTED** — a component with area < 256 → a retained `REJECTED` evaluation
-   with `AREA_BELOW_256`.
-
-Adversarial lineage/manifest cases are independent test variants, not pixel
-components: a forged or absent `component_digest`; an analysis artifact whose
-bytes do not re-derive from the PNG; an unregistered policy identity; a manifest
-occurrence whose `raster_artifact_id` does not equal the analysis
-`source_artifact_id` (or matches more than one occurrence); or a forged occurrence
-tick inside a manifest whose canonical bytes/provenance do not verify. The
-proposal fails closed, attaches no evidence, leaves HEAD/Document/Revision count
-unchanged, and creates no candidate. Selecting both identical frames with
-`frame_indices = (0, 1)` is one such variant: the same canonical PNG matches two
-distinct occurrences, so P2A fails closed.
-
-Assertions are exact and machine-checkable:
-
-- the exact evaluation count — every detected component is represented;
-- exact status counts: one `SUPPORTED`, one `UNCERTAIN`, two `REJECTED`;
-- the exact status and reason code(s) for every component;
-- the rejected component is still present in the evaluation evidence;
-- `proposed_candidates` equals exactly the SUPPORTED and UNCERTAIN entries and
-  excludes `REJECTED`;
-- each deterministic evaluation/candidate id (recomputed twice and compared);
-- the exact `occurrence_id`, `frame_index` and `tick` provenance read from the
-  manifest;
-- atomic rejection of every adversarial case.
-
-No visual judgement, no randomness, no natural video.
-
-**Removed manual authority vs Phase 1**: the fixture supplies **no
-`selectors.json`** — no per-tick, per-role `component_id` mapping, no role,
-anchor or target list — and no independently supplied tick. Phase 1 required a
-human to name which component was the subject at each tick; Golden P2A requires
-the system to propose the subject observations from the frame and its analysis
-alone, with timing taken from the verified manifest occurrence.
-
-## 6. P2A completion definition
-
-P2A is complete when:
-
-- a normative spec defines the adapter, policy/schema/media identities, input and
-  forbidden-input authority, output, status semantics, provenance and acceptance,
-  and the forbidden effects above;
-- candidate evidence and candidate identity are deterministic and
-  content-addressed (equivalent inputs → identical ids; repeated runs →
-  byte-identical output);
-- every detected component is represented by an evaluation entry, with `REJECTED`
-  entries retained for audit and `proposed_candidates` limited to `SUPPORTED` and
-  `UNCERTAIN`;
-- provenance binds the exact source artifacts, the verified manifest occurrence
-  (`occurrence_id`, `frame_index`, `tick`, `source_timestamp`), the component,
-  analysis options, policy and adapter version, with no filesystem paths;
-- the tick comes only from a verified manifest occurrence, and a non-verifying or
-  ambiguous occurrence fails closed;
-- behaviour is fail-closed for every doctored, missing, stale or unregistered
-  input, with atomic rejection and no partial evidence;
-- the change crosses the ordinary `Proposal -> ProposalAcceptor -> RevisionStore`
-  boundary and acceptance can only append evidence;
-- positive, ambiguous, rejected and adversarial tests all pass and are exactly
-  assertable;
-- all frozen Phase 1 contracts are untouched — no recovery, identity, camera,
-  binding, authoring, `MotionEvaluator` or `SVGRenderer` change — and no Phase 1
-  test regresses.
-
-## 7. Phase 2 boundary
+## 5. Phase 2 boundary
 
 Any new inference capability beyond the frozen Phase 1 contracts belongs to
 Phase 2 and must be introduced through new evidence/provider/acceptance
 boundaries rather than silently extending Phase 1 adapters. This charter selects
-one such boundary (P2A) and designs no further Phase 2 architecture.
+one such boundary (P2A, detailed in `spec/64`) and designs no further Phase 2
+architecture.
