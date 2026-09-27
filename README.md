@@ -344,7 +344,9 @@ Target/tick while the unrelated Target B and the Camera stay unchanged. See
 Phase 2: `spec/63-phase2-charter.md` (charter). The first slice P2A, Raster
 Primitive Observation Proposal, is **FINAL / FROZEN** — see
 `spec/64-p2a-raster-primitive-observation-proposal.md` (normative contract) and
-`spec/65-p2a-final-freeze.md` (freeze record).
+`spec/65-p2a-final-freeze.md` (freeze record). The next slice P2B, Primitive
+Observation Assembly, is specified (not implemented) in
+`spec/66-p2b-primitive-observation-assembly.md`.
 
 ## Development
 
