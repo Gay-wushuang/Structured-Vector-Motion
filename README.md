@@ -341,6 +341,9 @@ Target/tick while the unrelated Target B and the Camera stay unchanged. See
   implementation baseline, verified pipeline, D1/D2 acceptance, and the
   conservative Phase 1 non-claims.
 
+Phase 2 planning: `spec/63-phase2-charter.md` — the Phase 2 charter and the first
+planned inference slice (P2A). Planning only; not implemented.
+
 ## Development
 
 Install the project and development tools in editable mode:
