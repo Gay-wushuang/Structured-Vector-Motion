@@ -14,7 +14,7 @@ Implementation: `svm/adapters/raster_primitive_observation_proposal.py`, with
 focused Golden coverage in `tests/test_raster_primitive_observation_proposal.py`.
 The checked-in `examples/040-raster-primitive-observation-proposal/scene.avi`
 is a 240×180 grayscale AVI/FFV1 with two identical frames at 1 fps. Selecting
-frame 0 gives one supported asymmetric triangle, one uncertain square, a rejected
+frame 1 gives one supported asymmetric triangle, one uncertain square, a rejected
 holed component and a rejected small component. Selecting both frames proves
 the required duplicate-occurrence rejection. Forged lineage is tested separately;
 it aborts the whole proposal rather than becoming a component classification.
@@ -125,10 +125,11 @@ Each candidate adds exactly one primary inference authority.
   primitive observations, each with a deterministic candidate id, measurements
   and status. No cross-frame identity.
 - **Status**: `SUPPORTED` = satisfies every frozen observation-eligibility
-  condition; `UNCERTAIN` = topology/area/vertex-count/flat-solid are valid and the
+  condition; `UNCERTAIN` = topology/area/vertex-count are valid and the
   minimum edge is ≥ 8 px, but the longest-edge margin is ≤ 4 px; `REJECTED` =
   every other failed eligibility condition (holes, multiple contours, degenerate,
-  area < 256, vertex count outside 3..32, minimum edge < 8 px, non-flat region).
+  area < 256, canonicalization failure, vertex count outside 3..32, minimum edge
+  < 8 px).
 - **Provenance**: manifest id, occurrence id, frame index, tick, source PNG id,
   analysis id, mask id, component id + digest, recorded analysis options,
   tolerance, policy identity, adapter identity/version.
@@ -230,6 +231,12 @@ The system is allowed to know only:
 - one accepted video-frame manifest artifact whose occurrence lineage verifies
   under the existing video ingestion authority.
 
+The request selects that one exact accepted manifest as the authority for this
+inference. P2A does not scan other accepted manifests and defines no repository-
+global uniqueness rule. If another valid accepted manifest gives the same PNG a
+different temporal meaning, using it is a separate inference authority and its
+different manifest/occurrence lineage produces different identities.
+
 P2A v0.1 does **not** accept a free, unverifiable `tick`. The tick is obtained
 from the manifest occurrence, never supplied independently:
 
@@ -282,12 +289,23 @@ Candidate observation identity is deterministic, content-addressed and
 path-free:
 
 ```text
-candidate:primitive-observation:<sha256-prefix of canonical bytes of {
+candidate:primitive-observation:<32 lowercase hex>
+
+where the suffix is the SHA-256 prefix of canonical bytes of {
   policy_identity, adapter_id, adapter_version,
   manifest_artifact_id, occurrence_id, frame_index, tick,
   source_png_artifact_id, analysis_artifact_id, binary_mask_artifact_id,
   component_id, component_digest, contour_tolerance_pixels
-}>
+}
+```
+
+The suffix is exactly the first 32 lowercase hexadecimal characters of SHA-256
+over `canonical_bytes` of that mapping (128 identifier bits). Evaluation ids use
+the same fixed-width suffix over those inputs plus status and ordered reason
+codes:
+
+```text
+evaluation:primitive-observation:<32 lowercase hex>
 ```
 
 Every detected component also receives a deterministic evaluation identity over
@@ -314,35 +332,45 @@ P2A v0.1 introduces no new distance threshold. The eligibility constants are
 exactly the frozen controlled raster geometry constants
 (`svm/adapters/raster_geometry_observations.py:277-295`).
 
+Before component evaluation begins, the source frame must satisfy the frozen
+flat-background / solid-foreground controlled-raster precondition. Failure aborts
+the entire derivation: no evidence, evaluations or candidates are produced. This
+is a frame-level input precondition, not a component rejection reason.
+
 - **SUPPORTED** — satisfies the complete frozen controlled raster geometry
   eligibility contract: exactly one hole-free nondegenerate contour; contour area
   ≥ 256; simplified vertex count 3..32; minimum polygon edge ≥ 8 px;
-  longest-edge margin > 4 px; and the required flat solid raster conditions hold.
-- **UNCERTAIN** — contour topology, area, vertex count and flat-solid conditions
-  are valid, and the minimum polygon edge is ≥ 8 px, but the longest-edge margin
+  longest-edge margin > 4 px.
+- **UNCERTAIN** — contour topology, area and vertex count are valid, and the
+  minimum polygon edge is ≥ 8 px, but the longest-edge margin
   is ≤ 4 px. The primitive geometry is plausible, but the frozen canonical
   landmark-origin choice is ambiguous. Such a component is proposed as uncertain,
   never silently dropped, and cannot be promoted without explicit review.
 - **REJECTED** — every other failed eligibility condition, including: no contour
   or multiple contours; a hole; a degenerate or zero-area contour; area < 256;
-  vertex count outside 3..32; minimum polygon edge < 8 px; or a non-flat /
-  non-solid controlled raster violation.
+  canonicalization failure; vertex count outside 3..32; or minimum polygon edge
+  < 8 px.
 
 Reason codes are an enumerable, fixed set — not free text — so Golden assertions
 are exact:
 
 ```text
-SUPPORTED                    (no reason code)
-AMBIGUOUS_LANDMARK_ORIGIN    -> UNCERTAIN
 NO_CONTOUR                   -> REJECTED
 MULTIPLE_CONTOURS            -> REJECTED
 HAS_HOLE                     -> REJECTED
 DEGENERATE_CONTOUR           -> REJECTED
 AREA_BELOW_256               -> REJECTED
+CANONICALIZATION_FAILED      -> REJECTED
 VERTEX_COUNT_OUT_OF_RANGE    -> REJECTED
 MIN_EDGE_BELOW_8             -> REJECTED
-NON_FLAT_SOLID_RASTER        -> REJECTED
+AMBIGUOUS_LANDMARK_ORIGIN    -> UNCERTAIN
 ```
+
+Reason lists use the order shown above, with
+`AMBIGUOUS_LANDMARK_ORIGIN` last when applicable. When an earlier failure makes a
+later measurement undefined, the later consequence reason is not manufactured.
+In particular, `CANONICALIZATION_FAILED` does not also imply
+`VERTEX_COUNT_OUT_OF_RANGE`, and edge measurements remain undefined.
 
 ### Acceptance
 
@@ -352,6 +380,12 @@ references and the evidence artifact to a new Revision. Acceptance may only add
 evidence. It must reproduce and verify the exact candidate bytes, provenance,
 statuses and identities from the accepted analysis lineage; any mismatch, missing
 dependency, stale base or forged policy rejects the whole transaction atomically.
+
+Acceptance creates a new Revision and appends only the P2A evidence reference. It
+does not alter Phase 1 code or evidence bytes. An existing candidate bound to an
+older Revision or whole-Document hash may become `STALE` under the existing
+Revision semantics; P2A does not promise that such older candidates remain valid,
+and does not change Phase 1 hashing or promotion semantics.
 
 ### Forbidden effects
 
@@ -368,10 +402,11 @@ Explicitly forbidden, at proposal and acceptance time:
 
 ## 5. Golden P2A
 
-A minimal deterministic fixture (`examples/040-...`): one canonical opaque
-grayscale PNG frame, its accepted component-analysis and accepted mask, and the
-accepted video-frame manifest that verifies that frame's occurrence. The frame
-contains exactly four components:
+A minimal deterministic fixture (`examples/040-...`) is a 240×180, two-identical-
+frame AVI/FFV1 at 1 fps. Golden sampling selects frame index 1 at 12 ticks per
+second, giving `frame_index = 1`, `tick = 12` and `source_timestamp = [1, 1]`.
+Its canonical opaque grayscale PNG frame, accepted component-analysis, accepted
+mask and accepted manifest contain exactly four pixel components:
 
 1. **SUPPORTED** — a solid asymmetric polygon meeting every eligibility condition
    → exactly one `SUPPORTED` evaluation with exact ordered landmarks and no reason
@@ -379,21 +414,26 @@ contains exactly four components:
 2. **UNCERTAIN** — a solid polygon whose longest-edge margin is ≤ 4 px while every
    other condition holds → exactly one `UNCERTAIN` evaluation with reason code
    `AMBIGUOUS_LANDMARK_ORIGIN`.
-3. **REJECTED** — a component with a hole, or area < 256, or a vertex count
-   outside 3..32 → a `REJECTED` evaluation entry that remains present in the
-   evidence with its reason code.
-4. **Adversarial** — a tampered lineage/manifest: a forged or absent
-   `component_digest`; an analysis artifact whose bytes do not re-derive from the
-   PNG; an unregistered policy identity; a manifest occurrence whose
-   `raster_artifact_id` does not equal the analysis `source_artifact_id` (or
-   matches more than one occurrence); or a forged occurrence tick inside a
-   manifest whose canonical bytes/provenance do not verify → the proposal fails
-   closed, attaches no evidence, leaves HEAD/Document/Revision count unchanged,
-   and creates no candidate.
+3. **REJECTED** — a component with a hole → a retained `REJECTED` evaluation with
+   `HAS_HOLE`.
+4. **REJECTED** — a component with area < 256 → a retained `REJECTED` evaluation
+   with `AREA_BELOW_256`.
+
+Adversarial lineage/manifest cases are independent test variants, not pixel
+components: a forged or absent `component_digest`; an analysis artifact whose
+bytes do not re-derive from the PNG; an unregistered policy identity; a manifest
+occurrence whose `raster_artifact_id` does not equal the analysis
+`source_artifact_id` (or matches more than one occurrence); or a forged occurrence
+tick inside a manifest whose canonical bytes/provenance do not verify. The
+proposal fails closed, attaches no evidence, leaves HEAD/Document/Revision count
+unchanged, and creates no candidate. Selecting both identical frames with
+`frame_indices = (0, 1)` is one such variant: the same canonical PNG matches two
+distinct occurrences, so P2A fails closed.
 
 Assertions are exact and machine-checkable:
 
 - the exact evaluation count — every detected component is represented;
+- exact status counts: one `SUPPORTED`, one `UNCERTAIN`, two `REJECTED`;
 - the exact status and reason code(s) for every component;
 - the rejected component is still present in the evaluation evidence;
 - `proposed_candidates` equals exactly the SUPPORTED and UNCERTAIN entries and

@@ -3,6 +3,8 @@ import json
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from svm import AdapterRequest, ProposalAcceptor, RevisionStore, Transaction
 from svm.adapters.opencv_analysis import OpenCVAnalysisAdapter, OpenCVAnalysisOptions, analyze_png
@@ -31,7 +33,7 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
             FIXTURE.read_bytes(), media_type="video/x-msvideo"
         )
         self.video = ingest_video(
-            self.artifacts, self.source.document_reference(), VideoSampling((0,), 12)
+            self.artifacts, self.source.document_reference(), VideoSampling((1,), 12)
         )
         document = json.loads((ROOT / "examples/005-empty-canvas.svm.json").read_text())
         self.store = RevisionStore.create(document)
@@ -136,8 +138,9 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
         self.assertEqual(
             entries[0]["ordered_landmarks"], [[25.0, 65.0], [90.0, 10.0], [10.0, 10.0]]
         )
-        self.assertEqual(data["occurrence_provenance"]["tick"], 0)
-        self.assertEqual(data["occurrence_provenance"]["source_timestamp"], [0, 1])
+        self.assertEqual(data["occurrence_provenance"]["frame_index"], 1)
+        self.assertEqual(data["occurrence_provenance"]["tick"], 12)
+        self.assertEqual(data["occurrence_provenance"]["source_timestamp"], [1, 1])
 
     def test_deterministic_ids_bytes_and_proposal(self):
         first, second = self.propose(), self.propose()
@@ -168,6 +171,13 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
                     {**identity, "status": entry["status"], "reason_codes": entry["reason_codes"]}
                 ),
             )
+            self.assertRegex(
+                entry["evaluation_id"], r"^evaluation:primitive-observation:[0-9a-f]{32}$"
+            )
+            if entry["candidate_id"] is not None:
+                self.assertRegex(
+                    entry["candidate_id"], r"^candidate:primitive-observation:[0-9a-f]{32}$"
+                )
 
     def test_preview_then_accept_only_appends_evidence(self):
         before = self.state()
@@ -394,17 +404,14 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
             (8, 40, "UNCERTAIN", "AMBIGUOUS_LANDMARK_ORIGIN"),
             (7, 40, "REJECTED", "MIN_EDGE_BELOW_8"),
         ):
-            result = measure_component(rectangle(width, height), True)
+            result = measure_component(rectangle(width, height))
             self.assertEqual((result["status"], result["reason_codes"]), (status, [reason]))
-        self.assertIn(
-            "NON_FLAT_SOLID_RASTER", measure_component(rectangle(20, 20), False)["reason_codes"]
-        )
         empty = np.zeros((100, 100), np.uint8)
-        self.assertEqual(measure_component(empty, True)["reason_codes"], ["NO_CONTOUR"])
+        self.assertEqual(measure_component(empty)["reason_codes"], ["NO_CONTOUR"])
         empty[5, 5] = 255
-        self.assertIn("DEGENERATE_CONTOUR", measure_component(empty, True)["reason_codes"])
+        self.assertIn("DEGENERATE_CONTOUR", measure_component(empty)["reason_codes"])
         cv2.rectangle(empty, (30, 30), (60, 60), 255, -1)
-        self.assertIn("MULTIPLE_CONTOURS", measure_component(empty, True)["reason_codes"])
+        self.assertIn("MULTIPLE_CONTOURS", measure_component(empty)["reason_codes"])
         # Scaled 5-12-13 triangles give exact margins of 4 and 5 pixels,
         # with every other eligibility condition valid.
         for scale, status in ((4, "UNCERTAIN"), (5, "SUPPORTED")):
@@ -414,9 +421,47 @@ class RasterPrimitiveObservationProposalTest(unittest.TestCase):
                 [np.array([[10, 10], [10 + 5 * scale, 10], [10, 10 + 12 * scale]], np.int32)],
                 255,
             )
-            result = measure_component(mask, True)
+            result = measure_component(mask)
             self.assertEqual(result["measurements"]["longest_edge_margin_pixels"], scale)
             self.assertEqual(result["status"], status)
+
+    def test_frame_flat_solid_precondition_fails_whole_inference_atomically(self):
+        import cv2
+        import numpy as np
+
+        gray = cv2.imdecode(np.frombuffer(self.video.frames[0].content, np.uint8), 0)
+        gray[0, 0] = 254
+        encoded, png = cv2.imencode(".png", gray, [cv2.IMWRITE_PNG_COMPRESSION, 9])
+        self.assertTrue(encoded)
+        frame = self.artifacts.import_bytes(
+            png.tobytes(), media_type="image/png", kind=ArtifactKind.REFERENCE
+        )
+        self.accept_refs(frame)
+        self.analysis = self.analyze(frame)
+        before_artifacts = set(self.artifacts._blobs)
+        occurrence = {**self.video.occurrences[0], "raster_artifact_id": frame.artifact_id}
+        with patch(
+            "svm.adapters.raster_primitive_observation_proposal.verify_video_manifest",
+            return_value=SimpleNamespace(occurrences=(occurrence,)),
+        ):
+            self.fails_atomically(self.propose)
+        self.assertEqual(set(self.artifacts._blobs), before_artifacts)
+
+    def test_canonicalization_failure_is_one_rejected_evaluation(self):
+        from svm.backends.geometry import GeometryBackendError
+
+        with patch(
+            "svm.adapters.raster_primitive_observation_proposal.canonicalize_polygon_set",
+            side_effect=GeometryBackendError("fixture failure"),
+        ):
+            proposal = self.propose()
+        data = json.loads(self.artifacts.get(proposal.preview_artifacts[0].artifact_id).content)
+        evaluation = data["evaluations"][0]
+        self.assertEqual(evaluation["status"], "REJECTED")
+        self.assertEqual(evaluation["reason_codes"], ["CANONICALIZATION_FAILED"])
+        self.assertIsNone(evaluation["candidate_id"])
+        self.assertIsNone(evaluation["measurements"]["minimum_edge_pixels"])
+        self.assertIsNone(evaluation["measurements"]["longest_edge_margin_pixels"])
 
 
 if __name__ == "__main__":

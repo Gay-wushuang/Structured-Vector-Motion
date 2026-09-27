@@ -36,9 +36,9 @@ REASONS = (
     "HAS_HOLE",
     "DEGENERATE_CONTOUR",
     "AREA_BELOW_256",
+    "CANONICALIZATION_FAILED",
     "VERTEX_COUNT_OUT_OF_RANGE",
     "MIN_EDGE_BELOW_8",
-    "NON_FLAT_SOLID_RASTER",
     "AMBIGUOUS_LANDMARK_ORIGIN",
 )
 
@@ -51,7 +51,7 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(canonical_bytes(value)).hexdigest()[:32]
 
 
-def measure_component(mask: Any, flat_solid: bool) -> dict[str, Any]:
+def measure_component(mask: Any) -> dict[str, Any]:
     """Use the frozen polygon construction and exact eligibility thresholds."""
     cv2, _ = _opencv()
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -73,24 +73,23 @@ def measure_component(mask: Any, flat_solid: bool) -> dict[str, Any]:
             reasons.append("DEGENERATE_CONTOUR")
         if area < 256:
             reasons.append("AREA_BELOW_256")
-        raw = cv2.approxPolyDP(contour, CONTOUR_TOLERANCE, True).reshape(-1, 2).tolist()
-        try:
-            points = canonicalize_polygon_set([{"exterior": raw, "holes": []}])["polygons"][0][
-                "exterior"
-            ][:-1]
-        except GeometryBackendError:
-            if "DEGENERATE_CONTOUR" not in reasons:
-                reasons.append("DEGENERATE_CONTOUR")
-        if not 3 <= len(points) <= 32:
-            reasons.append("VERTEX_COUNT_OUT_OF_RANGE")
+        if area > 0:
+            raw = cv2.approxPolyDP(contour, CONTOUR_TOLERANCE, True).reshape(-1, 2).tolist()
+            try:
+                points = canonicalize_polygon_set([{"exterior": raw, "holes": []}])["polygons"][0][
+                    "exterior"
+                ][:-1]
+            except GeometryBackendError:
+                reasons.append("CANONICALIZATION_FAILED")
+            else:
+                if not 3 <= len(points) <= 32:
+                    reasons.append("VERTEX_COUNT_OUT_OF_RANGE")
     lengths = [math.dist(p, points[(i + 1) % len(points)]) for i, p in enumerate(points)]
     minimum = min(lengths) if lengths else None
     ordered = sorted(lengths)
     margin = ordered[-1] - ordered[-2] if len(ordered) >= 2 else None
     if minimum is not None and minimum < 8:
         reasons.append("MIN_EDGE_BELOW_8")
-    if not flat_solid:
-        reasons.append("NON_FLAT_SOLID_RASTER")
     status = "REJECTED" if reasons else "SUPPORTED"
     if not reasons and margin is not None and margin <= 4:
         status = "UNCERTAIN"
@@ -110,7 +109,6 @@ def measure_component(mask: Any, flat_solid: bool) -> dict[str, Any]:
             "simplified_vertex_count": len(points),
             "minimum_edge_pixels": minimum,
             "longest_edge_margin_pixels": margin,
-            "flat_solid": flat_solid,
         },
         "ordered_landmarks": landmarks,
     }
@@ -234,6 +232,10 @@ def derive(
         and len(np.unique(gray[mask == 0])) == 1
         and len(np.unique(gray[mask != 0])) == 1
     )
+    if not flat:
+        raise RasterPrimitiveObservationProposalError(
+            "P2A requires a flat-background solid-foreground source raster"
+        )
     evaluations = []
     for component in components:
         x, y, right, bottom = component["bounds"]
@@ -247,7 +249,7 @@ def derive(
         if len(matching) != 1:
             raise RasterPrimitiveObservationProposalError("P2A component pixels are ambiguous")
         selected = np.where(labels == matching[0], 255, 0).astype(np.uint8)
-        result = measure_component(selected, flat)
+        result = measure_component(selected)
         identity = {
             **provenance,
             "component_id": component["candidate_id"],
