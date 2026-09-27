@@ -613,6 +613,27 @@ class AttachPOPGeometryObservationsChange:
 
 
 @dataclass(frozen=True)
+class AttachRasterPrimitiveObservationProposalChange:
+    """Append P2A evidence only, retaining exact accepted dependency descriptors."""
+
+    evidence_reference: dict[str, Any]
+    source_references: tuple[dict[str, Any], ...]
+    analysis_artifact_id: str
+    manifest_artifact_id: str
+    policy_identity: str
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (self.evidence_reference, *self.source_references)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        accepted = {ref["id"]: ref for ref in document["references"]}
+        if any(accepted.get(ref["id"]) != ref for ref in self.source_references):
+            raise DocumentError("P2A requires exact accepted dependencies")
+        AppendReferencesChange((self.evidence_reference,)).apply(document)
+
+
+@dataclass(frozen=True)
 class AttachRasterGeometryObservationsChange:
     """Attach pixel-derived evidence after exact lineage verification."""
 

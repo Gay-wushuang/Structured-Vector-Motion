@@ -17,6 +17,7 @@ from .revisions import (
     AttachObservedSimilarityEvidenceChange,
     AttachPOPGeometryObservationsChange,
     AttachRasterGeometryObservationsChange,
+    AttachRasterPrimitiveObservationProposalChange,
     AttachRasterSimilarityEvidenceChange,
     AttachSparseCompensatedMotionChange,
     AttachSparseObservationPolicyChange,
@@ -277,6 +278,14 @@ def _verify_pop_geometry_observations(change: Any, resolved: dict[str, ArtifactS
     verify_pop_geometry_observations_change(change, resolved)
 
 
+def _verify_raster_primitive_observation_proposal(
+    change: Any, resolved: dict[str, ArtifactSnapshot]
+) -> None:
+    from .adapters.raster_primitive_observation_proposal import verify_change
+
+    verify_change(change, resolved)
+
+
 def _verify_raster_geometry_observations(
     change: Any, resolved: dict[str, ArtifactSnapshot]
 ) -> None:
@@ -430,6 +439,12 @@ CHANGE_AUTHORITIES = {
             frozenset({"attach_analysis"}),
             _single("attach_analysis"),
             _verify_raster_geometry_observations,
+        ),
+        ChangeAuthority(
+            AttachRasterPrimitiveObservationProposalChange,
+            frozenset({"attach_analysis"}),
+            _single("attach_analysis"),
+            _verify_raster_primitive_observation_proposal,
         ),
         ChangeAuthority(
             AttachSVGGeometryObservationsChange,

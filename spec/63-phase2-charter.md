@@ -1,14 +1,26 @@
 # Phase 2 Charter — First Inference Slice (P2A)
 
-Status: planning charter only. This document adds no implementation, no tests and
-no new inference. It does not modify any frozen Phase 1 contract. Phase 1 remains
+Status: P2A v0.1 implemented under the contract below. P2B and subsequent slices
+remain planning only. This does not modify any frozen Phase 1 contract. Phase 1 remains
 FINAL / FROZEN (`spec/62-phase1-final-freeze.md`, implementation baseline
 `0caae5b8061bfd12901bdb0898f171d4ad5d48a4`).
 
 The purpose of this charter is to pick exactly one first Phase 2 slice (P2A) that
 adds the **minimum new inference authority** while removing the **single most
 artificial Phase 1 precondition**, and to specify it precisely enough to
-implement later.
+implement as an independent evidence-only adapter.
+
+Implementation: `svm/adapters/raster_primitive_observation_proposal.py`, with
+focused Golden coverage in `tests/test_raster_primitive_observation_proposal.py`.
+The checked-in `examples/040-raster-primitive-observation-proposal/scene.avi`
+is a 240×180 grayscale AVI/FFV1 with two identical frames at 1 fps. Selecting
+frame 0 gives one supported asymmetric triangle, one uncertain square, a rejected
+holed component and a rejected small component. Selecting both frames proves
+the required duplicate-occurrence rejection. Forged lineage is tested separately;
+it aborts the whole proposal rather than becoming a component classification.
+The request supplies only the accepted analysis and manifest IDs, with no options.
+PNG, mask, source video and all manifest-selected frames must have exact accepted
+references, so acceptance can reproduce both the analysis and the full manifest.
 
 ## 1. What Phase 1 actually assumes
 
