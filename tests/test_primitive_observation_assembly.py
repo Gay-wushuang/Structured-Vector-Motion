@@ -7,7 +7,6 @@ from pathlib import Path
 from svm import AdapterRequest, ProposalAcceptor, RevisionStore, Transaction
 from svm.adapters import (
     OpenCVAnalysisAdapter,
-    PrimitiveObservationAssemblyAdapter,
     TemporalCorrespondenceAdapter,
 )
 from svm.adapters.primitive_observation_assembly import (
@@ -16,6 +15,7 @@ from svm.adapters.primitive_observation_assembly import (
     MEDIA,
     POLICY,
     SCHEMA,
+    PrimitiveObservationAssemblyAdapter,
 )
 from svm.adapters.raster_primitive_observation_proposal import (
     RasterPrimitiveObservationProposalAdapter,
