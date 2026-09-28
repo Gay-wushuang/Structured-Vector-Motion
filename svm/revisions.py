@@ -938,6 +938,32 @@ class PromoteTemporalIdentityChange:
 
 
 @dataclass(frozen=True)
+class ApplyTemporalIdentitySelectionChange:
+    """Atomically bind ALL-SUPPORTED selection evidence to frozen R1 promotion."""
+
+    selection_evidence_reference: dict[str, Any]
+    r0_evidence_reference: dict[str, Any]
+    delegated_promotion: PromoteTemporalIdentityChange
+    selected_inference_ids: tuple[str, ...]
+    policy_identity: str
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        result: list[dict[str, Any]] = []
+        for reference in (self.r0_evidence_reference, self.selection_evidence_reference):
+            if not any(item["id"] == reference["id"] for item in result):
+                result.append(reference)
+        return tuple(result)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        self.delegated_promotion.apply(document)
+        if not any(
+            item["id"] == self.selection_evidence_reference["id"] for item in document["references"]
+        ):
+            document["references"].append(copy.deepcopy(self.selection_evidence_reference))
+
+
+@dataclass(frozen=True)
 class AttachSparseObservationPolicyChange:
     """Record an explicit short-gap policy after ordinary R1 promotion."""
 

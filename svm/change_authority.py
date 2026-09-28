@@ -11,6 +11,7 @@ from .revisions import (
     AddKeyframeChange,
     AppendReferencesChange,
     AppendSceneFragmentChange,
+    ApplyTemporalIdentitySelectionChange,
     AttachCameraCompensationEvidenceChange,
     AttachMultiAnchorCameraEvidenceChange,
     AttachObservedMotionEvidenceChange,
@@ -231,6 +232,13 @@ def _verify_temporal_identity_promotion(change: Any, resolved: dict[str, Artifac
             raise ValueError("Promoted temporal identity does not match R0 evidence")
 
 
+def _verify_temporal_identity_selection(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.temporal_identity_selection import verify_change
+
+    verify_change(change, resolved)
+    _verify_temporal_identity_promotion(change.delegated_promotion, resolved)
+
+
 def _verify_observed_motion(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
     from .adapters.observed_translation_motion import verify_observed_motion_change
 
@@ -385,6 +393,12 @@ def _promote_temporal_identity(change: Any) -> tuple[Intent, ...]:
     )
 
 
+def _temporal_identity_selection(change: Any) -> tuple[Intent, ...]:
+    return _promote_temporal_identity(change.delegated_promotion) + (
+        ("attach_analysis", "document", None),
+    )
+
+
 def _add_keyframe(change: Any) -> tuple[Intent, ...]:
     return (("add_keyframe", change.track_id, change.keyframe_id),)
 
@@ -484,6 +498,12 @@ CHANGE_AUTHORITIES = {
             frozenset({"promote_temporal_identity"}),
             _promote_temporal_identity,
             _verify_temporal_identity_promotion,
+        ),
+        ChangeAuthority(
+            ApplyTemporalIdentitySelectionChange,
+            frozenset({"promote_temporal_identity", "attach_analysis"}),
+            _temporal_identity_selection,
+            _verify_temporal_identity_selection,
         ),
         ChangeAuthority(
             AttachObservedMotionEvidenceChange,

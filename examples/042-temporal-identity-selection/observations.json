@@ -1,0 +1,96 @@
+{
+  "schema_version": "svm-primitive-observations-0.1",
+  "canvas": [
+    100,
+    100
+  ],
+  "frames": [
+    {
+      "tick": 0,
+      "primitives": [
+        {
+          "observation_id": "observation:a0",
+          "primitive_type": "rectangle",
+          "bounds": [
+            10,
+            10,
+            30,
+            20
+          ],
+          "fill": "#000000"
+        },
+        {
+          "observation_id": "observation:b0",
+          "primitive_type": "rectangle",
+          "bounds": [
+            75,
+            5,
+            85,
+            25
+          ],
+          "fill": "#000000"
+        },
+        {
+          "observation_id": "observation:c0",
+          "primitive_type": "ellipse",
+          "bounds": [
+            40,
+            65,
+            50,
+            75
+          ],
+          "fill": "#00FF00"
+        }
+      ]
+    },
+    {
+      "tick": 1,
+      "primitives": [
+        {
+          "observation_id": "observation:a1",
+          "primitive_type": "rectangle",
+          "bounds": [
+            11,
+            10,
+            31,
+            20
+          ],
+          "fill": "#000000"
+        },
+        {
+          "observation_id": "observation:b1",
+          "primitive_type": "rectangle",
+          "bounds": [
+            76,
+            5,
+            86,
+            25
+          ],
+          "fill": "#000000"
+        },
+        {
+          "observation_id": "observation:c1-left",
+          "primitive_type": "ellipse",
+          "bounds": [
+            39,
+            65,
+            49,
+            75
+          ],
+          "fill": "#00FF00"
+        },
+        {
+          "observation_id": "observation:c1-right",
+          "primitive_type": "ellipse",
+          "bounds": [
+            41,
+            65,
+            51,
+            75
+          ],
+          "fill": "#00FF00"
+        }
+      ]
+    }
+  ]
+}

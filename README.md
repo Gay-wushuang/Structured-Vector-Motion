@@ -348,8 +348,13 @@ Proposal, is **FINAL / FROZEN** —
 Assembly, is **FINAL / FROZEN** —
 `spec/66-p2b-primitive-observation-assembly.md` (normative contract),
 `spec/67-p2b-final-freeze.md` (freeze record). P2C, Temporal Identity Selection,
-is **specified / not implemented** —
-`spec/68-p2c-temporal-identity-selection.md`.
+is **implemented** — `spec/68-p2c-temporal-identity-selection.md`.
+It selects all existing SUPPORTED candidates from one accepted R0 artifact,
+delegates promotion to frozen R1, and atomically binds the selection evidence to
+that exact promotion. See
+[Golden P2C](examples/042-temporal-identity-selection/README.md).
+The adapter uses a direct module import; CLI preview/accept packaging remains
+a non-semantic follow-up.
 
 ## Development
 
