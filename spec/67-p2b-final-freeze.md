@@ -9,17 +9,55 @@ FINAL / FROZEN (`spec/65-p2a-final-freeze.md`).
 
 ## Frozen baseline
 
+Feature implementation baseline:
+
 ```text
 c3f46cec21ea67726f427921e3f970f2548e03ad
+```
+
+Post-freeze demonstrated integration bug fix:
+
+```text
+1cfc1f1ba0b6c967fb6a7309b2ebd15eba00f471
+```
+
+Current frozen repository baseline:
+
+```text
+1cfc1f1ba0b6c967fb6a7309b2ebd15eba00f471
 ```
 
 Normative contract: `spec/66-p2b-primitive-observation-assembly.md`.
 Charter: `spec/63-phase2-charter.md`.
 
-P2B lineage: `1cfc515` defined the contract; `c3f46ce` implements it (adapter,
-registered Change, fixture, focused tests). The baseline is the implementation
-commit above; a later documentation-only commit, including this freeze record,
-is not part of the implementation baseline.
+`0d4df31` originally recorded the freeze before the cross-package import cycle
+was exposed by CI. CI then demonstrated a real integration bug through this
+package-initialization path:
+
+```text
+svm.video_ingestion
+-> svm.adapters package initialization
+-> primitive_observation_assembly
+-> raster_primitive_observation_proposal
+-> svm.video_ingestion
+```
+
+This was a permitted demonstrated-bug reopening under the existing P2B
+change-control rule.
+
+`1cfc1f1` fixed only the package import surface:
+
+- it removed the `PrimitiveObservationAssemblyAdapter` /
+  `PrimitiveObservationAssemblyError` eager re-export from
+  `svm/adapters/__init__.py`;
+- the P2B tests use a direct module import.
+
+It did **not** change P2B input authority, inclusion / exclusion semantics,
+observation identity, assembly evidence, verification closure, Change semantics,
+R0 compatibility semantics, or the `spec/66` normative contract.
+
+The semantic contract remained frozen. The repository baseline advanced only
+because a demonstrated package import integration defect was fixed.
 
 ## Frozen capability
 
@@ -129,9 +167,13 @@ unchanged; this is asserted in the focused tests.
 **CI matrix:** `.github/workflows/ci.yml` defines the quality matrix as Windows
 (`windows-latest`) and Ubuntu (`ubuntu-latest`) on Python `3.11` and `3.12`, and
 runs `ruff format --check .`, `ruff check .`, `pyright`, the controlled AVI/FFV1
-ingestion test, the full `unittest` suite and CLI smoke tests. The freeze premise
-for `c3f46ce` is that this matrix is green — **CI PASS** (taken from the
-established premise; the remote run was not observed from this workspace).
+ingestion test, the full `unittest` suite and CLI smoke tests.
+
+No "CI PASS" is recorded for the feature implementation baseline `c3f46ce`: its
+CI later proved to fail (the import cycle above). CI status for the frozen
+repository baseline `1cfc1f1ba0b6c967fb6a7309b2ebd15eba00f471` must be
+supplied/verified before this correction can claim final acceptance. It cannot be
+verified from this workspace.
 
 ## Frozen non-goals
 
@@ -150,6 +192,17 @@ P2B may only reopen for a demonstrated bug.
 
 The next remaining semantic authority after P2B is temporal
 correspondence / identity proposal work. It is not designed here.
+
+## Change-control history
+
+```text
+c3f46ce  P2B implementation
+0d4df31  initial freeze record (recorded before CI exposed the import cycle)
+1cfc1f1  post-freeze demonstrated-bug fix: package import cycle only
+```
+
+This reopening conformed to the P2B change-control rule "P2B may only reopen for
+a demonstrated bug". P2B is re-closed at `1cfc1f1`.
 
 ## Change control
 
