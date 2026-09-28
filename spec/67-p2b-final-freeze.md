@@ -169,11 +169,25 @@ unchanged; this is asserted in the focused tests.
 runs `ruff format --check .`, `ruff check .`, `pyright`, the controlled AVI/FFV1
 ingestion test, the full `unittest` suite and CLI smoke tests.
 
-No "CI PASS" is recorded for the feature implementation baseline `c3f46ce`: its
-CI later proved to fail (the import cycle above). CI status for the frozen
-repository baseline `1cfc1f1ba0b6c967fb6a7309b2ebd15eba00f471` must be
-supplied/verified before this correction can claim final acceptance. It cannot be
-verified from this workspace.
+CI matrix for frozen repository baseline:
+
+```text
+1cfc1f1ba0b6c967fb6a7309b2ebd15eba00f471
+```
+
+Verified PASS:
+
+- Ubuntu / Python 3.11
+- Ubuntu / Python 3.12
+- Windows / Python 3.11
+- Windows / Python 3.12
+
+`c3f46ce` does not count as CI-passing, because its CI exposed the import-cycle
+bug. `1cfc1f1` is the fixed, official frozen repository baseline: with all four
+matrix entries verified, P2B final acceptance is satisfied. The semantic contract
+remains `spec/66` and does not change version because of the import fix. `07d0a6c`
+is the freeze baseline-correction documentation commit; this entry only records
+the already-verified CI fact in the freeze record.
 
 ## Frozen non-goals
 
