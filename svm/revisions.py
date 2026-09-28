@@ -634,6 +634,28 @@ class AttachRasterPrimitiveObservationProposalChange:
 
 
 @dataclass(frozen=True)
+class AttachPrimitiveObservationAssemblyChange:
+    """Append verified P2B observation and audit evidence only."""
+
+    observation_reference: dict[str, Any]
+    evidence_reference: dict[str, Any]
+    source_references: tuple[dict[str, Any], ...]
+    policy_identity: str
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return (self.observation_reference, self.evidence_reference, *self.source_references)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        accepted = {ref["id"]: ref for ref in document["references"]}
+        if any(accepted.get(ref["id"]) != ref for ref in self.source_references):
+            raise DocumentError("P2B requires exact accepted dependencies")
+        AppendReferencesChange((self.observation_reference, self.evidence_reference)).apply(
+            document
+        )
+
+
+@dataclass(frozen=True)
 class AttachRasterGeometryObservationsChange:
     """Attach pixel-derived evidence after exact lineage verification."""
 

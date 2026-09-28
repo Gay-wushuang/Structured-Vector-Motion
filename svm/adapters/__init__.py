@@ -41,6 +41,10 @@ from .pop_group_candidates import POPGroupCandidateAdapter, POPGroupCandidateErr
 from .pop_group_promotion import POPGroupPromotionAdapter, POPGroupPromotionError
 from .pop_output import POPOutputAdapter, POPOutputError, POPTokenExporter
 from .pop_structure import POPStructureAdapter, POPStructureError
+from .primitive_observation_assembly import (
+    PrimitiveObservationAssemblyAdapter,
+    PrimitiveObservationAssemblyError,
+)
 from .sparse_camera_compensation import SparseCameraCompensatedMotionAdapter
 from .sparse_observation import SparseTemporalIdentityPromotionAdapter
 from .svg_geometry_observations import (
@@ -103,6 +107,8 @@ __all__ = [
     "POPGeometryObservationError",
     "POPStructureAdapter",
     "POPStructureError",
+    "PrimitiveObservationAssemblyAdapter",
+    "PrimitiveObservationAssemblyError",
     "POPGroupCandidateAdapter",
     "POPGroupCandidateError",
     "POPGroupPromotionAdapter",
