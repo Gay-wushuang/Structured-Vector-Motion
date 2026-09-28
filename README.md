@@ -347,8 +347,9 @@ Proposal, is **FINAL / FROZEN** —
 `spec/65-p2a-final-freeze.md` (freeze record). P2B, Primitive Observation
 Assembly, is **FINAL / FROZEN** —
 `spec/66-p2b-primitive-observation-assembly.md` (normative contract),
-`spec/67-p2b-final-freeze.md` (freeze record). The next remaining semantic
-authority is temporal correspondence / identity proposal work.
+`spec/67-p2b-final-freeze.md` (freeze record). P2C, Temporal Identity Selection,
+is **specified / not implemented** —
+`spec/68-p2c-temporal-identity-selection.md`.
 
 ## Development
 
