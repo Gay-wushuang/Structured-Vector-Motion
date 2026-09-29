@@ -358,6 +358,14 @@ that exact promotion. See
 The adapter uses a direct module import; CLI preview/accept packaging remains
 a non-semantic follow-up.
 
+P2D, Exact-Provenance Motion Target Binding Selection, is
+**SPECIFIED / NOT IMPLEMENTED** —
+`spec/70-p2d-exact-provenance-motion-target-binding.md` (normative contract). It
+defines an exact structural / provenance correspondence from an accepted temporal
+identity to an existing Document Group, with no geometric inference, full
+delegation to the frozen Motion Target Binding Change, and abstention whenever no
+exact provenance path exists. No adapter, fixture or test exists yet.
+
 ## Development
 
 Install the project and development tools in editable mode:
