@@ -348,7 +348,9 @@ Proposal, is **FINAL / FROZEN** —
 Assembly, is **FINAL / FROZEN** —
 `spec/66-p2b-primitive-observation-assembly.md` (normative contract),
 `spec/67-p2b-final-freeze.md` (freeze record). P2C, Temporal Identity Selection,
-is **implemented** — `spec/68-p2c-temporal-identity-selection.md`.
+is **FINAL / FROZEN** —
+`spec/68-p2c-temporal-identity-selection.md` (normative contract),
+`spec/69-p2c-final-freeze.md` (freeze record).
 It selects all existing SUPPORTED candidates from one accepted R0 artifact,
 delegates promotion to frozen R1, and atomically binds the selection evidence to
 that exact promotion. See
