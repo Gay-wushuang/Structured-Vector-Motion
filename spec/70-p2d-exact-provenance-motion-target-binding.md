@@ -19,7 +19,8 @@ P2D v0 performs **no geometric inference of any kind**.
 ## 0. Blocker assessment
 
 The contract was written after a read-only inspection of the frozen code. The
-following assumptions were checked, and are **confirmed** rather than assumed.
+following repository capabilities were checked. They do not, by themselves,
+prove completeness of a P2D selection at acceptance.
 
 | # | Question | Result | Evidence |
 | --- | --- | --- | --- |
@@ -31,8 +32,21 @@ following assumptions were checked, and are **confirmed** rather than assumed.
 | 6 | Frozen binding one-to-one / stale / conflict semantics | Enforced by `BindTemporalMotionTargetChange.apply` **and** by Document validation | `revisions.py:1142-1186`; `document.py:210-213` |
 | 7 | Can the frozen binding Change be fully delegated? | **YES** — `TemporalMotionTargetBindingAdapter` is a pure `propose(request, artifacts)` | `temporal_motion_target_binding.py:33-100` |
 
-**No implementation blocker exists.** Three limitations are, however, frozen as
-part of the contract and must not be silently worked around (§12, §13):
+The original artifact-verifier-only design had a **completeness blocker**:
+`ArtifactVerifier(change, resolved_artifacts)` receives no accepted Document.
+Unlike P2C, P2D cannot reconstruct its candidate universe from one R0 artifact.
+Omitting an identity together with its entire artifact closure could therefore
+pass a verifier that only checked the supplied subset.
+
+The revised design resolves that architectural gap at specification level using
+a **full base-Document snapshot authenticated by the existing Revision content
+hash**, the existing `source_revision_resolver` hook, and a pre-mutation snapshot
+guard in the composite Change (§10–11). No verifier-interface or ProposalAcceptor
+change is required. This is a design feasibility conclusion, not implemented or
+tested acceptance evidence. The future implementation must prove the attacks in
+§16 fail closed before claiming conformance.
+
+Three additional limitations remain part of the contract (§12, §13):
 
 1. frozen binding exposes **no separate artifact verifier** — its endpoint, stale
    and conflict validation lives inside `BindTemporalMotionTargetChange.apply`
@@ -69,8 +83,9 @@ improved by introducing a heuristic.
 
 ## 2. Exact allowed correspondence paths
 
-P2D v0 permits exactly two lineages. Both are re-derivable from accepted
-artifacts alone. Any other producer is "no allowed path".
+P2D v0 permits exactly two lineages. Both are re-derivable from the exact base
+Document and its accepted artifacts: Entity and Group membership come from the
+Document, not from artifacts alone. Any other producer is "no allowed path".
 
 ### 2.1 Path A — raster component lineage
 
@@ -138,32 +153,48 @@ P2D is **document-scoped with no caller selection**.
   role, anchor / target, threshold, baseline tick, geometry tolerance, Camera,
   Track or Ground Truth;
 - the caller must not supply `artifact_ids`; the required verification closure is
-  derived by P2D itself from the accepted Document (§10).
+  derived by P2D itself from the accepted Document (§11.1).
 
-P2D auto-enumerates eligible identities from the Document (§4). The residual
+P2D auto-enumerates every temporal identity from the Document (§4). The residual
 frame/interval scheduling authority belongs to orchestration, not to P2D.
 
-Confirmed feasible: `AdapterRequest.from_store(store, revision, ("document",))`
-already carries only the revision, the Document snapshot and an
-`ArtifactResolver`, which is sufficient (this is the shape P2C already uses).
+`AdapterRequest.from_store(store, revision, ("document",))` supplies the base
+revision id and Document snapshot; the Artifact resolver is a separate argument
+to `propose`. The request does **not** contain the Revision metadata needed to
+authenticate that snapshot. This differs from P2C's artifact-defined universe.
 
-## 4. Eligible identity enumeration
+For future P2D construction, orchestration additionally provides a detached copy
+of `store.revisions[request.base_revision_id]` as a `base_revision` constructor
+argument to the new P2D adapter. Its ordinary `propose(request, artifacts)` method
+remains unchanged in shape. This is a Revision commitment witness (§10.1), not
+caller selection or a new request option; it is verified, never trusted merely
+because it was supplied. No mutable RevisionStore is passed to the adapter, and
+no change to `AdapterRequest`, existing adapters, or provider infrastructure is
+required. A missing or inconsistent witness fails closed.
 
-P2D considers exactly the identities in `document["temporal_identities"]` that
-are **not** an endpoint of any existing `document["motion_target_bindings"]`
-entry, in the Document's canonical identity order (identities are sorted by id;
-`document.py:329-330`).
+## 4. Complete identity enumeration
 
-Every considered identity receives exactly one evaluation entry. **Silent
-omission of a considered identity is forbidden.**
+P2D enumerates **every** identity in `document.get("temporal_identities", [])`,
+in canonical identity-id order, including identities already participating in
+`motion_target_bindings`. An absent collection means an empty universe.
+
+Every Document temporal identity receives **exactly one** evaluation entry.
+"Considered identities" means this entire universe; it never means only unbound,
+resolvable or selected identities. **Silent omission of any identity is
+forbidden.** Selection eligibility is a classification result, not an enumeration
+filter. "Eligible Group" retains its separate structural meaning in §6.
 
 An identity whose promotion provenance is empty, malformed, or references a
-missing accepted artifact is still enumerated and receives `UNCERTAIN` or
-`REJECTED` — it is never dropped.
+missing accepted artifact is still evaluated as `UNCERTAIN` or `REJECTED` under
+§5. An already-bound identity is always `REJECTED / ALREADY_BOUND` under §5.1,
+including when its lineage cannot be resolved. Neither case removes it from the
+evaluation universe, evidence counts, or completeness verification.
 
 ## 5. Candidate semantics
 
-Statuses are conservative and never resolved by a best-pick.
+Statuses are conservative and never resolved by a best-pick. Already-bound
+identity precedence is defined by §5.1; the remaining rules classify unbound
+identities.
 
 **SUPPORTED** — all of:
 
@@ -174,14 +205,16 @@ Statuses are conservative and never resolved by a best-pick.
   all of them are **the same** Group;
 - the identity is currently unbound;
 - the Group is currently unbound;
-- the Group is not contended by another considered identity (§7).
+- the Group is not contended by another unbound identity that satisfies all
+  preceding SUPPORTED conditions (§7).
 
 **UNCERTAIN** — exact object correspondence cannot be uniquely proven:
 
 - provenance is only partly resolvable (some records resolve, some do not);
 - records resolve to more than one Group;
 - provenance is internally contradictory (different Entities, different Groups);
-- the Group is contended by another considered identity.
+- the Group is contended by another unbound identity that satisfies all
+  non-contention SUPPORTED conditions (§7).
 
 **REJECTED** — no usable correspondence exists:
 
@@ -197,15 +230,26 @@ background, foreground, static, moving or lifecycle meaning.
 
 ### 5.1 Already-bound endpoints
 
-An identity already participating in a `motion_target_bindings` entry, or a
-Group already so bound, is **not selected**. P2D classifies it as `REJECTED`
-with reason `ALREADY_BOUND` at proposal time rather than relying on the frozen
-Change's idempotent / conflict behaviour at acceptance.
+An identity already participating in `motion_target_bindings` is still enumerated
+and receives exactly one `REJECTED` evaluation with reason `ALREADY_BOUND`.
+This classification takes precedence over unresolved lineage and contention;
+there is no selection for that identity. Its evaluation records the existing
+binding id and Group id from the base Document, so the exclusion is auditable.
 
-Rationale: P2D's authority is "select the pairs to submit". An already-bound
-endpoint is not a new selection; submitting it would add nothing, and would let
-an already-bound pair mask a genuine one-to-one conflict. Keeping it `REJECTED`
-also makes the acceptance verifier's expected selected set well defined.
+For an unbound identity, if provenance otherwise resolves to one unique eligible
+Group but that Group is already bound, the identity also receives
+`REJECTED / ALREADY_BOUND`, with the existing binding recorded. A structurally
+eligible Group (§6) need not be available for a new binding.
+
+Already-bound identities and pairs rejected because their Group is already
+bound do not participate in new-pair contention. The existing binding remains
+visible in the complete base binding state and evaluation. Other contradictory
+or partially resolved lineage retains the §5 classification; no arbitrary Group
+is chosen in order to attach `ALREADY_BOUND`.
+
+P2D does not delegate these excluded pairs merely to obtain frozen idempotency
+or conflict behaviour. Frozen binding semantics remain unchanged for the pairs
+that are selected.
 
 ## 6. Group eligibility
 
@@ -233,6 +277,10 @@ never one, never a best pair.
 - `I1 -> G1` and `I2 -> G2`, both SUPPORTED and distinct: **both are selected**.
 - `I1 -> G1` and `I2 -> G1` (two identities contending for one Group): this is a
   **global one-to-one contention**. P2D must not let the first win.
+
+Contention is computed only among unbound identities whose provenance otherwise
+uniquely resolves to an unbound eligible Group. Every other identity remains in
+the evaluation list, including each `REJECTED / ALREADY_BOUND` entry.
 
 Contention handling, normative: **the whole proposal abstains.** P2D raises a
 deterministic domain error, produces no evidence artifact, selects no pair and
@@ -267,23 +315,27 @@ kind         DERIVED
 It records:
 
 - policy / adapter identity;
-- the exact base revision id;
-- every considered temporal identity, in canonical order, with its status and
-  reason code(s);
+- the exact base revision id and its authenticated full Document hash (§10.1);
+- every Document temporal identity exactly once, in canonical identity-id order,
+  with its status and reason code(s), including `REJECTED / ALREADY_BOUND`;
+- existing binding id and Group id for each `ALREADY_BOUND` exclusion (§5.1);
 - for each considered identity, every resolved provenance path: the evidence
   artifact id, the observation artifact id, the lineage producer, the resolved
   `shape_id` **or** the resolved `(analysis_artifact_id, component_id,
   component_digest)` tuple, the resolved Entity id, and the resolved eligible
   Group id (or `null`);
 - the exact selected identity/group pairs, in canonical order;
-- deterministic counts per status.
+- deterministic counts: total evaluated identities, each status, and selected
+  pairs; total equals the complete base Document identity count, including
+  already-bound and unresolved identities.
 
 It must **not** record: any geometry similarity score, distance, overlap score,
 semantic role, anchor / target label, Camera interpretation, or lifecycle
 meaning.
 
-The evidence adds no new score, confidence, match status, Entity, Group, Track,
-Camera or identity semantics.
+The evidence records only P2D correspondence classifications defined here; it
+adds no score, confidence, upstream R0 match status, Entity, Group, Track, Camera
+or temporal-identity semantics.
 
 ## 9. Frozen binding delegation
 
@@ -302,75 +354,199 @@ P2D owns only: **which exact-provenance pairs are submitted to frozen binding.**
 
 ## 10. Trusted acceptance binding
 
-Delegation alone is insufficient: selection evidence plus an independent set of
-delegated Changes would leave "the selected set" and "the applied set" only
-locally legal, exactly as in P2C.
+Delegation alone is insufficient: selection evidence plus independent delegated
+Changes does not bind the complete selected set to the applied set. P2D therefore
+returns exactly one `ApplyMotionTargetBindingSelectionChange` in its Proposal's
+Transaction. The composite carries:
 
-P2D therefore defines one composite trusted Change,
-`ApplyMotionTargetBindingSelectionChange`, which atomically binds:
+- `source_revision_id`, equal to the exact Proposal base revision;
+- `base_document_snapshot`, a deep copy of the **complete** base Document;
+- `base_revision`, a detached existing `Revision` record used as a hash witness;
+- the P2D selection evidence reference;
+- the ordered upstream reference closure derived from that snapshot (§11.1);
+- the ordered tuple of selected identity/Group pairs;
+- the exact delegated `BindTemporalMotionTargetChange` records;
+- the P2D policy identity.
 
-- the exact P2D selection evidence reference;
-- the ordered tuple of selected identity/group pairs;
-- the exact delegated `BindTemporalMotionTargetChange` records produced by frozen
-  R-binding for those pairs;
-- the policy identity.
+The snapshot and witness are Change data, not new accepted Document fields or
+Artifacts. They must not replace, strip fields from, or mutate the accepted
+Document. Full-document hashing treats unrelated fields opaquely: it authorizes
+no Camera, geometry or other forbidden correspondence inference.
 
-`references` must be the deterministic verification closure (§11), first-occurrence
-deduplicated, ordered: selection evidence first, then the closure of every
-considered identity in canonical order. `required_artifact_ids` must equal that
-closure exactly.
+### 10.1 Authenticate the complete candidate universe
 
-`apply(document)` must:
+The existing `RevisionStore._make_revision` commits to the entire Document:
 
-1. apply every delegated `BindTemporalMotionTargetChange`, in canonical pair
-   order, **without copying their logic**;
-2. append the selection evidence reference **only after** all of them succeed.
+```text
+document_hash = "sha256:" + SHA256(canonical_bytes(document))
+revision_id = "revision:" + SHA256(canonical_bytes({
+    "document_hash": document_hash,
+    "parent_ids": parent_ids,
+    "transaction_id": transaction_id,
+    "message": message
+}))
+```
 
-Forbidden: catching `MOTION_TARGET_CONFLICT`; skipping a conflicting pair;
-repairing a Group choice; partially binding; appending evidence after a partial
-mutation. Atomicity is provided by `Transaction.apply`'s document copy.
+The verifier must reproduce the base Revision using the snapshot and the
+witness's `parent_ids`, `transaction_id`, and `message`, reusing the existing pure
+Revision construction/hash routine. It must require exact equality to the
+witness, including `document_hash` and `revision_id`, and require that revision
+id to equal `change.source_revision_id`. No alternative Revision/hash format is
+introduced. An id or hash supplied alongside an unauthenticated snapshot is not
+sufficient.
 
-### 10.1 ChangeAuthority registration
+Register the composite with the **existing**
+`source_revision_resolver=_source_revision`. Before the artifact verifier runs,
+ProposalAcceptor already checks this id against `proposal.base_revision_id`,
+which must name an existing Revision (and the current HEAD for ordinary
+acceptance). Therefore the reproduced snapshot commitment is pinned to the
+actual accepted base, not a Revision invented by the proposal. No history walk,
+store access inside the verifier, or proof of parent contents is necessary.
 
-Register the composite Change with a dedicated verifier wrapper (§11). Its
-allowed intents must reflect its exact composite side effects, reusing the two
-existing actions `bind_motion_target` and `attach_analysis`. No new policy
-vocabulary action is added and `policies.py` is not modified.
+Under the repository's existing SHA-256 content-identity assumption, forging
+both a reduced snapshot and its witness cannot retain that accepted Revision id.
+A self-consistent witness for a different Revision is rejected by the source
+revision hook. This is the completeness anchor missing from the original spec.
 
-Every delegated record's `source_revision_id` must equal the proposal base
-revision; the composite verifier enforces this, because the frozen
-`source_revision_resolver` hook only observes top-level transaction Changes and
-the delegated records are embedded fields of the composite.
+**Alternatives evaluated:**
 
-## 11. Acceptance verifier
+- A projection of identities/Groups/Entities/references/bindings would contain
+  the data needed for selection, but the current Revision hash commits to the
+  whole Document, not independently verifiable projections. A caller's projected
+  hash is therefore insufficient. P2D chooses the full snapshot; no Merkle proof
+  system or new Core projection authority is added.
+- Comparing a snapshot or hash only in `apply(document)` is insufficient to prove
+  the *original* base: an adversarial preceding Change could alter the transaction
+  copy to match a reduced snapshot. The authenticated Revision witness closes
+  that gap even for a forged multi-Change Transaction.
+- Passing Document/RevisionStore into every artifact verifier would require
+  infrastructure changes. The authenticated snapshot fits the existing
+  `verifier(change, resolved_artifacts)` interface and is the narrower design.
 
-The dedicated verifier `_verify_motion_target_binding_selection` must, from the
-resolved exact artifacts and the accepted Document:
+### 10.2 Composite apply guard and delegation
 
-1. re-resolve every considered identity's provenance through §2;
-2. re-enumerate the eligible identities and their order (§4);
-3. re-derive each resolved Entity (§2) and each unique eligible transformed Group
-   (§6);
-4. re-derive each identity's status and reason code(s) (§5);
-5. re-derive ALL selected `SUPPORTED` pairs, in canonical order (§7);
-6. require the composite Change's pair set to equal that set **exactly** — no
-   subset, no superset, no reorder, no duplicate, no omitted identity;
-7. require the delegated records to map one-to-one onto the expected pairs, with
-   an exact per-pair match of the embedded identity and Group records;
-8. require every delegated record's `source_revision_id` to equal the accepted
-   base revision (§10.1);
-9. re-canonically derive the selection evidence and require exact byte equality
-   against the resolved artifact, including media type, kind and provenance;
-10. reject any global contention or zero-`SUPPORTED` composite, since those must
-    never have produced a Proposal (§7).
+Before any delegated mutation, `apply(document)` must require canonical byte
+equality between its incoming transaction Document and the authenticated
+`base_document_snapshot`. A mismatch raises a deterministic P2D base-snapshot
+error. This guard prevents earlier Changes in a forged transaction from changing
+the selection inputs after artifact verification. It neither re-derives binding
+ids nor duplicates endpoint-specific stale/conflict semantics.
 
-Endpoint existence, static-transform, snapshot-hash, stale and one-to-one
-conflict validation are **not** re-implemented: they remain the frozen
-`BindTemporalMotionTargetChange.apply` and Document-validation duties, executed
-inside the same transaction.
+Only after that guard succeeds:
 
-Every rejection must leave HEAD, Revision count and Document unchanged, and must
-append no evidence.
+1. apply every exact delegated `BindTemporalMotionTargetChange` in canonical
+   pair order, without copying its logic;
+2. append a deep copy of the selection evidence reference only after all succeed
+   (and only if that exact reference is not already present).
+
+Forbidden: catching `MOTION_TARGET_CONFLICT`, skipping a pair, repairing a Group
+choice, or appending evidence after partial mutation. Transaction.apply's copy
+and subsequent Document validation preserve atomicity. Passing the artifact
+verifier alone is not acceptance: the apply guard and all frozen delegated
+validations must also succeed.
+
+### 10.3 ChangeAuthority registration
+
+Use the existing actions `bind_motion_target` and `attach_analysis`. Derive the
+binding intents from the exact delegated records and include the document-level
+attach intent. No new action or `policies.py` change is required.
+
+Register both the dedicated artifact verifier (§11) and the existing
+`source_revision_resolver` (§10.1) on the composite. The verifier must additionally
+require every embedded binding Change's `source_revision_id` to equal the
+composite's authenticated source revision: the existing hook only examines
+top-level Changes. Frozen binding Changes and their registry entries stay intact.
+
+## 11. Acceptance verification through the existing interface
+
+`_verify_motion_target_binding_selection(change, resolved_artifacts)` receives
+**no live Document**. It must first authenticate the complete snapshot under
+§10.1 and then derive the selection from that snapshot and accepted artifacts.
+It must not treat a supplied identity list, group list, reference list or evidence
+count as the candidate universe.
+
+### 11.1 Exact accepted artifact closure
+
+Starting with **every** authenticated snapshot identity in canonical id order,
+visit its promotion provenance in recorded canonical order. For each record,
+visit its R0 evidence, its observation artifact, then the producer-specific P2A
+artifacts in their recorded order when required by §2. Resolve any further
+artifact only if its contents are actually required for the allowed provenance
+path; do not decode pixels, re-parse SVG or reproduce upstream inference.
+
+All upstream descriptors must equal the exact references already present in
+`base_document_snapshot["references"]`, including media, kind, provenance and
+locator. Being present in the resolver alone does not make an artifact accepted.
+Reconstruct the expected closure from these descriptors and verified contents,
+not from the Change's supplied closure. The same traversal applies to excluded
+identities, including already-bound ones; their available lineage is audited
+without changing `ALREADY_BOUND` precedence.
+
+A missing accepted reference or an unsupported lineage is recorded as unresolved
+under §4–5; it is not silently omitted or replaced with caller-provided bytes.
+If a required accepted reference exists but cannot be resolved/verified, reject
+the whole proposal rather than treating deliberate closure omission as absent
+provenance. Malformed available lineage follows §5 and cannot remove an identity
+from the evaluation universe.
+
+`composite.references` must equal, first-occurrence deduplicated by artifact id:
+selection evidence first, then this complete ordered upstream closure.
+Conflicting descriptors for one id fail closed. No unrelated references are
+added merely because the full Document snapshot contains them.
+`required_artifact_ids` must be the exact ids of those references; the existing
+ProposalAcceptor enforces uniqueness and set equality, while the dedicated
+verifier enforces the composite's canonical reference sequence and descriptors.
+The witness and snapshot do not add artifacts to this closure.
+
+### 11.2 Re-derive and bind all evaluations
+
+After snapshot authentication and closure reconstruction, the verifier must:
+
+1. enumerate every base Document temporal identity exactly once (§4);
+2. re-resolve its allowed provenance and Entity/eligible Group mapping (§2, §6);
+3. re-derive each status and reason, including `ALREADY_BOUND` from the complete
+   authenticated base binding state (§5.1), and global contention (§7);
+4. derive ALL globally unambiguous SUPPORTED pairs in canonical identity order;
+5. require `change.selected_pairs` to equal that tuple exactly: no subset,
+   superset, reorder or duplicate;
+6. require exact type `BindTemporalMotionTargetChange` for every delegated record,
+   and a one-to-one ordered match to the expected pairs, with its embedded full
+   identity and Group equal to the records in the authenticated snapshot; the
+   embedded binding's `temporal_identity_id`, `target.kind == "group"` and
+   `target.group_id` must also name that same expected pair;
+7. require each delegated source revision to equal the authenticated base id;
+8. re-derive canonical selection evidence bytes, complete per-identity evaluations,
+   counts, media, DERIVED kind and provenance, including base revision/document
+   hash; require exact equality to the resolved selection evidence;
+9. reject global contention or zero SUPPORTED, since neither can yield a P2D
+   Proposal (§7).
+
+Binding id generation, endpoint/static-transform checks, binding snapshot hashes,
+endpoint-specific stale checks and one-to-one conflicts remain exclusively the
+frozen binding adapter/Change and Document-validation duties. P2D checks the
+completeness and evidence-to-delegation relationship, not an alternative binding
+implementation.
+
+### 11.3 Completeness argument
+
+The existing source revision hook pins the snapshot witness to the Proposal's
+accepted base id. The Revision hash pins the *entire* Document to that id. That
+Document determines every temporal identity, Entity, Group, existing binding,
+and accepted reference. Exact accepted artifacts then determine each allowed
+provenance path and classification. Consequently the verifier can enforce:
+
+```text
+selected_pairs == ALL supported pairs derivable from
+                  the authenticated exact base Document and accepted artifacts
+```
+
+Omitting an identity and its closure either changes the authenticated snapshot
+(and fails the Revision commitment), or leaves an identity in the snapshot whose
+evaluation/required artifacts are missing (and fails re-derivation). Forging both
+evidence and a partial snapshot does not bypass either check.
+
+Every rejection, including the later apply guard or delegated failure, leaves
+HEAD, Revision count and Document unchanged and appends no evidence.
 
 ## 12. Trust boundary
 
@@ -441,13 +617,42 @@ Minimum cases:
   Group only, or POP-lineage observation);
 - **two identities competing for one Group -> global contention -> whole
   proposal abstains**, no evidence appended, Document unchanged, no first-wins;
-- **already-bound endpoint -> `REJECTED` / `ALREADY_BOUND`**, not re-selected;
-- **stale Group snapshot** — Group transform / membership changed after the
-  proposal → frozen `STALE_GROUP` at acceptance;
-- **stale identity provenance** — identity snapshot changed after the proposal →
-  frozen `STALE_TEMPORAL_IDENTITY`;
-- **tampered selection evidence** → reject on exact bytes / provenance;
-- **selected subset attack** (evidence lists one pair, Change binds two) →
+- **already-bound identity plus a separate supported identity**: both receive
+  exactly one evaluation; the first is `REJECTED / ALREADY_BOUND` with its existing
+  binding recorded; only the second is selected; total/status counts include both;
+- **unbound identity resolving to an already-bound Group**: one
+  `REJECTED / ALREADY_BOUND` evaluation; no contention selection or replacement;
+- **already-bound identity with unresolved lineage**: remains enumerated and
+  `REJECTED / ALREADY_BOUND`; no silent omission;
+- **all identities already bound / no identities**: complete derivation followed
+  by zero-SUPPORTED abstention; no Proposal, no evidence, no mutation;
+- **base advanced after proposal**: ordinary acceptance rejects the stale Proposal
+  base before artifact verification;
+- **stale Group or identity in delegated records**: an embedded record differing
+  from the authenticated base is rejected by exact record comparison; attempts to
+  forge the base snapshot/witness fail its Revision commitment. Existing frozen
+  `STALE_GROUP` / `STALE_TEMPORAL_IDENTITY` checks remain unchanged, but are not
+  promised as the first P2D error when an earlier guard rejects;
+- **tampered selection evidence**: exact bytes / provenance rejection;
+- **selected subset attack**: base has two supported pairs but Change, delegated
+  bindings and evidence all consistently retain only one -> reject;
+- **whole-identity-and-closure omission attack**: omit a second supported identity
+  or a contending identity, its evaluation and every artifact unique to its
+  lineage -> reject even if remaining evidence and delegated records agree;
+- **omitted already-bound or unresolved identity**: reject incomplete evaluations
+  and counts even when the selected pairs happen to be unchanged;
+- **forged snapshot plus forged evidence**: remove an identity, Group, Entity,
+  accepted reference or existing binding and update all supplied hashes/counts ->
+  cannot reproduce the actual base Revision id; reject;
+- **wrong/missing Revision witness**: include another base's valid witness, or
+  tamper its document hash, parent ids, transaction id or message -> reject;
+- **preceding-Change attack**: a forged Transaction alters the Document to match
+  a reduced snapshot before the composite -> reject via the authenticated base
+  commitment or the composite's pre-mutation equality guard;
+- **unaccepted artifact injection / omitted required accepted artifact / extra
+  closure entry / wrong accepted descriptor**: reject, not a reduced candidate
+  universe or an invented accepted reference;
+- **evidence/delegated mismatch** (evidence lists one pair, Change binds two) ->
   reject;
 - **extra delegated binding attack** → reject;
 - **duplicate / reordered pair attack** (order is normative) → reject;
@@ -478,28 +683,38 @@ Golden fixture. Nothing in this document is implemented by this document.
 - `svm/revisions.py`: the `ApplyMotionTargetBindingSelectionChange` composite
   Change;
 - `svm/change_authority.py`: register it with the dedicated verifier wrapper and
-  the two existing intents;
+  the two existing intents and existing source-revision resolver;
 - fixture `examples/043-motion-target-binding-selection/`;
 - test `tests/test_motion_target_binding_selection.py`;
 - README link.
 
-Proposal construction: (1) enumerate eligible identities; (2) resolve each
-identity's exact provenance path; (3) derive Entity and unique eligible
-transformed Group; (4) classify; (5) detect global contention; (6) on zero
-`SUPPORTED` or contention, abstain; (7) create the selection evidence artifact;
-(8) call the frozen binding adapter per selected pair; (9) wrap the exact
-returned records and the evidence in the composite Change; (10) return a P2D-owned
-Proposal whose `required_artifact_ids` are exactly the composite Change's
-references. Do not widen the closure unnecessarily.
+Proposal construction: (1) obtain and verify the base Revision witness against
+the complete request Document and base id; (2) enumerate every temporal identity;
+(3) resolve exact provenance and structurally eligible Groups, retaining all
+exclusions including already-bound identities; (4) classify and detect global
+contention; (5) on zero SUPPORTED or contention, abstain; (6) create complete
+selection evidence; (7) call the frozen binding adapter for every selected pair;
+(8) wrap exact returned records, the authenticated base snapshot/witness and
+reference closure in the composite Change; (9) return a P2D Proposal with exactly
+that one Change and the exact required artifact ids. Do not widen the artifact
+closure merely to authenticate the inline Document snapshot.
 
 ## Feasibility verdict
 
-**P2D_FEASIBILITY: STRONG.** The slice is a read-only correspondence derivation
-over already-accepted provenance, one evidence artifact, one composite
-acceptance-binding Change, and full delegation of the existing frozen binding
-Change. It removes the caller's identity and Group selection on the target side,
-keeps every frozen semantic untouched, adds no policy action, and needs no
-geometric inference. Its hard precondition — an exact provenance path from the
-observed lineage to an existing Document Entity — is satisfied by the rendered
-SVG lineage and by the PromotedComponent lineage, and is honestly absent
-otherwise, in which case P2D abstains.
+**P2D_FEASIBILITY: DESIGN RESOLVED / IMPLEMENTATION UNVERIFIED.** P2D remains
+**SPECIFIED / NOT IMPLEMENTED**. The former claim that the artifact verifier can
+read the accepted Document directly is withdrawn. The current interface is
+sufficient only with the authenticated full-Document snapshot, Revision witness,
+source-revision hook, complete closure re-derivation and apply guard defined
+above. A snapshot or projection without this base commitment is insufficient.
+
+This design adds no policy action or geometric correspondence, preserves frozen
+binding semantics, and requires no ProposalAcceptor or ChangeAuthority interface
+change. The extra witness comes from existing Revision metadata through the new
+adapter's construction seam, not a mutable store capability. Implementation and
+adversarial acceptance tests in §16 are still required to establish conformance;
+there is no claim of passing P2D tests in this specification-only change.
+
+The independent coverage precondition remains an exact provenance path to an
+existing Document Entity. Rendered SVG and same-analysis PromotedComponent
+lineage can satisfy it; otherwise P2D abstains without heuristics.
