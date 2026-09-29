@@ -1,7 +1,10 @@
 # P2D — Exact-Provenance Motion Target Binding Selection (normative contract)
 
 Status: **SPECIFIED / NOT IMPLEMENTED**. This document defines a normative contract
-only. It adds no implementation, no test, no fixture and no executable behaviour.
+for executable P2D acceptance, which is not implemented. P2D-A supplies only the
+pure derivation function `derive_motion_target_binding_selection(document,
+artifacts)` and focused tests. It creates no Proposal, evidence Artifact or
+registered Change; base authentication and acceptance remain future work.
 
 Phase 1 remains FINAL / FROZEN (`spec/62`); P2A is FINAL / FROZEN (`spec/65`);
 P2B is FINAL / FROZEN (`spec/67`); P2C is FINAL / FROZEN (`spec/69`).
@@ -26,7 +29,7 @@ prove completeness of a P2D selection at acceptance.
 | --- | --- | --- | --- |
 | 1 | Is transformed Group membership unique per Entity? | **YES, guaranteed by Document validation** | `_validate_groups` rejects any Entity that appears in more than one Group carrying a `transform` (`document.py:392-401`) |
 | 2 | How does an SVG observation recover `shape_id`? | From the accepted observation artifact's `import_metadata.provenance["shape_id"]` | `svg_geometry_observation_provenance` (`svg_geometry_observations.py:249-276`) |
-| 3 | Does `shape_id` resolve exactly to a Document Entity? | **YES** — the renderer emits `data-svm-entity = entity.entity_id`, and the SVG producer selects that exact attribute | `renderers/svg.py:61`; `_extract_rendered_entity_polygon` (`svg_geometry_observations.py:337-345`) |
+| 3 | Does SVG observation provenance prove rendered Entity origin? | **NO** — `_extract_polygon` also accepts an ordinary path id; both branches record the same producer/provenance shape. Entity-name equality is insufficient. | `svg_geometry_observations.py`: `_extract_polygon`, `_extract_rendered_entity_polygon`, `svg_geometry_observation_provenance` |
 | 4 | How is raster component provenance recovered? | Exact tuple `(analysis_artifact_id, component_id, component_digest)` from the verified P2A / P2B lineage | P2A per-evaluation provenance (`raster_primitive_observation_proposal.py:257-280`); P2B observation provenance `source_p2a_evidence_artifact_ids` (`primitive_observation_assembly.py:248-254`) |
 | 5 | Can PromotedComponent Entity provenance be matched exactly? | **YES** — `{type: "PromotedComponent", artifact_id, candidate_id, component_digest, bounds}` | `PromotedComponent.to_entity` (`revisions.py:1786-1793`) |
 | 6 | Frozen binding one-to-one / stale / conflict semantics | Enforced by `BindTemporalMotionTargetChange.apply` **and** by Document validation | `revisions.py:1142-1186`; `document.py:210-213` |
@@ -135,6 +138,15 @@ temporal_identity
 SVG producer and the value resolves to **exactly one** existing Document Entity.
 A `shape_id` that resolves to zero Entities is rejected; one that resolves to
 more than one is a Document-validation failure upstream and is rejected.
+
+**P2D-A feasibility clarification:** the frozen SVG producer's rendered-Entity
+and ordinary-path branches emit indistinguishable provenance formats. An ordinary
+`path id` can equal an existing Entity id. Neither that equality nor the producer
+identity proves rendered origin. Under the strict rendered-origin requirement,
+P2D-A therefore rejects current SVG observations with
+`UNPROVEN_RENDERED_ORIGIN`, even when `shape_id` matches. It does not re-parse
+source SVG or add a producer field. Path B remains specified but unavailable
+until a separately authorized provenance contract supplies this proof.
 
 ### 2.3 Producers explicitly outside the allowed set
 
@@ -250,6 +262,37 @@ is chosen in order to attach `ALREADY_BOUND`.
 P2D does not delegate these excluded pairs merely to obtain frozen idempotency
 or conflict behaviour. Frozen binding semantics remain unchanged for the pairs
 that are selected.
+
+### 5.2 Derivation reason vocabulary (P2D-A)
+
+The pure result uses these centralized tokens; SUPPORTED has no reason codes:
+
+| Token | Existing condition represented |
+| --- | --- |
+| `ALREADY_BOUND` | Identity or uniquely resolved Group already bound (§5.1) |
+| `GROUP_CONTENTION` | Otherwise-supported identities contend for one unbound Group |
+| `NO_ALLOWED_PATH` | Unsupported observation producer/media; includes POP-only lineage |
+| `UNPROVEN_RENDERED_ORIGIN` | Current SVG provenance cannot establish §2.2's rendered origin |
+| `MISSING_ACCEPTED_REFERENCE` | A required lineage reference is absent from the Document |
+| `INVALID_PROVENANCE` | Empty/malformed/inconsistent lineage, or no exact observation identity match |
+| `INVALID_ENDPOINT` | No Document Entity matches the exact allowed provenance endpoint |
+| `NO_ELIGIBLE_GROUP` | An exactly resolved Entity has no eligible transformed Group |
+| `PARTIAL_PROVENANCE` | Some paths resolve to a Group and some remain unresolved |
+| `CONTRADICTORY_PROVENANCE` | Exact paths resolve to different Entities or Groups |
+
+Each endpoint path retains its own unresolved reason. Evaluation reasons are
+deterministically ordered and unique; §5.1's ALREADY_BOUND takes precedence,
+then contradictory resolutions, then partial resolution. Multiple Entities with
+the same component provenance are not silently chosen or merged, even within
+one Group. Direct inputs violating transformed membership uniqueness fail with
+a domain error. Required accepted bytes that cannot be verified also fail with
+a domain error; they are not reclassified as missing accepted references.
+
+The result includes evaluations, selected pairs, total/status/selected counts,
+and a detached ordered upstream reference closure. Its abstention is either
+`GROUP_CONTENTION`, `ZERO_SUPPORTED`, or absent. On contention, otherwise
+uncontended SUPPORTED evaluations remain visible but selected pairs are empty.
+This function neither authenticates its Document input nor authorizes acceptance.
 
 ## 6. Group eligibility
 
@@ -602,6 +645,10 @@ authority.
 
 The Golden must use an **exact provenance** path (rendered SVG lineage and/or
 PromotedComponent lineage). A geometry-distance Golden is forbidden.
+Current P2D-A positive tests use real raster producer output and exact
+PromotedComponent lineage. The rendered-SVG positive case is deferred by §2.2;
+both real rendered SVG and ordinary-path output are tested as rejected until
+rendered origin is provable. P2D-A adds no Golden fixture.
 
 Minimum cases:
 
@@ -712,9 +759,11 @@ This design adds no policy action or geometric correspondence, preserves frozen
 binding semantics, and requires no ProposalAcceptor or ChangeAuthority interface
 change. The extra witness comes from existing Revision metadata through the new
 adapter's construction seam, not a mutable store capability. Implementation and
-adversarial acceptance tests in §16 are still required to establish conformance;
-there is no claim of passing P2D tests in this specification-only change.
+adversarial acceptance tests in §16 are still required to establish conformance.
+P2D-A focused tests establish pure derivation behaviour only, not executable
+acceptance conformance.
 
 The independent coverage precondition remains an exact provenance path to an
-existing Document Entity. Rendered SVG and same-analysis PromotedComponent
-lineage can satisfy it; otherwise P2D abstains without heuristics.
+existing Document Entity. Same-analysis PromotedComponent lineage can satisfy it.
+Rendered SVG remains blocked by the explicit origin-proof gap in §2.2; it is not
+claimed as available correspondence. P2D abstains without heuristics otherwise.
