@@ -6,6 +6,14 @@ pure derivation function `derive_motion_target_binding_selection(document,
 artifacts)` and focused tests. It creates no Proposal, evidence Artifact or
 registered Change; base authentication and acceptance remain future work.
 
+**Post-audit scope gate:** the common-source rule below is not a general
+ordinary-video artwork correspondence contract. Independent frame analyses can
+resolve to distinct PromotedComponent Entities without contradicting accepted
+temporal identity. [Spec/71](71-stable-artwork-representation-correspondence.md)
+defines the missing stable-representation correspondence boundary. P2D-B is
+blocked on that prerequisite. This gate preserves P2D-A's current rules and
+results; it does not add a new allowed path or reinterpret existing reason codes.
+
 Phase 1 remains FINAL / FROZEN (`spec/62`); P2A is FINAL / FROZEN (`spec/65`);
 P2B is FINAL / FROZEN (`spec/67`); P2C is FINAL / FROZEN (`spec/69`).
 
@@ -748,12 +756,15 @@ closure merely to authenticate the inline Document snapshot.
 
 ## Feasibility verdict
 
-**P2D_FEASIBILITY: DESIGN RESOLVED / IMPLEMENTATION UNVERIFIED.** P2D remains
+**P2D_FEASIBILITY: PREREQUISITE_STRUCTURAL_PHASE_REQUIRED.** P2D remains
 **SPECIFIED / NOT IMPLEMENTED**. The former claim that the artifact verifier can
 read the accepted Document directly is withdrawn. The current interface is
 sufficient only with the authenticated full-Document snapshot, Revision witness,
 source-revision hook, complete closure re-derivation and apply guard defined
 above. A snapshot or projection without this base commitment is insufficient.
+This resolves the base-completeness design issue only; it does not establish
+ordinary-video artwork correspondence. Spec/71 records the separate structural
+proof and producer gates that must be discharged before P2D-B.
 
 This design adds no policy action or geometric correspondence, preserves frozen
 binding semantics, and requires no ProposalAcceptor or ChangeAuthority interface

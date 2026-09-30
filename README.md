@@ -364,7 +364,13 @@ P2D, Exact-Provenance Motion Target Binding Selection, is
 defines an exact structural / provenance correspondence from an accepted temporal
 identity to an existing Document Group, with no geometric inference, full
 delegation to the frozen Motion Target Binding Change, and abstention whenever no
-exact provenance path exists. No adapter, fixture or test exists yet.
+exact provenance path exists. P2D-A's pure derivation and focused tests exist;
+there is no executable P2D Proposal/Change registration or Golden fixture.
+Its common-source rule does not cover ordinary cross-frame component identity.
+P2D-B is blocked on the [stable artwork representation correspondence contract](spec/71-stable-artwork-representation-correspondence.md),
+which reuses Entity/Group and separates frame-local evidence from persistent
+artwork. That prerequisite is **DESIGN CONTRACT / NOT IMPLEMENTED / NOT FROZEN**;
+its construction and proof-admission profiles remain unresolved.
 
 ## Development
 
