@@ -374,4 +374,49 @@ P2D-B. If existing Group construction cannot express its minimal representation,
 report that structural blocker for a separate normative decision. Do not weaken
 frozen validators or invent an Entity motion target inside the correspondence code.
 
+### P2S-A feasibility finding
+
+Inspection at `e828c28fd3fb9e745430baa8cea5fd964b8f95fa` establishes
+**GROUP_CONSTRUCTION_AUTHORITY_BLOCKER**. No first construction profile is
+admitted, and no new profile specification is created by this finding.
+
+Core can express bounded polygon artwork through `CreatePath`, exact canonical
+path bounds, geometry output bindings and ordinary presentation. P2A/P2B's
+verified controlled-polygon landmarks supply useful source geometry; converting
+them to initial artwork still needs a versioned construction policy. Lack of a
+general polygon rendering primitive is not the structural blocker.
+
+The only existing Group candidate producer consumes frozen POP Q-v0 evidence.
+`POPStructureAdapter._validate_exact_pop_scene` reconstructs the complete scene
+from genuine POP prefix/output artifacts and requires exact equality of Entities,
+operations, bindings, styles and render stack. It is not a general scene-analysis
+service for newly constructed SVG/path artwork. Q-v1 promotion then requires
+accepted SUPPORTED inference evidence and the matching source Document hash.
+Fabricating Q-v0/Q-v1 payloads or encoding video geometry as a purported captured
+POP run merely to obtain Group provenance is not reuse of that authority.
+
+Genuine multipart POP artwork can already be grouped. This does not establish
+an observation-to-artwork construction path for video evidence. Separate P2B
+primitives also do not prove that their TemporalIdentities constitute one object;
+R1 neither creates that assembly nor merges their owners. Selecting a spatially
+plausible pair cannot supply the missing establishment proof.
+
+A single silhouette has the additional cardinality limitation: a renderable
+Entity alone cannot receive frozen S1 observed motion, whose target is only a
+transformed Group with at least two real members. Existing Operation-parameter
+animation does not supply an Entity MotionTargetBinding. Splitting geometry or
+adding background solely to meet cardinality is not a justified object assembly.
+
+Thus even choosing multipart-only scope does not discharge the Group creation
+authority gate for the proposed video-derived profile. A separate normative
+decision must establish a legitimate construction-derived Group authority (and
+its provenance compatibility), or deliberately reconsider minimum motion-target
+semantics. Neither correction is authorized here. The frozen POP path remains
+valid for its own source domain; its provenance SHALL NOT be repurposed.
+
+No baseline rule, receipt schema, identity-allocation formula or positive
+establishment fixture is admitted while this gate remains unresolved. Sections
+3–10 remain requirements, not a claim of an executable or fully specified
+profile. P2D-B remains blocked.
+
 Decision: **PREREQUISITE_STRUCTURAL_PHASE_REQUIRED**.
