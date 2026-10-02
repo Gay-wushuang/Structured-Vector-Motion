@@ -165,9 +165,11 @@ operations, output bindings and presentation definitions; a Group of geometry-fr
 PromotedComponents is not sufficient. Association acceptance alone creates no
 geometry, Track, visibility schedule or render output.
 
-The existing Group minimum of two real members, promotion provenance and unique
-transformed membership remain unchanged. A construction profile must demonstrate
-legal creation under those rules. It SHALL NOT:
+The existing Group minimum of two real members and unique transformed membership
+remain unchanged. Legacy promotion provenance remains unchanged; spec/72 specifies
+an additive construction-origin authority and provenance branch, not yet
+implemented. A construction profile must demonstrate legal creation through an
+admitted origin authority. It SHALL NOT:
 
 - add an invisible/dummy member just to satisfy cardinality;
 - place successive frame alternatives into one Group;
@@ -374,7 +376,7 @@ P2D-B. If existing Group construction cannot express its minimal representation,
 report that structural blocker for a separate normative decision. Do not weaken
 frozen validators or invent an Entity motion target inside the correspondence code.
 
-### P2S-A feasibility finding
+### P2S-A feasibility finding (historical baseline)
 
 Inspection at `e828c28fd3fb9e745430baa8cea5fd964b8f95fa` establishes
 **GROUP_CONSTRUCTION_AUTHORITY_BLOCKER**. No first construction profile is
@@ -418,5 +420,22 @@ No baseline rule, receipt schema, identity-allocation formula or positive
 establishment fixture is admitted while this gate remains unresolved. Sections
 3–10 remain requirements, not a claim of an executable or fully specified
 profile. P2D-B remains blocked.
+
+### P2S-B design dependency
+
+[Spec/72](72-construction-derived-group-authority.md) specifies
+**Construction-Derived Group Authority — SPECIFIED / NOT IMPLEMENTED**.
+It resolves the authority design question through one atomic replayed fragment
+construction and a disjoint construction-origin provenance branch. Existing
+inference-origin Groups and cardinality remain unchanged. The P2S-A blocker is
+not an implemented capability merely because this design now exists.
+
+Stable Artwork Construction Profile is **BLOCKED ON AUTHORITY IMPLEMENTATION**;
+no concrete multipart source/correspondence profile is admitted by spec/72.
+For a representation establishment, its correspondence proof and the new
+Group/fragment authority must both succeed in one atomic transaction. The
+historical/current-coverage obligations above remain for later consumption.
+P2D-B stays **BLOCKED**. Single-Entity Motion Target remains an **OPEN SEPARATE
+ARCHITECTURAL QUESTION**. No runtime behavior or frozen rule changes in this pass.
 
 Decision: **PREREQUISITE_STRUCTURAL_PHASE_REQUIRED**.

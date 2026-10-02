@@ -371,10 +371,13 @@ P2D-B is blocked on the [stable artwork representation correspondence contract](
 which reuses Entity/Group and separates frame-local evidence from persistent
 artwork. That prerequisite is **DESIGN CONTRACT / NOT IMPLEMENTED / NOT FROZEN**;
 its construction and proof-admission profiles remain unresolved.
-P2S-A identified **GROUP_CONSTRUCTION_AUTHORITY_BLOCKER**: the existing Group
-inference path requires an exact POP scene, and no legal video-derived Group
-construction profile is admitted. Single-component targets additionally remain
-unsupported by the frozen Group-only binding contract.
+P2S-A identified **GROUP_CONSTRUCTION_AUTHORITY_BLOCKER**. P2S-B now specifies
+[Construction-Derived Group Authority](spec/72-construction-derived-group-authority.md)
+as **SPECIFIED / NOT IMPLEMENTED**, with atomic construction replay and a distinct
+provenance branch preserving legacy POP Groups. The Stable Artwork Construction
+Profile is **BLOCKED ON AUTHORITY IMPLEMENTATION**; no concrete profile is admitted
+yet. P2D-B remains **BLOCKED**, and Single-Entity Motion Target remains an
+**OPEN SEPARATE ARCHITECTURAL QUESTION**.
 
 ## Development
 
