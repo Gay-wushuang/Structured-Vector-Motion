@@ -115,6 +115,15 @@ class GroupDefinitionPreview:
 
 
 @dataclass(frozen=True)
+class ConstructionGroupDefinitionPreview:
+    group_id: str
+    members: tuple[str, ...]
+    kind: str
+    provenance: dict[str, Any]
+    transform: dict[str, Any]
+
+
+@dataclass(frozen=True)
 class MotionTargetBindingPreview:
     binding_id: str
     temporal_identity_id: str
@@ -130,7 +139,7 @@ class ProposalPreview:
     structural_candidates: tuple[StructuralCandidatePreview, ...] = ()
     structural_relations: tuple[StructuralRelationPreview, ...] = ()
     group_candidates: tuple[GroupCandidatePreview, ...] = ()
-    group_definitions: tuple[GroupDefinitionPreview, ...] = ()
+    group_definitions: tuple[GroupDefinitionPreview | ConstructionGroupDefinitionPreview, ...] = ()
     motion_target_bindings: tuple[MotionTargetBindingPreview, ...] = ()
 
 

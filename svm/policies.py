@@ -69,6 +69,8 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
                     "set_parameter",
                     "split_entity",
                     "import_scene",
+                    "establish_group",
+                    "set_group_transform",
                     "reconcile_scene",
                     "attach_analysis",
                     "promote_components",

@@ -360,31 +360,45 @@ def _validate_groups(groups: Any, known_entities: set[str], reference_ids: set[s
         ):
             raise DocumentError("Group Definition members must be sorted existing unique Entities")
         provenance = group.get("provenance")
-        if not isinstance(provenance, dict) or set(provenance) != {
-            "candidate_id",
-            "inference_id",
-            "inference_artifact_id",
-        }:
-            raise DocumentError("Group Definition provenance is invalid")
-        artifact_id = provenance.get("inference_artifact_id")
-        candidate_id = provenance.get("candidate_id")
-        inference_id = provenance.get("inference_id")
-        if artifact_id not in reference_ids:
-            raise DocumentError("Group Definition inference Artifact is not accepted")
-        if (
-            not isinstance(candidate_id, str)
-            or re.fullmatch(r"candidate:group:[0-9a-f]{64}", candidate_id) is None
-        ):
-            raise DocumentError("Group Definition candidate ID is invalid")
-        if (
-            not isinstance(inference_id, str)
-            or re.fullmatch(r"inference:group:[0-9a-f]{64}", inference_id) is None
-        ):
-            raise DocumentError("Group Definition inference ID is invalid")
-        key = (artifact_id, candidate_id)
-        if key in promoted_pairs:
-            raise DocumentError("Group candidate is already promoted")
-        promoted_pairs.add(key)
+        if isinstance(provenance, dict) and "type" in provenance:
+            if (
+                set(provenance)
+                != {"type", "authority_identity", "profile_identity", "construction_artifact_id"}
+                or provenance["type"] != "construction-established-group@0.1"
+                or provenance["authority_identity"] != "svm-construction-derived-group@0.1"
+                or provenance["profile_identity"] != "svm-svg-two-part-group-construction@0.1"
+                or not isinstance(provenance["construction_artifact_id"], str)
+                or re.fullmatch(r"artifact:[0-9a-f]{64}", provenance["construction_artifact_id"])
+                is None
+                or provenance["construction_artifact_id"] not in reference_ids
+            ):
+                raise DocumentError("Group construction provenance is invalid")
+        else:
+            if not isinstance(provenance, dict) or set(provenance) != {
+                "candidate_id",
+                "inference_id",
+                "inference_artifact_id",
+            }:
+                raise DocumentError("Group Definition provenance is invalid")
+            artifact_id = provenance.get("inference_artifact_id")
+            candidate_id = provenance.get("candidate_id")
+            inference_id = provenance.get("inference_id")
+            if artifact_id not in reference_ids:
+                raise DocumentError("Group Definition inference Artifact is not accepted")
+            if (
+                not isinstance(candidate_id, str)
+                or re.fullmatch(r"candidate:group:[0-9a-f]{64}", candidate_id) is None
+            ):
+                raise DocumentError("Group Definition candidate ID is invalid")
+            if (
+                not isinstance(inference_id, str)
+                or re.fullmatch(r"inference:group:[0-9a-f]{64}", inference_id) is None
+            ):
+                raise DocumentError("Group Definition inference ID is invalid")
+            key = (artifact_id, candidate_id)
+            if key in promoted_pairs:
+                raise DocumentError("Group candidate is already promoted")
+            promoted_pairs.add(key)
         transform = group.get("transform")
         if transform is not None:
             _validate_group_transform(transform)

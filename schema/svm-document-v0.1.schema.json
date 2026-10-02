@@ -143,14 +143,29 @@
           }
         },
         "provenance": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["candidate_id", "inference_id", "inference_artifact_id"],
-          "properties": {
-            "candidate_id": {"type": "string", "pattern": "^candidate:group:[0-9a-f]{64}$"},
-            "inference_id": {"type": "string", "pattern": "^inference:group:[0-9a-f]{64}$"},
-            "inference_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"}
-          }
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["candidate_id", "inference_id", "inference_artifact_id"],
+              "properties": {
+                "candidate_id": {"type": "string", "pattern": "^candidate:group:[0-9a-f]{64}$"},
+                "inference_id": {"type": "string", "pattern": "^inference:group:[0-9a-f]{64}$"},
+                "inference_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "authority_identity", "profile_identity", "construction_artifact_id"],
+              "properties": {
+                "type": {"const": "construction-established-group@0.1"},
+                "authority_identity": {"const": "svm-construction-derived-group@0.1"},
+                "profile_identity": {"const": "svm-svg-two-part-group-construction@0.1"},
+                "construction_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"}
+              }
+            }
+          ]
         }
       }
     },
@@ -320,6 +335,8 @@
               "set_parameter",
               "split_entity",
               "import_scene",
+              "establish_group",
+              "set_group_transform",
               "reconcile_scene",
               "attach_analysis",
               "promote_components",

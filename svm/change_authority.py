@@ -29,6 +29,7 @@ from .revisions import (
     CreateGroupTransformTrackChange,
     CreateStyleTrackChange,
     CreateTrackChange,
+    EstablishSVGGroupChange,
     ImportLayeredSceneChange,
     ImportPrimitiveSequenceChange,
     ImportRasterLayerEvidenceChange,
@@ -70,6 +71,21 @@ class ChangeAuthority:
 
 def _source_revision(change: Any) -> str:
     return change.source_revision_id
+
+
+def _establish_svg_group(change: Any) -> tuple[Intent, ...]:
+    return (
+        ("establish_group", "document", None),
+        ("import_scene", "document", None),
+        ("set_group_transform", change.group["id"], "transform"),
+        ("attach_analysis", "document", None),
+    )
+
+
+def _verify_svg_group(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.svg_group_construction import verify_change
+
+    verify_change(change, resolved)
 
 
 def _bind_temporal_motion_target(change: Any) -> tuple[Intent, ...]:
@@ -492,6 +508,15 @@ CHANGE_AUTHORITIES = {
             frozenset({"promote_group"}),
             _single("promote_group"),
             _verify_group_promotion,
+        ),
+        ChangeAuthority(
+            EstablishSVGGroupChange,
+            frozenset(
+                {"establish_group", "import_scene", "set_group_transform", "attach_analysis"}
+            ),
+            _establish_svg_group,
+            _verify_svg_group,
+            _source_revision,
         ),
         ChangeAuthority(
             PromoteTemporalIdentityChange,
