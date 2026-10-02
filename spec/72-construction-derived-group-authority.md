@@ -97,6 +97,19 @@ documents, IDs and accepted POP behavior must remain byte/semantic compatible.
 Any consumer enumerating legacy provenance fields must dispatch explicitly before
 access; adding a construction Group must not break subsequent legacy promotion.
 
+Known compatibility sites are `PromoteGroupsChange.apply` and
+`GroupDefinitionPreview`. The former currently reads `inference_artifact_id` and
+`candidate_id` from every existing Group while building its deduplication set;
+a construction Group would raise a missing-key error. Future origin dispatch
+must include only legacy Groups in that legacy candidate-pair set, while keeping
+all Groups in ID collision, validation and transformed-ownership checks. Do not
+strip construction Groups from the existing whole-Document stale hash.
+`GroupDefinitionPreview` requires three inference fields; it cannot honestly
+represent construction provenance. Its current POP producer is valid and need
+not change its output. Future construction preview needs an origin-discriminated
+representation without fabricated or empty inference IDs, preserving the legacy
+preview branch. These are implementation obligations, not changes in this pass.
+
 ## 4. Structural validity is not admission
 
 `validate_document` checks structure and reference presence; it does not replay
@@ -134,6 +147,13 @@ Each profile must define:
 - the complete ordered fragment: Entities, Operations, output bindings, styles
   and Render Stack entries, and deterministic local geometry bounds;
 - fixed style/presentation policy, bounded resource limits and abstention rules.
+
+Persistent Entity allocation MUST bind the authority/profile domain, exact source
+subject identity and logical part key. Different source subjects must not yield
+the same member IDs except for a cryptographic collision. Source identity must
+be reproduced from accepted evidence, never from a caller label. Operation
+allocation must likewise separate subjects and deterministic construction roles.
+The concrete formula belongs to each bounded profile.
 
 Replay inputs are the authenticated base plus exact already accepted dependency
 descriptors and bytes. Full source discovery must precede output verification;
@@ -331,12 +351,21 @@ Rejected preview/acceptance leaves HEAD, Revision count, Document, Group and
 accepted references unchanged. Unaccepted blobs in an ArtifactStore are not
 accepted state. No orphan target, receipt or partial Render Stack may remain.
 
-Intent coverage must include the existing `import_scene`, `promote_group`,
-`set_group_transform` and `attach_analysis` actions at their applicable scopes.
-Reusing the Group-creation permission does not invoke or change POP inference
-semantics. Denying any required action must deny the entire construction. No new
-policy action or `policies.py` change is specified here; concrete intent coverage
-must be tested when the composite is implemented.
+The future composite SHALL use a distinct closed-world `establish_group` action
+on `document`, with no parameter, for construction authority. It SHALL also cover
+`import_scene` on `document`, `set_group_transform` on the new Group ID with
+parameter `transform`, and `attach_analysis` on `document`. Denying any required
+action rejects the entire transaction. `promote_group` remains exclusively the
+frozen inference-promotion authority and is not emitted for construction.
+
+This is an explicit future policy extension, not permission equivalence.
+The current policy model is deny-only, not an allow-grant system; its validator
+does not yet admit `establish_group` (and currently omits some registered actions,
+including `promote_group` and `set_group_transform`). Future implementation must
+make the construction intent set expressible and test its denials; this task
+does not fix those runtime gaps. An inference-action restriction is not silently
+reinterpreted as a construction-action restriction. Actors restricting both must
+name both applicable actions. No `policies.py` edit occurs in this design pass.
 
 ## 12. Relationship to stable representation correspondence
 
@@ -373,6 +402,12 @@ Group. Group-origin evidence is checked where that proof requires it. P2D does
 not infer origins from field names, run Group construction, or require all
 frame-local component Entities to be Group members. The existing P2D-A restricted
 rule remains unchanged until a separately versioned consumer contract is enacted.
+
+Construction-established Entities have profile-defined provenance evidence,
+not automatically `PromotedComponent` provenance. Current restricted P2D-A MUST
+continue to abstain on this new path until a versioned Stable Representation
+Correspondence/P2D consumer explicitly authorizes it. Profiles may keep member
+lineage in construction evidence rather than inventing a new Core Entity field.
 
 Frozen S1 can eventually bind the established Group through its existing endpoint
 and conflict checks. Existing Group Tracks and evaluation remain unchanged.
@@ -430,13 +465,20 @@ Required statuses after this design:
 | Capability | Status |
 | --- | --- |
 | Construction-Derived Group Authority | SPECIFIED / NOT IMPLEMENTED |
-| Stable Artwork Construction Profile | BLOCKED ON AUTHORITY IMPLEMENTATION; no concrete profile admitted here |
+| Profile specification | May proceed before authority runtime; see spec/73 |
+| Profile admission / execution | BLOCKED ON AUTHORITY AND PROFILE IMPLEMENTATION |
 | P2D-B | BLOCKED |
 | Single-Entity Motion Target | OPEN SEPARATE ARCHITECTURAL QUESTION |
 
 Authority implementation is necessary, not sufficient for video coverage: a
 bounded multipart construction/correspondence profile must still be specified
 and verified. No runtime or fixture is added in this task.
+
+The required order is authority contract -> bounded profile specification ->
+authority and first profile implemented together -> Golden/adversarial acceptance.
+A generic profile-less manifest interpreter SHALL NOT precede the first profile.
+Spec/73 specifies a non-temporal structured SVG profile; it does not supply the
+missing video multipart ownership or representation-correspondence evidence.
 
 ## 16. Adversarial design review / future acceptance obligations
 

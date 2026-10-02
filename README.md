@@ -370,13 +370,16 @@ Its common-source rule does not cover ordinary cross-frame component identity.
 P2D-B is blocked on the [stable artwork representation correspondence contract](spec/71-stable-artwork-representation-correspondence.md),
 which reuses Entity/Group and separates frame-local evidence from persistent
 artwork. That prerequisite is **DESIGN CONTRACT / NOT IMPLEMENTED / NOT FROZEN**;
-its construction and proof-admission profiles remain unresolved.
+its temporal construction and proof-admission profiles remain unresolved.
 P2S-A identified **GROUP_CONSTRUCTION_AUTHORITY_BLOCKER**. P2S-B now specifies
 [Construction-Derived Group Authority](spec/72-construction-derived-group-authority.md)
 as **SPECIFIED / NOT IMPLEMENTED**, with atomic construction replay and a distinct
-provenance branch preserving legacy POP Groups. The Stable Artwork Construction
-Profile is **BLOCKED ON AUTHORITY IMPLEMENTATION**; no concrete profile is admitted
-yet. P2D-B remains **BLOCKED**, and Single-Entity Motion Target remains an
+provenance branch preserving legacy POP Groups. P2S-C specifies the first bounded
+[Explicit Two-Part SVG Group Construction profile](spec/73-svg-two-part-group-construction.md)
+as **SPECIFIED / NOT IMPLEMENTED**. Profile specification precedes runtime;
+admission/execution requires authority and profile implementation together plus
+Golden/adversarial acceptance. Video multipart ownership evidence remains a
+separate prerequisite. P2D-B remains **BLOCKED**, and Single-Entity Motion Target remains an
 **OPEN SEPARATE ARCHITECTURAL QUESTION**.
 
 ## Development
