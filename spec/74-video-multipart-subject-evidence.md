@@ -486,3 +486,134 @@ This does not promise extraction of unobservable semantic truth from pixels.
 This change is documentation/specification only. No Python, schema, test, Group,
 runtime, P2D-A/B or frozen numeric behavior is changed. TemporalIdentity remains
 observation identity, and single-Entity targeting remains separate.
+
+## 15. P2S-E1 capability audit — blocked before profile admission
+
+Inspection baseline: `04d44f5896e13b83ec97e70cdcb937bd584d4f86`, clean working
+tree. E1 is specification/feasibility only. Its stop condition applies:
+**SOURCE_VIDEO_BRIDGE_CAPABILITY_REQUIRED**. No spec/75, production profile,
+canonical evidence schema or positive Golden is admitted by this audit.
+E0's evidence-model feasibility conclusion remains valid; the missing capability
+is an executable source-production/observation bridge, not a demonstrated need
+to change Entity, Group or TemporalIdentity.
+
+### 15.1 Existing executable capabilities inspected before profile selection
+
+| Files / entry points | Available capability | Missing proof |
+| --- | --- | --- |
+| `spec/73`; `svm/adapters/svg_group_construction.py`: `_parameters`, `_derive`; `svm/adapters/svg_import.py`: `SVGNormalizer`, `_parse`, `_shape` | Exact authored `svg/g/rect+ellipse` ownership and ordinary geometry normalization | No frame-production recipe, raster output or source-part/video association |
+| `spec/08`; `svm/evaluator.py`; `svm/scene.py`; `svm/renderers/__init__.py`, `svg.py` | Pure geometry evaluation, transformed Evaluated Scene, deterministic SVG text | The renderer package exports SVG rendering, not a controlled binary raster producer with per-part contribution outputs |
+| `tools/run_pop_golden_p.py`: `rasterize_svg`, `parity_metrics`; `pyproject.toml` | SVG-to-PNG parity helper using CairoSVG, falling back to Chromium screenshots | Backend fallback and no fixed cross-platform pixel/canonicalization contract; no admitted source-part contribution production. SVG parity is not exact binary-video proof |
+| `svm/adapters/pop_structure.py`: `_validate_exact_pop_scene`, `_geometry_mask`, `_primitive_contains`, `_topmost_masks`; `spec/27` | Deterministic 256x256 pixel-center geometric masks for the exact reconstructed POP primitive scene | Q requires genuine POP prefix/output and unchanged scene. Its masks are geometric coverage, not general SVG rasterization or alpha contributions. No SVG-source/video production profile; private numeric helper reuse alone would not establish it |
+| `spec/59`; `svm/video_ingestion.py`: `canonical_frame_png`, `_decode`, `_produce`, `ingest_video`, `verify_video_manifest` | Pinned FFV1 decode, full stream checks, exact rational timing and canonical black/white PNGs; re-verifiable manifest | Direction is video-to-frames. No accepted structured source or per-part attribution is an input to that proof |
+| `examples/036-controlled-raster-camera-recovery/README.md`, `examples/037-explicit-multi-object-raster-recovery/README.md`, `examples/038-controlled-video-ingestion/README.md`; `tests/test_video_ingestion.py`, `test_video_recovery.py` | Offline polygon fixtures use existing transforms, NumPy rounding and OpenCV `fillPoly`; offline FFV1 encoding and checked-in decode/reference equality exist | Fixture provenance notes and ground truth are not an executable ownership-bound source-production verifier. Recovery tests deliberately consume video/pixels without source-vector/ground-truth inference. No reusable authored multipart production entry point was found |
+| `tests/test_raster_primitive_observation_proposal.py`: measurement cases; `svm/adapters/raster_primitive_observation_proposal.py`: `measure_component`, `derive`; `spec/64` | Actual OpenCV component measurements and acceptance replay under frozen contour eligibility | Requires a distinguishable landmark origin; exact source ownership does not change pixel eligibility |
+| `svm/adapters/primitive_observation_assembly.py`: `_frame`, `derive`; `spec/66` | All SUPPORTED evaluations materialized, all exclusions audited, exactly two selected occurrences | Does not materialize UNCERTAIN/REJECTED parts or attach source-part identity; zero supported in either frame fails |
+| `svm/adapters/temporal_correspondence.py`, `temporal_identity_selection.py`, `temporal_identity_promotion.py`; `spec/35`, `spec/36`, `spec/68` | Pairwise hypotheses, ALL-SUPPORTED selection and stable observation ownership | No source rasterization, simultaneous assembly proof or whole-subject identity construction |
+| `svm/artifacts.py`; sections 7–9 above | Content-addressed bytes, exact descriptors, Reference/Derived distinction and future evidence-only admission obligations | Importing a source/manifest/sidecar is not proof of their causal or structural relationship |
+
+Repository-wide searches of Python production, tools and tests found no other
+source-to-video generator or exact source-part raster verifier. The `VideoWriter_fourcc`
+calls in ingestion check the decoder's codec tag; they do not encode video.
+The offline fixture recipe is useful implementation precedent, not an existing
+complete executable bridge. Drawing calls in measurement tests do not bind an
+independently accepted authored subject to a video occurrence.
+
+There are useful deterministic raster *building blocks*. The finding is not
+that SVM contains no pixel mathematics, nor that FFV1 cannot preserve pixels.
+Combining those blocks into a new SVG/part renderer and verifier would introduce
+the missing production semantics, which E1 explicitly forbids inventing to pass
+the feasibility gate. Recasting SVG shapes as a captured POP run is also forbidden.
+
+Byte-identical AVI re-encoding is not asserted to be necessary for every future
+bridge: independently produced exact frames could be compared with canonical
+decodes of an accepted immutable AVI. That would reuse spec/59. The decisive
+missing link remains independent authored-source-to-frame/per-part production
+and verified attribution; a source video hash alone cannot supply it.
+
+### 15.2 Preferred ownership root evaluated, not selected
+
+Spec/73 is a sound ownership root in its own domain: sole SVG `g` at path `[0]`,
+exact ordered leaves `rect:0`, `ellipse:1`, canonical bounded integer attributes,
+no transforms/animation/extra elements. Its accepted source bytes independently
+define both parts. Its successful construction receipt says nothing about video.
+
+The preferred root is not adopted for E1 because the full required bridge is
+unavailable. Even the closest existing mask comparison exposes a second obstacle
+to the proposed positive P2A/P2B route.
+
+A read-only Python 3.12 diagnostic called the existing POP `_geometry_mask` on
+four geometry dictionaries, unpacked each bitset to a 256x256 uint8 component
+mask, then called the unchanged P2A `measure_component`. It wrote no fixture,
+Python file, test, Artifact, Document or artwork. Results:
+
+| Probe geometry, in pixel coordinates | Contour area | Minimum edge | Longest-edge margin | P2A result |
+| --- | ---: | ---: | ---: | --- |
+| Spec/73 Golden rectangle: x=0, y=0, width=20, height=10 | 171 | 9 | 0 | REJECTED: `AREA_BELOW_256` |
+| Spec/73 Golden ellipse: cx=30, cy=5, rx=5, ry=3 | 37 | 2.8284271247461903 | 0 | REJECTED: `AREA_BELOW_256`, `MIN_EDGE_BELOW_8` |
+| Larger rectangle: x=20, y=20, width=80, height=40 | 3081 | 39 | 0 | UNCERTAIN: `AMBIGUOUS_LANDMARK_ORIGIN` |
+| Larger ellipse: cx=160, cy=80, rx=40, ry=25 | 3057 | 10 | 0 | UNCERTAIN: `AMBIGUOUS_LANDMARK_ORIGIN` |
+
+All four return `ordered_landmarks = null`. P2A requires longest-edge margin
+greater than 4 after earlier checks succeed. P2B excludes these evaluations;
+the probed two-part combinations supply no supported primitive in a frame.
+The diagnostic is not an admitted rasterization recipe or a general theorem
+about every transformed ellipse. It demonstrates that neither the exact Golden
+nor simply using these larger symmetric shapes supplies the proposed positive.
+Integer translation does not repair those measured edge ties.
+
+Do not introduce asymmetry, crop a part, relax a threshold, synthesize landmarks,
+reinterpret UNCERTAIN as SUPPORTED, or change source grammar merely to evade this
+result. An alternative independently authored source with eligible parts would
+still need its own bounded ownership grammar and executable production bridge.
+The asymmetric polygon fixtures do not already supply that ownership authority.
+
+### 15.3 Disposition of the requested profile design
+
+The stop condition takes precedence over filling in a non-executable contract.
+
+| Requested item | Disposition at this baseline |
+| --- | --- |
+| Selected root / source grammar | None admitted; spec/73 exact two-part source evaluated above |
+| Production identity, recipe and frame parameters | Not defined: missing executable bridge must be supplied first |
+| Per-part contribution proof | Missing outside restricted POP evidence; whole-frame equality, order or approximate shape matching is insufficient |
+| Complete universe | Retain §7: all two manifest occurrences and complete accepted evaluations/observations, exclusions, dependencies and competing claims; no convenient pair from a larger manifest |
+| P2A/P2B mapping | Future bridge must prove unique exact full-pixel contribution-to-component correspondence in frame coordinates, then resolve exact evaluation/observation lineage. Bbox-relative component digest alone is insufficient; do not choose first/best or use component order |
+| TemporalIdentity | No mutation or whole-subject merge. Source-part identity plus exact production may be sufficient for structural ownership without part R1 IDs, but no positive profile adopts this option here. Existing identities must still be audited completely; spec/74's exact coverage requirements need explicit refinement if absence is made non-blocking |
+| Canonical schema / IDs | Deferred under the stop condition. No schema/media/profile identity or unmeasured Golden IDs are fabricated; §8 remains a design obligation |
+| Judgment | No SUPPORTED bridge can be claimed. Missing ownership in otherwise legitimate input remains UNCERTAIN / `OWNERSHIP_UNPROVEN`; incomplete/ambiguous mapping is ineligible/UNCERTAIN; forged or contradictory proof rejects acceptance. These are obligations, not newly executable statuses |
+| Positive Golden | Blocked; no fixture/evidence/expected-ID set produced. Must start with independent authored input and demonstrate eligible per-part production before specifying expected evidence |
+| Negative control | Retain identical AVI/decoded observations but omit the independently accepted ownership root (including resolver-only root variant): never SUPPORTED, ownership unproven. No current E1 runtime is claimed to execute this case |
+| Evidence-only acceptance | Future authenticated full-base replay, independently enumerated closure, canonical record equality, incoming-state guard and `attach_analysis` only; no new registration in this task |
+
+### 15.4 Retained adversarial obligations, not new tests
+
+| Cases | Required future boundary |
+| --- | --- |
+| Missing/resolver-only ownership root; multiple eligible roots | Missing authority is unproven; multiple roots abstain without choosing; a claim falsely declaring them accepted/unique rejects |
+| Missing source subject; omitted/extra/reordered part; changed source bytes | Exact source grammar/membership/identity mismatch rejects; no subset or byte substitution |
+| Wrong production profile/parameter; changed frame or per-part contribution; wrong video/manifest | Independent production/decode/contribution comparison rejects |
+| Manifest >2; omitted occurrence; wrong tick/time | Complete bounded-universe/timing rule rejects; no truncation or retiming |
+| Missing P2A evaluation; omitted REJECTED/UNCERTAIN evaluation; duplicate observation | Complete re-derived audit must match; forged omission/duplication rejects |
+| Ambiguous mapping; missing part observation; split/merge | Legitimate coverage gaps are UNCERTAIN/ineligible; no heuristic tie-break or synthetic part |
+| Observation reused for two parts; incompatible supported competing owner | Contradiction rejects; no winner or partial subset |
+| Stale base; forged snapshot; preceding Change substitution | Ordinary staleness, authenticated base witness and incoming-state guard reject atomically |
+| Fake profile/media; self-attested supported flag; wrong descriptor | Closed-world admission and independent replay reject; hashes/labels are not proof |
+| Denied `attach_analysis`; partial mutation attempt | Policy/atomic acceptance rejects; no evidence or artwork side effect |
+
+### 15.5 Next capability gate
+
+Before retrying E1, separately authorize and demonstrate a bounded independently
+authored-source production capability with fixed pixel semantics, complete
+per-part masks/contributions and exact comparison to spec/59 canonical decoded
+frames. Demonstrate that both genuine source parts reach the unchanged P2A/P2B
+observation path; otherwise report that observation-eligibility limitation for a
+separate versioned decision. No threshold relaxation or frozen-code change is
+authorized by this finding.
+
+Only after that capability exists can E1 choose a profile, freeze its complete
+serialization/IDs and specify a real positive Golden plus the negative controls.
+Whole-subject TemporalIdentity, spec/71 representation correspondence, artwork
+construction and P2D-B remain later gates. Ordinary-video ownership inference and
+single-Entity targeting remain unsolved. No deeper Core structural-model change
+is demonstrated by this audit.

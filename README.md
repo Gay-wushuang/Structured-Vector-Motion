@@ -397,6 +397,14 @@ an independently verifiable ownership-source/video-bridge profile is the next
 gate. Heuristic grouping and multiple part TemporalIdentities do not establish
 whole-subject ownership or the spec/71 correspondence needed by P2D.
 
+P2S-E1's [capability audit](spec/74-video-multipart-subject-evidence.md#15-p2s-e1-capability-audit--blocked-before-profile-admission)
+is **BLOCKED: SOURCE_VIDEO_BRIDGE_CAPABILITY_REQUIRED**. Existing SVG rendering,
+POP-specific masks and video decoding do not provide the required authored-source
+production/per-part observation bridge. The preferred rectangle/ellipse probes
+also fail frozen P2A eligibility. No positive profile or spec/75 is admitted;
+an independently replayable production capability and P2A/P2B-compatible genuine
+parts must be demonstrated first. No runtime or Core semantics change.
+
 ## Development
 
 Install the project and development tools in editable mode:
