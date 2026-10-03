@@ -390,6 +390,13 @@ Correspondence temporal profile is not implemented, video vector stylization and
 video repair are not addressed, P2D-B remains **BLOCKED**, and Single-Entity
 Motion Target remains an **OPEN SEPARATE ARCHITECTURAL QUESTION**.
 
+P2S-E0's [video multipart subject evidence audit](spec/74-video-multipart-subject-evidence.md)
+finds existing evidence insufficient and specifies an evidence-only contract
+without changing Entity/Group semantics. It is **DESIGN ONLY / NOT IMPLEMENTED**:
+an independently verifiable ownership-source/video-bridge profile is the next
+gate. Heuristic grouping and multiple part TemporalIdentities do not establish
+whole-subject ownership or the spec/71 correspondence needed by P2D.
+
 ## Development
 
 Install the project and development tools in editable mode:

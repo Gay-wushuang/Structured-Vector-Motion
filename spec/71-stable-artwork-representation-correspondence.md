@@ -167,9 +167,9 @@ geometry, Track, visibility schedule or render output.
 
 The existing Group minimum of two real members and unique transformed membership
 remain unchanged. Legacy promotion provenance remains unchanged; spec/72 specifies
-an additive construction-origin authority and provenance branch, not yet
-implemented. A construction profile must demonstrate legal creation through an
-admitted origin authority. It SHALL NOT:
+an additive construction-origin authority and provenance branch, implemented
+for the bounded non-temporal spec/73 profile only. A temporal construction profile
+must demonstrate legal creation through an admitted origin authority. It SHALL NOT:
 
 - add an invisible/dummy member just to satisfy cardinality;
 - place successive frame alternatives into one Group;
@@ -449,5 +449,18 @@ Group/fragment authority must both succeed in one atomic transaction. The
 historical/current-coverage obligations above remain for later consumption.
 P2D-B stays **BLOCKED**. Single-Entity Motion Target remains an **OPEN SEPARATE
 ARCHITECTURAL QUESTION**. No runtime behavior or frozen rule changes in this pass.
+
+### P2S-E0 video multipart evidence audit
+
+[Spec/74](74-video-multipart-subject-evidence.md) records outcome B at baseline
+`773c6db42262127bc6df56254f01d3b3201e9f4c`: existing evidence does not prove
+shared video multipart ownership. Its Multipart Subject Evidence contract is
+**DESIGN ONLY / NOT IMPLEMENTED** and changes no Entity/Group semantics. The
+next gate is a bounded independently verifiable ownership-source/video-bridge
+profile, not heuristic grouping or P2D-B. Part TemporalIdentities do not supply
+the whole-subject TemporalIdentity required by this contract; that exact coverage
+bridge remains a separate prerequisite. No subject identity is silently promoted
+or substituted for an R1 identity. Construction/history/current-coverage and P2D
+consumer gates remain open; single-Entity targeting remains separate.
 
 Decision: **PREREQUISITE_STRUCTURAL_PHASE_REQUIRED**.
