@@ -371,16 +371,24 @@ P2D-B is blocked on the [stable artwork representation correspondence contract](
 which reuses Entity/Group and separates frame-local evidence from persistent
 artwork. That prerequisite is **DESIGN CONTRACT / NOT IMPLEMENTED / NOT FROZEN**;
 its temporal construction and proof-admission profiles remain unresolved.
-P2S-A identified **GROUP_CONSTRUCTION_AUTHORITY_BLOCKER**. P2S-B now specifies
+P2S-A identified **GROUP_CONSTRUCTION_AUTHORITY_BLOCKER** — a historical finding
+at its inspected baseline. P2S-B
 [Construction-Derived Group Authority](spec/72-construction-derived-group-authority.md)
-as **SPECIFIED / NOT IMPLEMENTED**, with atomic construction replay and a distinct
-provenance branch preserving legacy POP Groups. P2S-C specifies the first bounded
-[Explicit Two-Part SVG Group Construction profile](spec/73-svg-two-part-group-construction.md)
-as **SPECIFIED / NOT IMPLEMENTED**. Profile specification precedes runtime;
-admission/execution requires authority and profile implementation together plus
-Golden/adversarial acceptance. Video multipart ownership evidence remains a
-separate prerequisite. P2D-B remains **BLOCKED**, and Single-Entity Motion Target remains an
-**OPEN SEPARATE ARCHITECTURAL QUESTION**.
+is **IMPLEMENTED FOR FIRST BOUNDED PROFILE / NOT FROZEN**, with atomic
+construction replay and a distinct provenance branch preserving legacy POP
+Groups. P2S-C
+[Explicit Two-Part SVG Group Construction](spec/73-svg-two-part-group-construction.md)
+is **IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**. P2S-D stabilized the first
+executable authority/profile slice and verified mixed-origin coexistence:
+legacy inference Groups and construction Groups coexist, `promote_group` and
+`establish_group` remain distinct policy authorities, and old POP evidence stays
+stale after Document mutation. The implemented profile is the exact bounded
+rect + ellipse SVG subset only; arbitrary SVG Groups, arbitrary source profiles
+and video sources are not supported. Remaining: video multipart subject
+ownership evidence is required, the Stable Artwork Representation
+Correspondence temporal profile is not implemented, video vector stylization and
+video repair are not addressed, P2D-B remains **BLOCKED**, and Single-Entity
+Motion Target remains an **OPEN SEPARATE ARCHITECTURAL QUESTION**.
 
 ## Development
 

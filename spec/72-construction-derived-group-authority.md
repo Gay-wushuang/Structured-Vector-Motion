@@ -1,11 +1,18 @@
 # P2S-B — Construction-Derived Group Authority
 
-Status: **SPECIFIED / NOT IMPLEMENTED**. Not FINAL or FROZEN.
+Status: **IMPLEMENTED FOR FIRST BOUNDED PROFILE / NOT FROZEN**. Not FINAL or FROZEN.
 
-Evidence baseline: `bf87499dc87e06f982696fabdf979e798fb46bbd`.
-This is a new normative authority design, not a runtime extension. It authorizes
-no change to frozen POP promotion, P2A/P2B/R0/P2C/R1, or S1 semantics. P2D-B
-remains blocked. The single-Entity motion-target question remains separate.
+Design evidence baseline: `bf87499dc87e06f982696fabdf979e798fb46bbd`.
+Implementation/verification baseline: `0e3fd192cbfaf5c799c43f89e3f642e2853a41f3`.
+The authority is implemented for the first admitted profile
+([spec/73](73-svg-two-part-group-construction.md)) only; it is not generally
+complete for arbitrary sources. The Core provenance union is implemented: the
+legacy inference origin remains unchanged, the construction origin is
+implemented, and mixed-origin compatibility is verified. Generic profile plugins
+remain forbidden — only explicitly admitted profiles may use this authority.
+The implementation authorizes no change to frozen POP promotion,
+P2A/P2B/R0/P2C/R1, or S1 semantics. P2D-B remains blocked. The single-Entity
+motion-target question remains separate.
 
 ## 1. Executable basis and bounded decision
 
@@ -60,7 +67,7 @@ Transform, new motion target type or 3D scene object is introduced.
 
 ## 3. Versioned provenance extension
 
-The future Group validator/schema SHALL recognize an exact disjoint union:
+The Group validator/schema recognizes an exact disjoint union:
 
 **Legacy inference origin:** the existing exact object, unchanged:
 
@@ -90,25 +97,25 @@ authority/profile identity and evidence reference. Source observations, timing,
 source object namespaces, geometry derivation and correspondence claims belong
 in profile evidence, never in Core Group provenance.
 
-This is an additive, version-discriminated provenance generalization requiring a
-future validator/schema change. Current runtime rejects the new shape; this spec
-does not claim otherwise. No new Operation registry version is implied. Legacy
-documents, IDs and accepted POP behavior must remain byte/semantic compatible.
-Any consumer enumerating legacy provenance fields must dispatch explicitly before
-access; adding a construction Group must not break subsequent legacy promotion.
+This is an additive, version-discriminated provenance generalization; the
+validator/schema and the construction branch are implemented at
+`0e3fd192cbfaf5c799c43f89e3f642e2853a41f3`. (Historical note: at the design
+baseline `bf87499` the runtime rejected the new shape.) No new Operation
+registry version is implied. Legacy documents, IDs and accepted POP behavior
+remain byte/semantic compatible. Any consumer enumerating legacy provenance
+fields must dispatch explicitly before access; adding a construction Group does
+not break subsequent legacy promotion.
 
 Known compatibility sites are `PromoteGroupsChange.apply` and
-`GroupDefinitionPreview`. The former currently reads `inference_artifact_id` and
-`candidate_id` from every existing Group while building its deduplication set;
-a construction Group would raise a missing-key error. Future origin dispatch
-must include only legacy Groups in that legacy candidate-pair set, while keeping
-all Groups in ID collision, validation and transformed-ownership checks. Do not
-strip construction Groups from the existing whole-Document stale hash.
+`GroupDefinitionPreview`. Origin dispatch includes only legacy Groups in the
+legacy candidate-pair deduplication set, while keeping all Groups in ID
+collision, validation and transformed-ownership checks. Construction Groups are
+not stripped from the existing whole-Document stale hash.
 `GroupDefinitionPreview` requires three inference fields; it cannot honestly
-represent construction provenance. Its current POP producer is valid and need
-not change its output. Future construction preview needs an origin-discriminated
-representation without fabricated or empty inference IDs, preserving the legacy
-preview branch. These are implementation obligations, not changes in this pass.
+represent construction provenance, so construction preview uses the
+origin-discriminated `ConstructionGroupDefinitionPreview` without fabricated or
+empty inference IDs, preserving the legacy preview branch. The frozen POP
+producer output is unchanged.
 
 ## 4. Structural validity is not admission
 
@@ -303,7 +310,7 @@ No fields may be added to a profile that introduce a reverse edge in this DAG.
 
 ## 10. Base authentication, replay and staleness
 
-The future exact registered establishment Change must use the existing source
+The exact registered establishment Change must use the existing source
 revision hook and the full-snapshot/Revision witness mechanism in spec/70 §10.1.
 The reproduced witness must equal the actual Proposal base commitment. The
 verifier receives no live Document or store. A full incoming-Document equality
@@ -344,28 +351,27 @@ initial Transform, construction evidence and establishment receipt reference.
 Existing artwork/order remain unchanged; no partial staging Revision is accepted.
 Prior source analyses/correspondence may be separate accepted evidence stages.
 
-Use one future composite registered Change, with a single replay verifier and
-base guard; no caller-composed fragment-plus-unverified-Group sequence may obtain
+Use one registered composite Change (`EstablishSVGGroupChange`), with a single
+replay verifier and base guard; no caller-composed fragment-plus-unverified-Group
+sequence may obtain
 this authority. Transaction copy/validation preserves all-or-nothing behavior.
 Rejected preview/acceptance leaves HEAD, Revision count, Document, Group and
 accepted references unchanged. Unaccepted blobs in an ArtifactStore are not
 accepted state. No orphan target, receipt or partial Render Stack may remain.
 
-The future composite SHALL use a distinct closed-world `establish_group` action
+The composite SHALL use a distinct closed-world `establish_group` action
 on `document`, with no parameter, for construction authority. It SHALL also cover
 `import_scene` on `document`, `set_group_transform` on the new Group ID with
 parameter `transform`, and `attach_analysis` on `document`. Denying any required
 action rejects the entire transaction. `promote_group` remains exclusively the
 frozen inference-promotion authority and is not emitted for construction.
 
-This is an explicit future policy extension, not permission equivalence.
-The current policy model is deny-only, not an allow-grant system; its validator
-does not yet admit `establish_group` (and currently omits some registered actions,
-including `promote_group` and `set_group_transform`). Future implementation must
-make the construction intent set expressible and test its denials; this task
-does not fix those runtime gaps. An inference-action restriction is not silently
-reinterpreted as a construction-action restriction. Actors restricting both must
-name both applicable actions. No `policies.py` edit occurs in this design pass.
+The policy model remains deny-only, not an allow-grant system. The validator
+now admits `establish_group`, `promote_group` and `set_group_transform` as
+expressible actions, and existing Group IDs are valid deny targets; the
+construction intent set and its denials are tested. An inference-action
+restriction is not silently reinterpreted as a construction-action restriction.
+Actors restricting both must name both applicable actions.
 
 ## 12. Relationship to stable representation correspondence
 
@@ -454,31 +460,35 @@ are namespaced evidence, not implicit SVM IDs. Core Group provenance contains
 no frame-specific fields, bones, meshes or quaternions. SVM remains a 2D artwork
 construction model; later restoration retains independent source appearance.
 
-The implementation must add only the new provenance branch and exact authority
-support it requires, preserving legacy behavior. In particular, legacy promotion
-must remain usable in a mixed-origin Document without indexing construction
-provenance as Q-v1 provenance. No frozen POP scoring, candidate identity, promotion
-ID, source-hash rule or reference interpretation may change.
+The implementation adds only the new provenance branch and exact authority
+support it requires, preserving legacy behavior. Legacy promotion remains usable
+in a mixed-origin Document without indexing construction provenance as Q-v1
+provenance; mixed-origin coexistence and stale legacy evidence are tested. No
+frozen POP scoring, candidate identity, promotion ID, source-hash rule or
+reference interpretation changed.
 
-Required statuses after this design:
+Current statuses:
 
 | Capability | Status |
 | --- | --- |
-| Construction-Derived Group Authority | SPECIFIED / NOT IMPLEMENTED |
-| Profile specification | May proceed before authority runtime; see spec/73 |
-| Profile admission / execution | BLOCKED ON AUTHORITY AND PROFILE IMPLEMENTATION |
+| Construction-Derived Group Authority | IMPLEMENTED FOR FIRST BOUNDED PROFILE / NOT FROZEN |
+| First bounded profile (spec/73) | IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN |
+| Additional/generic profile plugins | FORBIDDEN until separately admitted |
 | P2D-B | BLOCKED |
 | Single-Entity Motion Target | OPEN SEPARATE ARCHITECTURAL QUESTION |
 
 Authority implementation is necessary, not sufficient for video coverage: a
 bounded multipart construction/correspondence profile must still be specified
-and verified. No runtime or fixture is added in this task.
+and verified. The implemented first profile is non-temporal structured SVG; it
+does not supply the missing video multipart ownership or
+representation-correspondence evidence.
 
-The required order is authority contract -> bounded profile specification ->
-authority and first profile implemented together -> Golden/adversarial acceptance.
-A generic profile-less manifest interpreter SHALL NOT precede the first profile.
-Spec/73 specifies a non-temporal structured SVG profile; it does not supply the
-missing video multipart ownership or representation-correspondence evidence.
+The required order — authority contract -> bounded profile specification ->
+authority and first profile implemented together -> Golden/adversarial
+acceptance — was followed for the first profile. A generic profile-less
+manifest interpreter SHALL NOT precede any future profile. Spec/73's implemented
+non-temporal structured SVG profile does not supply the missing video multipart
+ownership or representation-correspondence evidence.
 
 ## 16. Adversarial design review / future acceptance obligations
 
@@ -499,5 +509,7 @@ missing video multipart ownership or representation-correspondence evidence.
 | Legacy and construction Groups coexist | Both retain their origin-specific checks and shared transform rules |
 | Representation association fails | Entire video establishment rejects atomically |
 
-Design verdict: **GROUP_AUTHORITY_CONTRACT_READY**. Readiness is for this
-normative authority contract, not runtime acceptance or P2D-B.
+Design verdict (historical, at design baseline `bf87499`):
+**GROUP_AUTHORITY_CONTRACT_READY**. That verdict covered the normative authority
+contract, not runtime acceptance or P2D-B. Runtime acceptance now exists for the
+first admitted profile; P2D-B remains blocked.

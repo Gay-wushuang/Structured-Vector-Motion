@@ -1,12 +1,18 @@
 # P2S-C — Explicit Two-Part SVG Group Construction
 
-Status: **SPECIFIED / NOT IMPLEMENTED**. Not FINAL or FROZEN.
-Evidence baseline: `3ced2f14f144bdd642601c6251738bc7c3109475`.
+Status: **IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**. Not FINAL or FROZEN.
+Design evidence baseline: `3ced2f14f144bdd642601c6251738bc7c3109475`.
+Implementation/verification baseline: `0e3fd192cbfaf5c799c43f89e3f642e2853a41f3`.
 
 Profile identity: `svm-svg-two-part-group-construction@0.1`.
 Authority: `svm-construction-derived-group@0.1` in [spec/72](72-construction-derived-group-authority.md).
-Runtime admission requires authority and this profile implemented together,
-followed by Golden/adversarial acceptance. P2D-B remains BLOCKED.
+The exact Explicit Two-Part SVG profile is executable. Its authority is
+CREATE-only; accepted source candidates are SVG ReferenceArtifacts only;
+unrelated SVG DerivedArtifacts may coexist with the source; and multiple source
+ReferenceArtifact candidates remain ambiguous and reject. The authority and this
+profile were implemented together and Golden/adversarial acceptance exists.
+The profile proves authored structural assembly only; it does NOT prove
+TemporalIdentity/video subject ownership. P2D-B remains BLOCKED.
 
 ## 1. Evidence decision and meaning
 
@@ -202,7 +208,8 @@ IDs + profile -> Group ID; bounds -> Transform; complete Group + manifest
 descriptor + fragment + pre-base -> receipt -> receipt ID -> post Document
 references -> post hash/Revision. No identity depends on receipt or post-state.
 
-One future registered composite applies spec/72's complete atomic state and
+One registered composite Change (`EstablishSVGGroupChange`) applies spec/72's
+complete atomic state and
 intent set, including distinct `establish_group`. Preview changes no accepted
 state. Any rejection leaves HEAD, Revision count, Document and accepted references
 unchanged. Every allocated ID collision rejects, including byte-identical output.
@@ -226,7 +233,7 @@ rules before a video profile chooses an initial geometry baseline. No schema or
 inference method is invented here. Heuristic producers may eventually propose
 such evidence but do not bypass acceptance authority.
 
-## 8. Future Golden and adversarial obligations
+## 8. Golden and adversarial acceptance (implemented)
 
 The first Golden input is a real independent authored source, never an SVG
 rendered from expected SVM output:
@@ -249,7 +256,7 @@ complete source closure, Group and receipt. Bounds are `[0,0,20,10]` and
 Revision, repeatable manifest/receipt/Group identities on equivalent bases and
 ordinary rendering. No motion binding or temporal evidence is expected.
 
-Required negative cases (design obligations, no fixture implemented here):
+Required negative cases (implemented and tested):
 
 | Input/attack | Required outcome |
 | --- | --- |

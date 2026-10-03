@@ -424,21 +424,26 @@ profile. P2D-B remains blocked.
 ### P2S-B design dependency
 
 [Spec/72](72-construction-derived-group-authority.md) specifies
-**Construction-Derived Group Authority — SPECIFIED / NOT IMPLEMENTED**.
-It resolves the authority design question through one atomic replayed fragment
-construction and a disjoint construction-origin provenance branch. Existing
-inference-origin Groups and cardinality remain unchanged. The P2S-A blocker is
-not an implemented capability merely because this design now exists.
+**Construction-Derived Group Authority — IMPLEMENTED FOR FIRST BOUNDED PROFILE /
+NOT FROZEN**. It resolves the authority design question through one atomic
+replayed fragment construction and a disjoint construction-origin provenance
+branch. Existing inference-origin Groups and cardinality remain unchanged.
+The P2S-A finding above is historical; the construction authority and the first
+bounded non-temporal profile are implemented, so
+**GROUP_CONSTRUCTION_AUTHORITY_BLOCKER is discharged for the first bounded
+non-temporal construction path only**. It is not discharged for any temporal or
+video representation path.
 
 Profile specification does not require authority runtime to exist first.
 [Spec/73](73-svg-two-part-group-construction.md) specifies the first bounded,
 non-temporal **Explicit Two-Part SVG Group Construction** profile; it is
-**SPECIFIED / NOT IMPLEMENTED**. Runtime profile admission/execution is blocked
-on authority and profile implementation together, followed by Golden/adversarial
-acceptance. No generic profile-less interpreter may precede that implementation.
-The SVG profile proves authored assembly ownership, not video subject ownership
-or TemporalIdentity correspondence; a video multipart evidence prerequisite
-remains. No temporal construction/correspondence profile is admitted here.
+**IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**. The remaining prerequisite before
+video/P2D-B is the temporal/video side: multipart subject ownership evidence, a
+representation-correspondence proof, authenticated construction-history /
+current-coverage consumption, and a versioned P2D consumer contract. No temporal
+construction/correspondence profile is admitted here. The Stable Artwork
+Representation Correspondence prerequisite itself is not implemented; only the
+non-temporal construction authority/profile path exists.
 For a representation establishment, its correspondence proof and the new
 Group/fragment authority must both succeed in one atomic transaction. The
 historical/current-coverage obligations above remain for later consumption.
