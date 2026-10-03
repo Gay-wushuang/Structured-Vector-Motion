@@ -45,12 +45,16 @@ assembly being reproduced; no semantic grouping is inferred from co-occurrence.
 ## 2. Complete source selection and acceptance
 
 From the authenticated full base Document in spec/72, enumerate all references
-with SVG media type `image/svg+xml` or `application/svg+xml`. There must be
+with ReferenceArtifact kind and SVG media type `image/svg+xml` or
+`application/svg+xml`. There must be
 exactly one, and it must resolve under its exact accepted descriptor as a
-ReferenceArtifact with media type **`image/svg+xml`**. Zero, multiple, Derived,
+ReferenceArtifact with media type **`image/svg+xml`**. Zero, multiple,
 alternate-media or descriptor-mismatched candidates reject. Do not choose the
 first eligible file, ignore a malformed second SVG, or accept a caller selector.
-Other non-SVG references are unrelated base state, not construction dependencies.
+SVG DerivedArtifacts, including analysis/normal/xray render evidence, are
+unrelated accepted base evidence, not source candidates. Other non-SVG references
+are likewise not construction dependencies. Selection uses accepted descriptor
+kind, never producer strings; exact descriptor and resolved-byte checks remain.
 
 Resolve and verify the full SHA-256 content identity of this reference. The
 complete source dependency closure is exactly that one descriptor and its bytes:
@@ -251,7 +255,8 @@ Required negative cases (design obligations, no fixture implemented here):
 | --- | --- |
 | Unknown profile | Reject before dispatch |
 | Missing accepted source / resolver-only source | Reject |
-| Multiple SVG references / omitted candidate reference in snapshot | Reject by complete authenticated-base enumeration |
+| Multiple accepted SVG ReferenceArtifact source candidates / omitted candidate reference in snapshot | Reject by complete authenticated-base enumeration |
+| One valid SVG ReferenceArtifact plus unrelated SVG DerivedArtifacts | Eligible; Derived evidence does not change source selection |
 | Incomplete closure / external resource / altered descriptor | Reject |
 | Changed subject or source bytes with old output | Replay mismatch rejects; genuinely new accepted source requires new Proposal/IDs |
 | Omitted/extra part, flat two-shape root, nested or reordered children | Subset/complete-fragment check rejects |

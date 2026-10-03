@@ -48,6 +48,7 @@ def _source_reference(document: dict[str, Any]) -> dict[str, Any]:
         ref
         for ref in document["references"]
         if ref["media_type"] in {"image/svg+xml", "application/svg+xml"}
+        and ref["import_metadata"].get("artifact_kind") == ArtifactKind.REFERENCE
     ]
     if len(sources) != 1:
         raise SVGGroupConstructionError("Exactly one accepted SVG reference required")

@@ -70,6 +70,7 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
                     "split_entity",
                     "import_scene",
                     "establish_group",
+                    "promote_group",
                     "set_group_transform",
                     "reconcile_scene",
                     "attach_analysis",
@@ -102,6 +103,7 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
             raise PolicyDefinitionError("Edit Permission targets must be non-empty strings")
         known_targets = (
             {"document"}
+            | {group["id"] for group in document.get("groups", [])}
             | {entity["id"] for entity in document["entities"]}
             | {operation["id"] for operation in document["construction"]["operations"]}
             | {

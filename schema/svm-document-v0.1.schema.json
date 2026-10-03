@@ -336,6 +336,7 @@
               "split_entity",
               "import_scene",
               "establish_group",
+              "promote_group",
               "set_group_transform",
               "reconcile_scene",
               "attach_analysis",
