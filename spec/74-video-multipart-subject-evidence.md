@@ -501,7 +501,7 @@ to change Entity, Group or TemporalIdentity.
 
 | Files / entry points | Available capability | Missing proof |
 | --- | --- | --- |
-| `spec/73`; `svm/adapters/svg_group_construction.py`: `_parameters`, `_derive`; `svm/adapters/svg_import.py`: `SVGNormalizer`, `_parse`, `_shape` | Exact authored `svg/g/rect+ellipse` ownership and ordinary geometry normalization | No frame-production recipe, raster output or source-part/video association |
+| `spec/73`; `svm/adapters/svg_group_construction.py`: `_parameters`, `_derive`; `svm/adapters/svg_import.py`: `SVGNormalizer`, `_parse_svg`, `_shape` | Exact authored `svg/g/rect+ellipse` ownership and ordinary geometry normalization | No frame-production recipe, raster output or source-part/video association |
 | `spec/08`; `svm/evaluator.py`; `svm/scene.py`; `svm/renderers/__init__.py`, `svg.py` | Pure geometry evaluation, transformed Evaluated Scene, deterministic SVG text | The renderer package exports SVG rendering, not a controlled binary raster producer with per-part contribution outputs |
 | `tools/run_pop_golden_p.py`: `rasterize_svg`, `parity_metrics`; `pyproject.toml` | SVG-to-PNG parity helper using CairoSVG, falling back to Chromium screenshots | Backend fallback and no fixed cross-platform pixel/canonicalization contract; no admitted source-part contribution production. SVG parity is not exact binary-video proof |
 | `svm/adapters/pop_structure.py`: `_validate_exact_pop_scene`, `_geometry_mask`, `_primitive_contains`, `_topmost_masks`; `spec/27` | Deterministic 256x256 pixel-center geometric masks for the exact reconstructed POP primitive scene | Q requires genuine POP prefix/output and unchanged scene. Its masks are geometric coverage, not general SVG rasterization or alpha contributions. No SVG-source/video production profile; private numeric helper reuse alone would not establish it |
@@ -617,3 +617,21 @@ Whole-subject TemporalIdentity, spec/71 representation correspondence, artwork
 construction and P2D-B remain later gates. Ordinary-video ownership inference and
 single-Entity targeting remain unsolved. No deeper Core structural-model change
 is demonstrated by this audit.
+
+## 16. P2S-E1A production prerequisite supplied
+
+[Spec/75](75-authored-multipart-raster-production.md) now supplies an executable
+bounded production capability from an independently accepted SVG `g` with two
+authored triangular paths. Exact integer pixel-center production reproduces two
+whole frames and four disjoint contribution masks. The checked-in AVI verifies
+through unchanged spec/59; unchanged P2A is 4/4 SUPPORTED, P2B carries both parts
+in both occurrences, and full-frame pixel equality proves each contribution's
+unique observation mapping. No component-order ownership rule is used.
+
+P2S-E1A: **IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**. The historical §15
+blocker is addressed for this bounded source-production capability only.
+P2S-E1: **READY TO RETRY / NOT IMPLEMENTED**. This document remains design-only;
+its Multipart Subject Evidence runtime/profile is **NOT IMPLEMENTED**. The
+production report has no Document acceptance or construction authority.
+Whole-subject TemporalIdentity remains **OPEN**, P2D-B remains **BLOCKED**, and
+ordinary-video ownership inference and single-Entity targeting remain unsolved.

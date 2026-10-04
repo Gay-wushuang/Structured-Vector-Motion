@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <path id="part-a" d="M 20 20 L 100 20 L 20 80 Z"/>
+    <path id="part-b" d="M 140 120 L 212 120 L 140 174 Z"/>
+  </g>
+</svg>

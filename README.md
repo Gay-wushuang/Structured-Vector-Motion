@@ -398,12 +398,14 @@ gate. Heuristic grouping and multiple part TemporalIdentities do not establish
 whole-subject ownership or the spec/71 correspondence needed by P2D.
 
 P2S-E1's [capability audit](spec/74-video-multipart-subject-evidence.md#15-p2s-e1-capability-audit--blocked-before-profile-admission)
-is **BLOCKED: SOURCE_VIDEO_BRIDGE_CAPABILITY_REQUIRED**. Existing SVG rendering,
-POP-specific masks and video decoding do not provide the required authored-source
-production/per-part observation bridge. The preferred rectangle/ellipse probes
-also fail frozen P2A eligibility. No positive profile or spec/75 is admitted;
-an independently replayable production capability and P2A/P2B-compatible genuine
-parts must be demonstrated first. No runtime or Core semantics change.
+identified the missing source-production bridge. [P2S-E1A](spec/75-authored-multipart-raster-production.md)
+now supplies that bounded capability: **IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**.
+Two independently authored triangular SVG parts produce exact frames and masks;
+verified FFV1 decode reaches unchanged P2A (4/4 SUPPORTED) and P2B, with exact
+contribution-to-observation matching. E1 is **READY TO RETRY / NOT IMPLEMENTED**;
+Multipart Subject Evidence runtime is **NOT IMPLEMENTED**, whole-subject
+TemporalIdentity remains **OPEN**, and P2D-B remains **BLOCKED**. No Group or Core
+acceptance authority changes.
 
 ## Development
 
