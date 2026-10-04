@@ -635,3 +635,22 @@ its Multipart Subject Evidence runtime/profile is **NOT IMPLEMENTED**. The
 production report has no Document acceptance or construction authority.
 Whole-subject TemporalIdentity remains **OPEN**, P2D-B remains **BLOCKED**, and
 ordinary-video ownership inference and single-Entity targeting remain unsolved.
+
+## 17. P2S-E1B first bounded evidence profile admitted
+
+[Spec/76](76-first-bounded-multipart-subject-evidence-profile.md) admits the
+first bounded positive profile
+`svm-authored-two-triangle-multipart-evidence@0.1` over the Spec75 bridge. It
+finalizes this document's deferred canonical evidence serialization as
+`svm-multipart-subject-evidence-0.1` (§8 design obligation), fixes the
+complete-universe and P2A/P2B closure enumeration rules, the E1
+competing-claim semantics required by §5, the `attach_analysis` evidence-only
+acceptance route (§5, §9), base/stale semantics, the judgment taxonomy, the
+mandatory ordinary-video negative control and the adversarial matrix. For the
+first profile it chooses temporal-link exclusion: no TemporalIdentity is
+consumed, recorded, created, merged or synthesized, deliberately narrowing
+§7 item 5 and §8's generic temporal-links obligations to a future profile.
+The profile is **SPECIFIED / NOT IMPLEMENTED / NOT FROZEN**: no verifier,
+Change registration, Golden or adversarial test exists yet. Whole-subject
+TemporalIdentity remains **OPEN**; P2D-B remains **BLOCKED**; ordinary-video
+ownership inference remains unsupported.

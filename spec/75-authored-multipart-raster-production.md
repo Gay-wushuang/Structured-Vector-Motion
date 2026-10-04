@@ -239,3 +239,10 @@ This capability permits retrying E1. E1 still must admit its bounded ownership
 evidence profile, complete universe/competing-claim rules, schema and acceptance
 replay. This spec does not discharge those gates or alter spec/71, P2D, frozen
 numeric tolerances, P2A/P2B semantics, or Proposal acceptance authority.
+
+The first admitted evidence profile is now specified by
+[spec/76](76-first-bounded-multipart-subject-evidence-profile.md)
+(P2S-E1B, **SPECIFIED / NOT IMPLEMENTED / NOT FROZEN**): it consumes exactly
+this bounded world, keeps this spec's diagnostic report non-authoritative by
+independent replay, and its runtime, Golden and adversarial cases remain
+future work.

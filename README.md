@@ -402,10 +402,16 @@ identified the missing source-production bridge. [P2S-E1A](spec/75-authored-mult
 now supplies that bounded capability: **IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**.
 Two independently authored triangular SVG parts produce exact frames and masks;
 verified FFV1 decode reaches unchanged P2A (4/4 SUPPORTED) and P2B, with exact
-contribution-to-observation matching. E1 is **READY TO RETRY / NOT IMPLEMENTED**;
-Multipart Subject Evidence runtime is **NOT IMPLEMENTED**, whole-subject
-TemporalIdentity remains **OPEN**, and P2D-B remains **BLOCKED**. No Group or Core
-acceptance authority changes.
+contribution-to-observation matching. [P2S-E1B](spec/76-first-bounded-multipart-subject-evidence-profile.md)
+now specifies the first admitted evidence profile: **SPECIFIED / NOT IMPLEMENTED /
+NOT FROZEN** — a closed-world two-part/two-occurrence universe enumerated
+independently by the verifier, competing-claim exclusivity, canonical evidence
+schema, `attach_analysis` evidence-only acceptance, a mandatory ordinary-video
+negative control (identical geometry/motion without the authored ownership root
+is never SUPPORTED) and a 32-case adversarial matrix. E1 is **READY TO RETRY /
+NOT IMPLEMENTED**; Multipart Subject Evidence runtime is **NOT IMPLEMENTED**,
+whole-subject TemporalIdentity remains **OPEN**, and P2D-B remains **BLOCKED**.
+No Group or Core acceptance authority changes.
 
 ## Development
 
