@@ -651,6 +651,11 @@ first profile it chooses temporal-link exclusion: no TemporalIdentity is
 consumed, recorded, created, merged or synthesized, deliberately narrowing
 §7 item 5 and §8's generic temporal-links obligations to a future profile.
 The profile is **SPECIFIED / NOT IMPLEMENTED / NOT FROZEN**: no verifier,
-Change registration, Golden or adversarial test exists yet. Whole-subject
-TemporalIdentity remains **OPEN**; P2D-B remains **BLOCKED**; ordinary-video
-ownership inference remains unsupported.
+Change registration, Golden or adversarial test exists yet. Although this
+document's generic contract permits auditable non-SUPPORTED records (§9), the
+first bounded Spec76 profile intentionally narrows admission to SUPPORTED-only
+evidence: only independently reproduced SUPPORTED results become accepted
+Multipart Subject Evidence artifacts, while UNCERTAIN/REJECTED outcomes remain
+deterministic diagnostics that append nothing. Whole-subject TemporalIdentity
+remains **OPEN**; P2D-B remains **BLOCKED**; ordinary-video ownership inference
+remains unsupported.

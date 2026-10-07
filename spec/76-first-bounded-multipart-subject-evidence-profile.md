@@ -32,12 +32,16 @@ bounded world proven executable by Spec75:
   Spec75 replay.
 
 The profile identity binds the evidence schema
-(`svm-multipart-subject-evidence-0.1`), the identity domain, the judgment
-taxonomy and the acceptance route below. A semantic change to any bound
-capability requires a new profile version and review. Arbitrary SVG sources,
-arbitrary video, other shape counts, other manifests, other production
-policies and generic profile plugins remain forbidden. Only this explicitly
-admitted profile may produce or consume this evidence.
+(`svm-multipart-subject-evidence-0.1`), the identity domain, the
+judgment/diagnostic taxonomy and the SUPPORTED-only acceptance route below.
+Admission is SUPPORTED-only: only an independently reproduced SUPPORTED result
+becomes an accepted Multipart Subject Evidence artifact, while UNCERTAIN and
+REJECTED outcomes remain deterministic diagnostics (§10) that are never
+persisted. A semantic change to any bound capability requires a new profile
+version and review. Arbitrary SVG sources, arbitrary video, other shape
+counts, other manifests, other production policies and generic profile plugins
+remain forbidden. Only this explicitly admitted profile may produce or consume
+this evidence.
 
 ## 2. Ownership fact being accepted
 
@@ -108,7 +112,8 @@ Four part-occurrence cells. The verifier must independently enumerate:
    UNCERTAIN/REJECTED evaluations and missing candidate IDs;
 4. the complete P2B included/excluded audit;
 5. the exact source-part contribution mappings (§7);
-6. all applicable accepted ownership claims under this profile (§9).
+6. all currently applicable accepted SUPPORTED claims under this profile,
+   each reduced to its recomputed claim key (§9.1).
 
 No caller-selected subset is permitted. Deterministic ordering: occurrences in
 manifest order (increasing frame index, then tick); parts in source leaf
@@ -146,7 +151,9 @@ collapse to one closure and never create authority or ambiguity. Genuinely
 conflicting accepted closures and incomplete closures are closure failures →
 UNCERTAIN (`AMBIGUOUS_CLOSURE` / `INCOMPLETE_UNIVERSE`), never a
 closest-match or first-artifact choice. Artifact input order never determines
-authority.
+authority. Closure failures are deterministic non-SUPPORTED diagnostics
+(§10): they attach no evidence reference and produce no accepted artifact
+(§13).
 
 ## 6. Subject and part identities
 
@@ -209,32 +216,82 @@ Existing part TemporalIdentities in the Document are neither consumed nor
 invalidated by this evidence; they remain independently governed by their own
 frozen contracts.
 
-## 9. Competing ownership claims
+## 9. Claim equivalence and competing claims
 
-A claim is an accepted evidence record under this schema and profile, plus the
-candidate record under evaluation. The verifier enumerates the complete
-applicable claim set from the authenticated base — all accepted records whose
-schema and profile identity match — in evidence Artifact ID order. Within the
-bounded profile, ownership over one observed part occurrence is exclusive: one
-observation cannot be a SUPPORTED member of two different
+An **accepted SUPPORTED claim** is an accepted evidence artifact under this
+schema and profile. Only SUPPORTED results are ever admitted (§10, §13), so
+the accepted claim set contains no diagnostic records. The verifier enumerates
+the complete currently applicable claim set from the authenticated base — all
+accepted claims whose schema and profile identity match — in evidence Artifact
+ID order.
+
+### 9.1 Claim key
+
+Let `H(x)` be full lowercase SHA-256 of repository `canonical_bytes(x)`. The
+claim-equivalence projection reduces a reproduced claim to its stable
+ownership facts only:
+
+```text
+claim_projection = {
+  profile_identity,
+  subject_id,
+  parts:      [{part_id, part_key}],                                   (source order)
+  universe:   [{occurrence_id, frame_index, tick, source_timestamp}],  (manifest order)
+  membership: [{occurrence_id, part_key, observation_id}]              (canonical order)
+}
+claim_key = H(canonical_bytes(claim_projection))
+```
+
+The projection excludes the base Revision, the Document hash, the
+competing-claim audit list, the resulting evidence Artifact ID, the acceptance
+Revision and every other admission bookkeeping value. It derives only from the
+stable ownership claim itself: profile identity, subject identity, complete
+canonical part set, bounded universe U and the exact source-part →
+observation membership. It is an independently reproducible verifier
+computation over replayed facts; a recorded copy is never trusted. Claims
+with equal `claim_key` are **equivalent**: they express the same ownership
+fact and are NOT competing claims.
+
+### 9.2 Idempotence
+
+Before constructing a new evidence record, the verifier must enumerate the
+currently applicable accepted SUPPORTED claims (§14) and recompute each claim
+key.
+
+- If an **equivalent currently applicable** SUPPORTED claim exists, the
+  proposal is **idempotent**: the existing accepted claim is retained; no
+  second evidence Artifact is emitted or appended; no duplicate reference
+  enters the Document; no evidence chain is created, because the proposal
+  never lists its equivalent predecessor as a distinct claim and no record is
+  constructed at all. The verifier reports the retained claim's Artifact ID.
+- If an older equivalent claim exists but is **no longer applicable** under
+  the current authenticated base, it is neither reused nor rebased: it neither
+  authorizes nor blocks. The verifier proceeds to construct a fresh record
+  from the current base if the full §3 profile reproduction still succeeds;
+  otherwise the outcome is the deterministic non-SUPPORTED diagnostic (§10).
+  The older artifact remains historical and unmodified — old evidence is never
+  silently rebased.
+
+### 9.3 Competing claims
+
+Within the bounded profile, ownership over one observed part occurrence is
+exclusive: one observation cannot be a SUPPORTED member of two different
 (subject, part) pairs.
 
 | Case | Situation | Required outcome |
 | --- | --- | --- |
-| A | Same observation claimed by two different subjects | Incompatible supported claims. A candidate that would be SUPPORTED over an observation owned by an incompatible accepted SUPPORTED claim is REJECTED (`INCOMPATIBLE_SUPPORTED_CLAIM`). An accepted SUPPORTED claim is immutable and never retroactively demoted. |
-| B | Same part observation reused by two supported subject claims | REJECTED for the later candidate (`OBSERVATION_REUSED`); same immutability rule. |
-| C | Same subject source with conflicting member set | The source bytes are the only membership authority. A reproduced membership contradicting its own source is REJECTED (`SOURCE_MEMBERSHIP_CONTRADICTION`). |
-| D | Byte-different authored source claiming the same observations | A different source subject. Two supported claims over intersecting observations conflict: the later candidate is REJECTED (`INCOMPATIBLE_SUPPORTED_CLAIM`). No cross-file continuity and no global semantic uniqueness beyond observation exclusivity is invented. |
-| E | Duplicate identical supported claim | Byte-identical records have the same content hash and Artifact ID; multiple accepted references are audited as one logical claim. Never a conflict, never extra authority. |
+| A | Same observation claimed by two different subjects | Incompatible. A candidate whose reproduced membership intersects an applicable accepted SUPPORTED claim under a different subject is diagnosed REJECTED (`INCOMPATIBLE_SUPPORTED_CLAIM`) and attaches nothing. Accepted claims are immutable and never retroactively demoted. |
+| B | Same part observation reused by two supported subject claims | REJECTED diagnostic (`OBSERVATION_REUSED`) for the later candidate; same immutability rule. |
+| C | Same subject source with conflicting member set | The source bytes are the only membership authority; accepted SUPPORTED membership is a deterministic function of source bytes, the video/manifest closure and the fixed policy. A candidate reproducing a membership that contradicts its own accepted source is diagnosed REJECTED (`SOURCE_MEMBERSHIP_CONTRADICTION`) and attaches nothing. |
+| D | Byte-different authored source claiming the same observations | A different source subject. If both claims would be SUPPORTED over intersecting observations, the later candidate is diagnosed REJECTED (`INCOMPATIBLE_SUPPORTED_CLAIM`); no winner is chosen. No cross-file continuity and no global semantic uniqueness beyond observation exclusivity is invented. |
+| E | Equivalent duplicate claim | NOT competing. Equivalent claims (equal `claim_key`) are the same ownership fact; §9.2 idempotence applies and no second artifact is constructed. |
 
-A later accepted evidence record must not silently coexist with an
-incompatible SUPPORTED owner: the exclusivity check in the SUPPORTED
-conditions (§10) enforces this at judgment time. Non-SUPPORTED records may be
-accepted for audit; they grant no ownership and do not conflict. If the base
-already contains two incompatible accepted SUPPORTED claims, the profile does
-not repair history: it reports the conflict and rejects any new candidate over
-intersecting observations. Resolution of historical conflicts is not admitted
-by this profile.
+Because only SUPPORTED records are admitted and admission requires no
+incompatible applicable claim (§10 condition 10), the accepted set cannot
+contain two incompatible SUPPORTED claims over intersecting observations: any
+proposal that would create one is diagnosed and attaches nothing. Every claim
+audited into a constructed record is therefore disjoint from U. Only genuinely
+incompatible claims participate in competing-claim disposition.
 
 ## 10. Judgment rules
 
@@ -264,8 +321,13 @@ P2A, P2B, R0 and GroupCandidate statuses are unchanged.
 12. all dependencies accepted — video, manifest, canonical rasters, analysis,
     P2A and P2B descriptors resolve to accepted immutable artifacts.
 
-**UNCERTAIN** covers noncontradictory insufficiency, with deterministic
-reasons:
+`SUPPORTED` is the only judgment with an admission form. If the reproduced
+judgment is SUPPORTED but an equivalent currently applicable accepted
+SUPPORTED claim exists, the admission outcome is the idempotent no-op of §9.2
+— the existing claim is retained and no second record is constructed.
+
+**UNCERTAIN** covers noncontradictory insufficiency. It is a deterministic
+diagnostic with fixed reason codes and never attaches evidence:
 
 | Reason code | Situation |
 | --- | --- |
@@ -277,7 +339,10 @@ reasons:
 | `UNRESOLVED_COMPETING_CLAIM` | A competing accepted claim exists but is not itself SUPPORTED and cannot be resolved inside the profile |
 | `INCOMPLETE_TEMPORAL_COVERAGE` | U cannot be covered as required (occurrence missing or unverifiable) |
 
-**REJECTED** covers contradictions and forgery:
+**REJECTED** covers contradictions and forgery. It is a deterministic
+diagnostic when produced for a well-formed candidate; malformed, forged or
+unauthorized inputs are hard verification rejections (atomic failure) rather
+than persisted results:
 
 | Reason code | Situation |
 | --- | --- |
@@ -287,23 +352,32 @@ reasons:
 | `INCOMPATIBLE_SUPPORTED_CLAIM` | Candidate conflicts with an incompatible accepted SUPPORTED owner |
 | `FORGED_BASE_OR_DEPENDENCY` | Forged base snapshot, dependency descriptor or accepted-state claim |
 | `UNKNOWN_PROFILE` | Malformed or unknown profile/schema/version |
-| `SELF_ATTESTED_STATUS` | A claimed supported status not independently reproduced |
+| `SELF_ATTESTED_STATUS` | A producer-claimed supported status not independently reproduced (records carry no status field; §12) |
 
 Reason codes are recorded in the canonical order above. Heuristic confidence,
 scores, motion, proximity, co-occurrence and accumulated evidence never turn
-into SUPPORTED (spec/74 §6). Acceptance of a UNCERTAIN/REJECTED record for
-audit is not acceptance of ownership.
+into SUPPORTED (spec/74 §6).
+
+Only SUPPORTED has a canonical evidence form (§12). UNCERTAIN and REJECTED
+outcomes MUST NOT append an ownership-evidence reference, must not produce an
+accepted Multipart Subject Evidence Artifact and must not create any Document
+content; they remain reproducible verifier/producer diagnostics. Because no
+nullable or free-form field exists, a failure is never persisted inside
+accepted evidence — malformed, forged, unknown-profile or unauthorized inputs
+are hard verification rejection where appropriate (§13).
 
 ## 11. Ordinary-video negative control
 
 Mandatory normative control: take observations with the same geometry and
 motion pattern as the positive fixture but without the admitted authored
 ownership root — no accepted Spec75-grammar source in the applicable closure.
-The result MUST NOT be SUPPORTED. The required repository-native outcome is
-UNCERTAIN with reason `OWNERSHIP_UNPROVEN`. Resolver-only sources, fake
-profiles and generic appended claims must yield this outcome or reject as
-malformed. This control is essential proof that video pixels and motion do
-not manufacture structural ownership.
+The result MUST NOT be SUPPORTED and MUST NOT be admitted: the required
+repository-native outcome is the deterministic diagnostic UNCERTAIN with
+reason `OWNERSHIP_UNPROVEN`, and no Multipart Subject Evidence Artifact is
+produced, emitted or appended, leaving the Revision Store unchanged.
+Resolver-only sources, fake profiles and generic appended claims must yield
+this diagnostic or reject as malformed. This control is essential proof that
+video pixels and motion do not manufacture structural ownership.
 
 ## 12. Canonical evidence schema
 
@@ -311,8 +385,13 @@ Schema identity: `svm-multipart-subject-evidence-0.1`.
 Media: `application/vnd.svm.multipart-subject-evidence+json;version=0.1`.
 Kind: DerivedArtifact; provenance exactly `{profile_identity: <profile>}`.
 IDs use the existing SHA-256 canonical bytes contract with no truncated
-hashes. The record is canonical JSON with exactly the following closed-world
-fields, in this order:
+hashes.
+
+The canonical schema is satisfied only by a complete SUPPORTED record, and a
+record exists only when a SUPPORTED result is admitted. There is no schema for
+UNCERTAIN or REJECTED outcomes and no nullable or diagnostic field: those
+outcomes are never serialized into accepted evidence (§10). The record is
+canonical JSON with exactly the following closed-world fields, in this order:
 
 | # | Field | Required content |
 | --- | --- | --- |
@@ -327,28 +406,83 @@ fields, in this order:
 | 9 | `manifest` | `{artifact_id, content_hash}` — accepted manifest descriptor |
 | 10 | `occurrences` | Ordered covered occurrence identities (spec/59) |
 | 11 | `membership` | Ordered per §7, all four cells |
-| 12 | `dependencies` | Ordered exact accepted descriptors: P2A per occurrence, P2B observation and audit artifacts, analysis/raster closure |
-| 13 | `competing_claims` | `{claim_artifact_ids, disposition}` — complete §9 evaluation |
-| 14 | `judgment` | `SUPPORTED` \| `UNCERTAIN` \| `REJECTED` |
-| 15 | `reason_codes` | Ordered reason codes; empty only when SUPPORTED |
+| 12 | `claim_key` | Recomputed §9.1 claim-equivalence key (a recorded copy is never authority) |
+| 13 | `dependencies` | Ordered exact accepted descriptors: P2A per occurrence, P2B observation and audit artifacts, analysis/raster closure |
+| 14 | `competing_claims` | `{claim_artifact_ids, disposition}` — `claim_artifact_ids`: complete audit of the currently applicable accepted SUPPORTED claims at construction, in Artifact ID order; `disposition`: exactly `"NO_COMPETING_CLAIM"` — no audited claim is equivalent (idempotence would have produced no record) and none is incompatible |
 
-There is no optional free-form metadata field. No producer or verifier
-identity field exists: the profile identity plus schema version pin the
-verifier semantics, and the record is the verifier's deterministic replay
-output. Unknown fields, unknown schema version and unknown profile identity
-reject. Finite canonical numbers and integer-not-bool timing retain existing
-conventions. The evidence Artifact ID is the hash of the complete record; the
-record must not contain its own Artifact ID or any digest derived from it —
-no identity cycle may exist between the evidence ID and the facts used to
-compute it. Subject, part, occurrence, observation and dependency identities
-are all fixed before the evidence bytes exist.
+There is no optional free-form metadata field and no judgment, status or
+reason field: only SUPPORTED results become records, so an embedded status
+could only be redundant or self-attestation. Every audited claim Artifact ID
+in field 14 references a pre-existing, older accepted artifact; a claim
+intersecting U would have been equivalent (idempotent — no record) or
+incompatible (rejected — no record), so audited claims in a constructed
+record are disjoint from U. No producer or verifier identity field exists:
+the profile identity plus schema version pin the verifier semantics, and the
+record is the verifier's deterministic replay output. Unknown fields, unknown
+schema version and unknown profile identity reject. Finite canonical numbers
+and integer-not-bool timing retain existing conventions.
+
+### 12.1 Identity DAG and acyclicity
+
+```text
+accepted source + accepted video/manifest + accepted raster/analysis closure
+        |
+        |  independent replay (§3–§5)
+        v
+stable ownership claim facts: subject, parts, U, membership
+        |
+        +----> claim_projection -> claim_key = H(canonical_bytes(projection))
+        |             (excludes base, Document hash, claim audit,
+        |              own Artifact ID, acceptance Revision)
+        v
+currently applicable accepted SUPPORTED claims (§14); claim keys recomputed
+        |
+        +-- equivalent applicable claim exists --> IDEMPOTENT outcome:
+        |                                          no record, no second
+        |                                          Artifact, no chain (§9.2)
+        +-- incompatible applicable claim exists -> REJECTED diagnostic,
+        |                                           no record (§9.3)
+        v  (no equivalent and no incompatible claim)
+evidence record (fields 1–14 above)
+        |
+        v
+evidence Artifact ID = H(canonical_bytes(record))
+        |        (the record never embeds its own Artifact ID)
+        v
+evidence-only acceptance -> acceptance Revision
+                 (no field in the record depends on the acceptance Revision)
+```
+
+The DAG is acyclic: every arrow points from accepted immutable inputs to
+newer derived values. No field inside the evidence record depends on its own
+Artifact ID, on a future acceptance Revision, or on a duplicate evidence
+record created only because the first one already exists — §9.2 idempotence
+guarantees an equivalent claim never produces a second record, and the record
+never lists a successor. Subject, part, occurrence, observation, claim-key and
+dependency identities are all fixed before the evidence bytes exist.
 
 ## 13. Acceptance boundary
 
-A future registered evidence-only Change appends ONLY the verified evidence
-reference, in one atomic transaction. It must not create an Entity, Group,
-TemporalIdentity, Track, MotionTargetBinding or Render Stack state, and must
-not change the ProposalAcceptor or verifier interface.
+A future registered evidence-only Change appends ONLY the verified SUPPORTED
+evidence reference, in one atomic transaction. It must not create an Entity,
+Group, TemporalIdentity, Track, MotionTargetBinding or Render Stack state, and
+must not change the ProposalAcceptor or verifier interface.
+
+The Change admits only a record that the verifier independently reconstructs
+as SUPPORTED (§10) with complete canonical bytes (§12). Every other outcome —
+UNCERTAIN, REJECTED, malformed, forged, unknown profile or stale — fails
+atomically: no reference is appended, no evidence Artifact enters the
+Document, and the Revision Store is unchanged. Diagnostics remain available
+as deterministic producer/verifier results (§10); they are never persisted as
+accepted evidence and the Change never serializes them.
+
+If the verifier finds an equivalent currently applicable accepted SUPPORTED
+claim (§9.2), the proposal completes as an **idempotent no-op**: the existing
+accepted claim is retained, no second evidence Artifact is emitted or
+appended, no duplicate reference enters the Document, and no new evidence
+content changes the Document. The verifier reports the retained claim's
+Artifact ID. An older equivalent claim that is no longer applicable is not
+reused and not rebased (§9.2, §14).
 
 `attach_analysis` is the correct ChangeAuthority intent, and reuse is
 preferred: it is the existing policy intent for evidence attachment, already
@@ -360,10 +494,9 @@ registers its own dedicated verifier in the closed-world Change Authority
 Registry exactly like those predecessors — no new policy intent, no generic
 evidence/plugin authority, and no artifact-declared authority. The verifier
 guards exact incoming Document equality before applying (spec/72 pattern);
-any preceding Change substituting a smaller universe fails. Acceptance failure
-leaves the Revision Store unchanged.
+any preceding Change substituting a smaller universe fails.
 
-## 14. Base / stale semantics
+## 14. Base / stale semantics and claim applicability
 
 Use the repository's strongest existing model: full-snapshot acceptance with a
 Revision witness, bound through the existing `source_revision_resolver`
@@ -372,28 +505,40 @@ must authenticate:
 
 - the full base Revision snapshot against its witness;
 - the complete current Document at that base;
-- the accepted exact dependency descriptors (§12 field 12);
+- the accepted exact dependency descriptors (§12 field 13);
 - source ancestry and order: the source revision is an ancestor of the
   explicit current base, its sole source descriptor remains accepted there,
   and the video reference is absent from the earlier source revision
   (spec/75 §2);
 - the current applicable ownership-claim universe (§9), enumerated from the
-  same authenticated base.
+  same authenticated base with claim keys recomputed.
 
-The evidence record commits its base Revision ID and full Document hash.
-Evidence generated against base A must not become valid at mutated base B by
-retargeting an envelope: any base mutation makes the evidence stale, and stale
-proposals require reproposal — never silent rebasing. A forged or invented
-snapshot is insufficient; the witness must be an existing-format Revision
-witness verified by the store.
+An accepted SUPPORTED claim is **currently applicable** at the authenticated
+base iff its committed base revision remains an ancestor of that base, its
+complete stable facts and recorded dependency closure remain accepted and
+resolvable there, and its full §3–§5 reproduction succeeds at that base. Its
+committed base Revision ID and full Document hash are immutable and are never
+rewritten or retargeted: evidence generated against base A must not become
+valid at mutated base B by retargeting an envelope, and applicability never
+means the record certifies the current base — consumers still replay the
+admitted proof against authenticated accepted inputs and current
+applicability (spec/74 §9).
+
+A proposal against a changed base requires the full independent reproduction
+at that base. An older equivalent claim that is no longer applicable is
+neither reused nor rebased: it neither authorizes nor blocks, the fresh
+reproduction proceeds, and the older artifact remains historical and
+unmodified. A forged or invented snapshot is insufficient; the witness must
+be an existing-format Revision witness verified by the store.
 
 ## 15. Producer vs verifier
 
 The producer computes candidate evidence and may be external. The trusted
 verifier independently enumerates and replays the complete profile and must
 not trust any producer-chosen input: not the part list, not the occurrence
-list, not the P2A/P2B artifact IDs, not the competing-claim set, and not the
-judgment. Every one of these is reconstructed per §3–§5, §7 and §9, and the
+list, not the P2A/P2B artifact IDs, not the applicable-claim audit or
+equivalence outcome, not the claim key and not any claimed supported status.
+Every one of these is reconstructed per §3–§5, §7, §9 and §10, and the
 reproduced canonical record must be byte-identical to the candidate record
 before acceptance.
 
@@ -405,15 +550,20 @@ Exactly one future positive Golden reuses the existing checked-in
     SUPPORTED Multipart Subject Evidence
 
 and nothing else. No Group, no artwork construction, no TemporalIdentity, no
-representation correspondence, no MotionTargetBinding. The deterministic
-expected evidence identity is specified only after the implemented hash DAG
-is shown acyclic (§12); until then no expected evidence Artifact ID is
-recorded.
+representation correspondence, no MotionTargetBinding. The Golden also proves
+idempotence: re-proposing the same claim against the resulting base finds the
+equivalent applicable claim, retains it and admits no second artifact (§9.2).
+The deterministic expected evidence identity is specified only after the
+implemented hash DAG is shown acyclic (§12); until then no expected evidence
+Artifact ID is recorded.
 
 ## 17. Adversarial matrix
 
 Future implementation must cover at least the following cases, each with its
-deterministic outcome under this specification:
+deterministic outcome under this specification. Unless stated otherwise, every
+non-SUPPORTED outcome below is a deterministic diagnostic (§10) that attaches
+no evidence reference, produces no accepted artifact (§13) and leaves the
+Revision Store unchanged.
 
 | # | Case | Required outcome |
 | --- | --- | --- |
@@ -439,16 +589,17 @@ deterministic outcome under this specification:
 | 20 | Caller-selected convenient closure | Not an input; replayed closure differs → reject/UNCERTAIN |
 | 21 | Multiple conflicting accepted P2A/P2B closures | UNCERTAIN `AMBIGUOUS_CLOSURE` |
 | 22 | Duplicate equivalent closure | Aliases of one closure; no extra authority |
-| 23 | Conflicting subject claim | REJECTED `INCOMPATIBLE_SUPPORTED_CLAIM` per §9 |
-| 24 | Duplicate equivalent ownership claim | One logical claim; idempotent |
-| 25 | Stale base | Ordinary staleness: reproposal, never rebasing |
-| 26 | Forged base snapshot | REJECTED `FORGED_BASE_OR_DEPENDENCY` |
-| 27 | Preceding-change mutation | Incoming Document-equality guard rejects atomically |
-| 28 | Changed dependency descriptor | Dependency replay mismatch → REJECTED |
-| 29 | Fake profile | `UNKNOWN_PROFILE` reject |
-| 30 | Fake supported status | `SELF_ATTESTED_STATUS` reject |
-| 31 | Denied evidence attachment; partial mutation attempt | Policy/atomic acceptance rejects; no side effect |
-| 32 | Ordinary-video negative control | UNCERTAIN `OWNERSHIP_UNPROVEN`; never SUPPORTED |
+| 23 | Conflicting subject claim | REJECTED diagnostic `INCOMPATIBLE_SUPPORTED_CLAIM`; attaches nothing (§9.3) |
+| 24 | Duplicate equivalent ownership claim | Idempotent: equivalent applicable claim retained; no second artifact; `claim_key` equality (§9.2) |
+| 25 | Stale equivalent claim on a new base | Not reused and not rebased; fresh independent reproduction at the current base, or the non-SUPPORTED diagnostic; older artifact stays historical (§9.2, §14) |
+| 26 | Stale base | Ordinary staleness: reproposal, never rebasing |
+| 27 | Forged base snapshot | REJECTED `FORGED_BASE_OR_DEPENDENCY` |
+| 28 | Preceding-change mutation | Incoming Document-equality guard rejects atomically |
+| 29 | Changed dependency descriptor | Dependency replay mismatch → REJECTED |
+| 30 | Fake profile | `UNKNOWN_PROFILE` reject |
+| 31 | Fake supported status | No status field exists (§12); forged/self-attested content fails independent replay → hard rejection (`SELF_ATTESTED_STATUS`) |
+| 32 | Denied evidence attachment; partial mutation attempt | Policy/atomic acceptance rejects; no side effect |
+| 33 | Ordinary-video negative control | UNCERTAIN `OWNERSHIP_UNPROVEN` diagnostic; never SUPPORTED; no artifact |
 
 ## 18. Relation to later phases
 
