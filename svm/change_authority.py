@@ -14,6 +14,7 @@ from .revisions import (
     ApplyTemporalIdentitySelectionChange,
     AttachCameraCompensationEvidenceChange,
     AttachMultiAnchorCameraEvidenceChange,
+    AttachMultipartSubjectEvidenceChange,
     AttachObservedMotionEvidenceChange,
     AttachObservedSimilarityEvidenceChange,
     AttachPOPGeometryObservationsChange,
@@ -71,6 +72,12 @@ class ChangeAuthority:
 
 def _source_revision(change: Any) -> str:
     return change.source_revision_id
+
+
+def _verify_multipart_subject(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.multipart_subject_evidence import verify_change
+
+    verify_change(change, resolved)
 
 
 def _establish_svg_group(change: Any) -> tuple[Intent, ...]:
@@ -490,6 +497,13 @@ CHANGE_AUTHORITIES = {
             frozenset({"attach_analysis"}),
             _single("attach_analysis"),
             _verify_primitive_observation_assembly,
+        ),
+        ChangeAuthority(
+            AttachMultipartSubjectEvidenceChange,
+            frozenset({"attach_analysis"}),
+            _single("attach_analysis"),
+            _verify_multipart_subject,
+            _source_revision,
         ),
         ChangeAuthority(
             AttachSVGGeometryObservationsChange,

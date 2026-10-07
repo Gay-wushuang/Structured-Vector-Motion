@@ -3,8 +3,10 @@
 Status: **IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**.
 Inspection baseline: `d7bf71be5643be98bbbb1c2d191ddb488cbde910`.
 This supplies E1's production prerequisite, not spec/74 Multipart Subject Evidence.
-P2S-E1 is **READY TO RETRY / NOT IMPLEMENTED**. Multipart Subject Evidence runtime
-is **NOT IMPLEMENTED**; whole-subject TemporalIdentity is **OPEN**; P2D-B remains
+The first bounded Multipart Subject Evidence runtime is now implemented in
+[Spec76](76-first-bounded-multipart-subject-evidence-profile.md). This production
+report remains diagnostic and supplies no acceptance authority. Whole-subject
+TemporalIdentity is **OPEN**; P2D-B remains
 **BLOCKED**. Ordinary-video ownership inference and single-Entity targeting are
 not solved. No Group, construction receipt, TemporalIdentity, representation
 correspondence or MotionTargetBinding is produced.

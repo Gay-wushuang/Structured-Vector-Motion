@@ -172,7 +172,16 @@ def reproduce_source(
     store: RevisionStore, source_revision_id: str, artifacts: ArtifactRepository
 ) -> ProducedRaster:
     """Replay accepted source bytes; return bytes only, without publishing artifacts."""
-    source = _source(_document(store, source_revision_id), artifacts)
+    return reproduce_source_snapshot(
+        source_revision_id, _document(store, source_revision_id), artifacts
+    )
+
+
+def reproduce_source_snapshot(
+    source_revision_id: str, document: dict[str, Any], artifacts: ArtifactRepository
+) -> ProducedRaster:
+    """Replay geometry from a snapshot; the caller must authenticate its revision."""
+    source = _source(document, artifacts)
     triangles = _triangles(source.content)
     _, np = _opencv()
     frames, contributions, measurements = [], [], []
@@ -221,9 +230,33 @@ def _replay(
         raise AuthoredRasterProductionError("Stale verification base")
     if not _ancestor(store, source_revision_id, base_revision_id):
         raise AuthoredRasterProductionError("Source revision is not an ancestor")
+    return replay_snapshots(
+        base_revision_id,
+        _document(store, base_revision_id),
+        source_revision_id,
+        _document(store, source_revision_id),
+        manifest_id,
+        p2a_ids,
+        p2b_observation_id,
+        p2b_evidence_id,
+        artifacts,
+    )
+
+
+def replay_snapshots(
+    base_revision_id: str,
+    document: dict[str, Any],
+    source_revision_id: str,
+    source_document: dict[str, Any],
+    manifest_id: str,
+    p2a_ids: tuple[str, str],
+    p2b_observation_id: str,
+    p2b_evidence_id: str,
+    artifacts: ArtifactRepository,
+) -> tuple[dict[str, Any], ProducedRaster]:
+    """Spec75 numeric replay only; callers authenticate snapshots and ancestry first."""
     # Ordering is intentional: source replay precedes any claimed video linkage.
-    produced = reproduce_source(store, source_revision_id, artifacts)
-    document = _document(store, base_revision_id)
+    produced = reproduce_source_snapshot(source_revision_id, source_document, artifacts)
     if _source(document, artifacts).document_reference() != produced.source_reference:
         raise AuthoredRasterProductionError("Accepted source changed")
     accepted = {ref["id"]: ref for ref in document["references"]}
@@ -232,7 +265,7 @@ def _replay(
     video_ref = manifest_payload["source_video_reference"]
     if accepted.get(video_ref["id"]) != video_ref:
         raise AuthoredRasterProductionError("Video is not accepted under its exact descriptor")
-    earlier = _document(store, source_revision_id)
+    earlier = source_document
     if any(ref["id"] == video_ref["id"] for ref in earlier["references"]):
         raise AuthoredRasterProductionError("Source revision must precede accepted video")
     verified = verify_video_manifest(artifacts, manifest.document_reference())
@@ -250,7 +283,21 @@ def _replay(
 
     # Reuse unchanged P2B replay (which independently verifies P2A and all lineage).
     scratch = ArtifactStore()
+    replay_ids = {
+        manifest_id,
+        video_ref["id"],
+        *p2a_ids,
+        *(frame.artifact_id for frame in verified.frames),
+    }
+    for evidence_id in p2a_ids:
+        evidence = artifacts.resolve_reference(accepted[evidence_id])
+        provenance = json.loads(evidence.content)["occurrence_provenance"]
+        replay_ids.update(
+            (provenance["analysis_artifact_id"], provenance["binary_mask_artifact_id"])
+        )
     for ref in document["references"]:
+        if ref["id"] not in replay_ids:
+            continue
         snapshot = artifacts.resolve_reference(ref)
         scratch.import_bytes(
             snapshot.content,

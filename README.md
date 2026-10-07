@@ -391,29 +391,24 @@ video repair are not addressed, P2D-B remains **BLOCKED**, and Single-Entity
 Motion Target remains an **OPEN SEPARATE ARCHITECTURAL QUESTION**.
 
 P2S-E0's [video multipart subject evidence audit](spec/74-video-multipart-subject-evidence.md)
-finds existing evidence insufficient and specifies an evidence-only contract
-without changing Entity/Group semantics. It is **DESIGN ONLY / NOT IMPLEMENTED**:
-an independently verifiable ownership-source/video-bridge profile is the next
-gate. Heuristic grouping and multiple part TemporalIdentities do not establish
-whole-subject ownership or the spec/71 correspondence needed by P2D.
+identified the missing authored ownership and source-to-video bridge.
+[P2S-E1A](spec/75-authored-multipart-raster-production.md) supplies the bounded
+production capability with unchanged P2A/P2B gates.
 
-P2S-E1's [capability audit](spec/74-video-multipart-subject-evidence.md#15-p2s-e1-capability-audit--blocked-before-profile-admission)
-identified the missing source-production bridge. [P2S-E1A](spec/75-authored-multipart-raster-production.md)
-now supplies that bounded capability: **IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**.
-Two independently authored triangular SVG parts produce exact frames and masks;
-verified FFV1 decode reaches unchanged P2A (4/4 SUPPORTED) and P2B, with exact
-contribution-to-observation matching. [P2S-E1B](spec/76-first-bounded-multipart-subject-evidence-profile.md)
-now specifies the first admitted evidence profile: **SPECIFIED / NOT IMPLEMENTED /
-NOT FROZEN** — a closed-world two-part/two-occurrence universe enumerated
-independently by the verifier, competing-claim exclusivity with SUPPORTED-only
-admission (equivalent applicable claims are reused idempotently; UNCERTAIN /
-REJECTED outcomes remain diagnostics and are never persisted), canonical
-evidence schema, `attach_analysis` evidence-only acceptance, a mandatory
-ordinary-video negative control (identical geometry/motion without the authored
-ownership root is never SUPPORTED or admitted) and a 33-case adversarial
-matrix. E1 is **READY TO RETRY / NOT IMPLEMENTED**; Multipart Subject Evidence
-runtime is **NOT IMPLEMENTED**, whole-subject TemporalIdentity remains **OPEN**,
-and P2D-B remains **BLOCKED**. No Group or Core acceptance authority changes.
+[P2S-E1B](spec/76-first-bounded-multipart-subject-evidence-profile.md) now implements
+the first bounded Multipart Subject Evidence runtime: **IMPLEMENTED / GOLDEN
+VERIFIED / NOT FROZEN**. Its dedicated `attach_analysis` Change authenticates
+Revision witnesses against the proposal base and independently replays the
+complete two-part/two-occurrence closure. Only reproduced SUPPORTED evidence is
+appended. UNCERTAIN/REJECTED results remain diagnostics; applicable equivalent
+claims reuse their Artifact, and incompatible supported ownership claims reject.
+The Spec75 report supplies no authority.
+
+Ordinary-video ownership inference is **NOT SOLVED**; whole-subject
+TemporalIdentity is **OPEN**; Stable Representation Correspondence is the
+**NEXT GATE**; P2D-B remains **BLOCKED**; Single-Entity Motion Target remains
+**OPEN**. E1 is not generally frozen. Entity/Group semantics and ProposalAcceptor
+behavior are unchanged.
 
 ## Development
 

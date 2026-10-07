@@ -4,7 +4,10 @@ import copy
 import hashlib
 import re
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
+
+if TYPE_CHECKING:
+    from .multipart_witness import RevisionSnapshotWitness
 
 from .document import validate_document
 from .evaluator import DocumentError, canonical_bytes
@@ -452,6 +455,29 @@ class AppendSceneFragmentChange:
             if reference["id"] not in known_references:
                 document["references"].append(copy.deepcopy(reference))
             known_references.add(reference["id"])
+
+
+@dataclass(frozen=True)
+class AttachMultipartSubjectEvidenceChange:
+    """Spec76 evidence-only admission; all witnesses and outputs require replay."""
+
+    source_revision_id: str
+    base_document_snapshot: dict[str, Any]
+    witnesses: tuple[RevisionSnapshotWitness, ...]
+    profile_identity: str
+    source_references: tuple[dict[str, Any], ...]
+    evidence_reference: dict[str, Any]
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        if self.evidence_reference["id"] in {r["id"] for r in self.source_references}:
+            return self.source_references
+        return (*self.source_references, self.evidence_reference)
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if canonical_bytes(document) != canonical_bytes(self.base_document_snapshot):
+            raise DocumentError("FORGED_BASE_OR_DEPENDENCY: incoming Document differs from base")
+        AppendReferencesChange((self.evidence_reference,)).apply(document)
 
 
 @dataclass(frozen=True)

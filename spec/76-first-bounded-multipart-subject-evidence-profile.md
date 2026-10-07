@@ -1,11 +1,12 @@
 # P2S-E1B — First Bounded Multipart Subject Evidence Profile
 
-Status: **SPECIFIED / NOT IMPLEMENTED / NOT FROZEN**.
+Status: **IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**.
 Inspection baseline: `c7d5af4f11ee2d81bbecf4dcb6e2a3cb18ebc3d1` (clean working
 tree). This document admits the first positive Multipart Subject Evidence
 profile on the [spec/75](75-authored-multipart-raster-production.md) bridge.
-Multipart Subject Evidence runtime is **NOT IMPLEMENTED**; no verifier, Change
-type, Golden or adversarial test exists yet. Whole-subject TemporalIdentity
+Implementation baseline: `e73efe2b31ec90a36e2b92665444dec709ab21f3`.
+The first bounded runtime, dedicated verifier-backed Change, Golden and
+adversarial tests are implemented. Whole-subject TemporalIdentity
 remains **OPEN**; P2D-B remains **BLOCKED**. Ordinary-video ownership inference
 and single-Entity targeting are not solved. No Group, artwork construction,
 TemporalIdentity, representation correspondence or MotionTargetBinding is
@@ -71,7 +72,7 @@ the other.
 
 The Spec75 diagnostic production report, `golden.json`, expected fixture IDs
 and claimed contribution IDs are regression checks only. They have no Document
-acceptance or ownership authority (spec/75 §4). A future Spec76 verifier must
+acceptance or ownership authority (spec/75 §4). The Spec76 verifier must
 independently replay every fact required from Spec75. The accepted evidence
 path is:
 
@@ -463,7 +464,7 @@ dependency identities are all fixed before the evidence bytes exist.
 
 ## 13. Acceptance boundary
 
-A future registered evidence-only Change appends ONLY the verified SUPPORTED
+The dedicated registered evidence-only Change appends ONLY the verified SUPPORTED
 evidence reference, in one atomic transaction. It must not create an Entity,
 Group, TemporalIdentity, Track, MotionTargetBinding or Render Stack state, and
 must not change the ProposalAcceptor or verifier interface.
@@ -489,7 +490,7 @@ preferred: it is the existing policy intent for evidence attachment, already
 shared by `AppendReferencesChange` and the verifier-backed
 `AttachRasterPrimitiveObservationProposalChange`,
 `AttachPrimitiveObservationAssemblyChange` and
-`AttachRasterGeometryObservationsChange` family. The future evidence Change
+`AttachRasterGeometryObservationsChange` family. The dedicated evidence Change
 registers its own dedicated verifier in the closed-world Change Authority
 Registry exactly like those predecessors — no new policy intent, no generic
 evidence/plugin authority, and no artifact-declared authority. The verifier
@@ -500,7 +501,7 @@ any preceding Change substituting a smaller universe fails.
 
 Use the repository's strongest existing model: full-snapshot acceptance with a
 Revision witness, bound through the existing `source_revision_resolver`
-(spec/70 §10.1 design, spec/72 implementation pattern). Future verification
+(spec/70 §10.1 design, spec/72 implementation pattern). Verification
 must authenticate:
 
 - the full base Revision snapshot against its witness;
@@ -528,8 +529,8 @@ A proposal against a changed base requires the full independent reproduction
 at that base. An older equivalent claim that is no longer applicable is
 neither reused nor rebased: it neither authorizes nor blocks, the fresh
 reproduction proceeds, and the older artifact remains historical and
-unmodified. A forged or invented snapshot is insufficient; the witness must
-be an existing-format Revision witness verified by the store.
+unmodified. A forged or invented snapshot is insufficient: existing-format witnesses must
+hash-link to the Acceptor's existing-store base (section 19).
 
 ## 15. Producer vs verifier
 
@@ -544,7 +545,7 @@ before acceptance.
 
 ## 16. Golden
 
-Exactly one future positive Golden reuses the existing checked-in
+The positive Golden reuses the existing checked-in
 `examples/043-authored-raster-production` fixture. The test must end with:
 
     SUPPORTED Multipart Subject Evidence
@@ -553,13 +554,12 @@ and nothing else. No Group, no artwork construction, no TemporalIdentity, no
 representation correspondence, no MotionTargetBinding. The Golden also proves
 idempotence: re-proposing the same claim against the resulting base finds the
 equivalent applicable claim, retains it and admits no second artifact (§9.2).
-The deterministic expected evidence identity is specified only after the
-implemented hash DAG is shown acyclic (§12); until then no expected evidence
-Artifact ID is recorded.
+The implemented hash DAG is acyclic (§12); measured evidence and claim
+identities are recorded in section 19 and pinned by the Golden test.
 
 ## 17. Adversarial matrix
 
-Future implementation must cover at least the following cases, each with its
+Implementation must cover at least the following cases, each with its
 deterministic outcome under this specification. Unless stated otherwise, every
 non-SUPPORTED outcome below is a deterministic diagnostic (§10) that attaches
 no evidence reference, produces no accepted artifact (§13) and leaves the
@@ -617,3 +617,117 @@ These phases are not merged: E1B consumes no TemporalIdentity, creates no
 Group, and touches no spec/71 correspondence machinery. P2D-B remains
 **BLOCKED**; Single-Entity Motion Target remains an **OPEN SEPARATE
 ARCHITECTURAL QUESTION**.
+
+## 19. Executable boundary and verification record
+
+Runtime: `svm/adapters/multipart_subject_evidence.py`, with
+`AttachMultipartSubjectEvidenceChange` registered under `attach_analysis`.
+There is no generic dispatch. ProposalAcceptor, the two-argument ArtifactVerifier
+interface and existing source-revision resolver semantics are unchanged.
+The Change's `source_revision_id` denotes the current Proposal base; the
+record's `source.source_revision_id` denotes the earlier authored-source revision.
+
+### Revision authentication
+
+`RevisionSnapshotWitness` contains an existing-format Revision and its complete
+Document. `collect_witnesses` is a producer convenience which collects the complete
+ancestor DAG in Revision-ID order. The verifier never receives, constructs or
+simulates a RevisionStore instance. It recomputes each revision hash from the
+snapshot, parent IDs, transaction ID and message. Every parent must be present;
+duplicate, omitted, unlinked or noncanonical witnesses reject. Only nodes reachable
+from the anchored base are permitted. The full DAG also authenticates historical
+claim bases and prevents omission of a relevant ancestry branch.
+
+The anchor is not a caller assertion: ordinary ProposalAcceptor establishes that
+the Proposal base exists in its real store and is current, then its existing
+source-revision resolver binds the Change to that exact ID. Hash-linked witnesses
+authenticate earlier snapshots against this anchor. `apply()` additionally checks
+canonical equality of the actual incoming Document and authenticated base before
+appending. Preceding-change substitution fails; subsequent failure rolls back the
+entire transaction. The smallest Revision ID among authenticated ancestors with
+the exact sole source descriptor and absent video is the deterministic source
+witness. This selects a proof of the same source, never a different source/part.
+
+### Complete closure and replay
+
+The Change transports the entire current base Reference set, identical aliases
+deduplicated and sorted by Artifact ID. Conflicting descriptors reject. The
+verifier independently enumerates this set from the authenticated snapshot and
+requires exact equality before replay. This conservative transport set prevents
+producer shortlisting; it exceeds the semantic record's dependency set.
+
+Every accepted Spec59 manifest is verified/decoded before its relevance to the
+reproduced source frames is decided. Claimed frame hashes cannot hide a relevant
+manifest. Multiple matching closures abstain; valid unrelated manifests do not
+change the claim. P2A/P2B enumeration checks payload and descriptor provenance
+and includes the applicable observation artifacts as well as assembly audits.
+Missing closure abstains; genuinely conflicting artifact IDs never choose first.
+
+Spec75's `reproduce_source_snapshot` and `replay_snapshots` extract the existing
+numeric algorithm; their callers must authenticate snapshots/ancestry first.
+Original trusted-host APIs retain their store checks. Grammar, pixel arithmetic,
+timing, P2A/P2B and exact label matching are unchanged. The P2B scratch repository
+loads its actual replay closure rather than unrelated historical resources.
+Spec75 Golden bytes remain unchanged; its diagnostic report is never an input.
+
+Membership uses the §7 fields named `subject_id`, `part_id`, `part_key`,
+`occurrence_id`, `frame_index`, `tick`, `source_timestamp`, `component_id`,
+`evaluation_id`, `observation_id`, `contribution_artifact_id` and
+`full_canvas_label_identity`. The latter is `sha256:<digest>` of the canonical
+full-canvas label mask, proven equal to the contribution; it is not a label index
+or bbox-relative digest. Dependencies are P2A per occurrence, P2B observation,
+P2B audit, then analysis/mask/raster per occurrence, deduplicated at first use.
+Serialization uses repository `canonical_bytes` key ordering.
+
+### Diagnostics and historical claims
+
+`MultipartSubjectDiagnostic(status, reason)` raises without a Proposal, evidence
+Artifact or Document mutation. Malformed/forged inputs may hard-reject. Acceptance
+uses ordinary atomic artifact/policy/conflict rejection. The ordinary-video
+control is exactly `UNCERTAIN / OWNERSHIP_UNPROVEN`.
+
+An old record is reconstructed against its authenticated ancestor base, including
+the old audit. Its required descriptors must remain accepted, and its current
+closure and stable facts must reproduce. Stored keys never establish equivalence.
+Stale or other-branch claims are not rebased or reused. Different independently
+reproduced source subjects over intersecting observations conflict; fabricated
+accepted claims fail original-record replay. Multiple source candidates still
+abstain rather than choosing an owner.
+
+Only the NEW path constructs a base/audit-bearing record. An equivalent applicable
+claim returns its existing reference before artifact construction. Ordinary
+ProposalAcceptor commits a **same-Document child Revision**: canonical Document
+bytes and evidence count remain unchanged, and no second evidence Artifact is
+emitted. Permission denial applies to both new and idempotent proposals.
+
+### Golden and tests
+
+The real `examples/043-authored-raster-production` path ends with four membership
+cells, one evidence reference and no Entity, Group, Track or temporal mutation.
+Canonical record bytes are pinned by `tests/test_multipart_subject_evidence.py`:
+
+```text
+evidence Artifact:
+artifact:45861f9b0ad1723fd3c3b624a7d820042a8e665f72d30cb5b4c80f1a4ba99ad4
+claim_key:
+803afcf7d1780c2917e69a95f83a36ce74b89e22310d79d8d4925328ea786b65
+subject:
+subject:multipart:44fedac3c34e35fdb80d0aeca7167d09c758f276275a6034df14506276a6b4e3
+part-a:
+part:multipart:865d5662321dc893922690273ef3d569cf6b715b4b0989c1fe795eea24cfc32e
+part-b:
+part:multipart:2fa0e5f6b213c0c988c4c56019b408b98a3c2d617c462d2e5211d763a352c901
+```
+
+The 29 focused tests include 16 record-mutation variants, omission of every
+transported base reference, tampering/removal of every ancestor, recomputed
+forged ancestry, actual permission denial, preceding/partial transactions,
+source grammar failures, corrupted source/video/frame/P2A bytes, incomplete and
+conflicting closures, manifest-selection forgery, swapped/reused observations,
+stale/currently applicable claims, unrelated references/manifests, idempotence
+and the ordinary-video negative control. Accepted-state atomicity and diagnostic
+non-persistence are checked. Frozen expectations and tolerances are unchanged.
+
+Stable Representation Correspondence is the **NEXT GATE**; whole-subject
+TemporalIdentity and Single-Entity Motion Target remain **OPEN**; P2D-B remains
+**BLOCKED**; ordinary-video ownership inference is **NOT SOLVED**.

@@ -630,9 +630,9 @@ unique observation mapping. No component-order ownership rule is used.
 
 P2S-E1A: **IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**. The historical §15
 blocker is addressed for this bounded source-production capability only.
-P2S-E1: **READY TO RETRY / NOT IMPLEMENTED**. This document remains design-only;
-its Multipart Subject Evidence runtime/profile is **NOT IMPLEMENTED**. The
-production report has no Document acceptance or construction authority.
+At the E1A milestone, E1 was READY TO RETRY; section 17 records the subsequent
+bounded runtime implementation. The production report retains no Document
+acceptance or construction authority.
 Whole-subject TemporalIdentity remains **OPEN**, P2D-B remains **BLOCKED**, and
 ordinary-video ownership inference and single-Entity targeting remain unsolved.
 
@@ -650,8 +650,10 @@ mandatory ordinary-video negative control and the adversarial matrix. For the
 first profile it chooses temporal-link exclusion: no TemporalIdentity is
 consumed, recorded, created, merged or synthesized, deliberately narrowing
 §7 item 5 and §8's generic temporal-links obligations to a future profile.
-The profile is **SPECIFIED / NOT IMPLEMENTED / NOT FROZEN**: no verifier,
-Change registration, Golden or adversarial test exists yet. Although this
+The profile is **IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**. The dedicated
+Change verifier authenticates Revision witnesses and independently replays the
+complete closure and historical claims. Spec76 section 19 records the Golden
+and adversarial tests. Although this
 document's generic contract permits auditable non-SUPPORTED records (§9), the
 first bounded Spec76 profile intentionally narrows admission to SUPPORTED-only
 evidence: only independently reproduced SUPPORTED results become accepted
@@ -659,3 +661,7 @@ Multipart Subject Evidence artifacts, while UNCERTAIN/REJECTED outcomes remain
 deterministic diagnostics that append nothing. Whole-subject TemporalIdentity
 remains **OPEN**; P2D-B remains **BLOCKED**; ordinary-video ownership inference
 remains unsupported.
+
+Stable Representation Correspondence remains the **NEXT GATE**; Single-Entity
+Motion Target remains **OPEN**. This bounded implementation does not freeze E1
+generally or introduce Entity/Group semantics.
