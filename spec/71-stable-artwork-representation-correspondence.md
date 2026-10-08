@@ -464,3 +464,16 @@ or substituted for an R1 identity. Construction/history/current-coverage and P2D
 consumer gates remain open; single-Entity targeting remains separate.
 
 Decision: **PREREQUISITE_STRUCTURAL_PHASE_REQUIRED**.
+
+### P2S-F0 first representation-construction profile
+
+[Spec/78](78-first-video-backed-artwork-construction-profile.md) specifies the
+first bounded representation-construction profile (video-backed two-part
+artwork construction) as **SPECIFIED / NOT IMPLEMENTED / NOT FROZEN**. It
+consumes genuinely admitted Spec76 Multipart Subject Evidence through Spec77
+admission history and establishes a legal persistent construction-origin Group
+with source-fixed geometry, without creating a whole-subject TemporalIdentity.
+This discharges the specification, not the implementation, of the first
+unresolved gate above: the authenticated construction-history /
+current-coverage proof and the versioned T-to-G consumer contract remain
+unimplemented, and P2D-B remains **BLOCKED**.

@@ -473,6 +473,7 @@ Current statuses:
 | --- | --- |
 | Construction-Derived Group Authority | IMPLEMENTED FOR FIRST BOUNDED PROFILE / NOT FROZEN |
 | First bounded profile (spec/73) | IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN |
+| Second bounded profile (spec/78, video-backed artwork construction) | SPECIFIED / NOT IMPLEMENTED / NOT FROZEN |
 | Additional/generic profile plugins | FORBIDDEN until separately admitted |
 | P2D-B | BLOCKED |
 | Single-Entity Motion Target | OPEN SEPARATE ARCHITECTURAL QUESTION |

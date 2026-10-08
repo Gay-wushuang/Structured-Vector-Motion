@@ -407,11 +407,20 @@ The Spec75 report supplies no authority.
 Ordinary-video ownership inference is **NOT SOLVED**; whole-subject
 TemporalIdentity is **OPEN**; Stable Representation Correspondence is the
 **NEXT GATE**; P2D-B remains **BLOCKED**; Single-Entity Motion Target remains
-**OPEN**. E1 is **NOT CLOSED** and not generally frozen. Entity/Group semantics
-are unchanged. [P2S-E1C](spec/77-trusted-spec76-admission-history.md) extends Core
+**OPEN**. E1 is **CLOSED for its bounded authored-source profile** and is not
+generally frozen. Entity/Group semantics are unchanged.
+[P2S-E1C](spec/77-trusted-spec76-admission-history.md) extends Core
 acceptance with versioned trusted admission events: generic attachment cannot
 establish Spec76 authority, and legacy unproven references remain historical
 data until a fresh dedicated proposal is independently verified and accepted.
+[P2S-F0](spec/78-first-video-backed-artwork-construction-profile.md) specifies
+the first video-backed artwork construction profile: **SPECIFIED / NOT
+IMPLEMENTED / NOT FROZEN**. It consumes only genuinely admitted Spec76 evidence,
+authenticated through Spec77 history, and atomically establishes two renderable
+path Entities plus one construction-origin Group with a neutral initial
+Transform. It creates no TemporalIdentity, Track or MotionTargetBinding;
+Stable Representation Correspondence remains the **NEXT GATE**; P2D-B remains
+**BLOCKED**.
 
 ## Development
 

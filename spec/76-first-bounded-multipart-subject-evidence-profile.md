@@ -6,7 +6,8 @@ tree). This document admits the first positive Multipart Subject Evidence
 profile on the [spec/75](75-authored-multipart-raster-production.md) bridge.
 Implementation baseline: `e73efe2b31ec90a36e2b92665444dec709ab21f3`.
 Admission-history amendment: [Spec77](77-trusted-spec76-admission-history.md)
-supersedes the original content-only historical admission rule. P2S-E1 is NOT CLOSED.
+supersedes the original content-only historical admission rule. P2S-E1 is
+**CLOSED for its bounded authored-source profile** (not generally frozen).
 The first bounded runtime, dedicated verifier-backed Change, Golden and
 adversarial tests are implemented. Whole-subject TemporalIdentity
 remains **OPEN**; P2D-B remains **BLOCKED**. Ordinary-video ownership inference
@@ -739,3 +740,10 @@ non-persistence are checked. Frozen expectations and tolerances are unchanged.
 Stable Representation Correspondence is the **NEXT GATE**; whole-subject
 TemporalIdentity and Single-Entity Motion Target remain **OPEN**; P2D-B remains
 **BLOCKED**; ordinary-video ownership inference is **NOT SOLVED**.
+
+The first bounded representation-construction profile is now specified by
+[spec/78](78-first-video-backed-artwork-construction-profile.md)
+(**SPECIFIED / NOT IMPLEMENTED / NOT FROZEN**). It consumes only genuinely
+admitted evidence through the Section 19 / Spec77 history boundary, establishes
+a construction-origin Group, and creates no TemporalIdentity or correspondence
+claim; Stable Representation Correspondence and P2D-B remain open and blocked.

@@ -19,7 +19,8 @@ profile, claim key, source ownership, pixel production, observation semantics,
 Entity/Group model and TemporalIdentity are unchanged. It supersedes Spec74/76's
 earlier prohibition on changing ProposalAcceptor only for this bounded boundary.
 The ArtifactVerifier signature, policy intents and source revision binding remain
-unchanged. P2S-E1 is **NOT CLOSED**, P2D-B **BLOCKED**, whole-subject TemporalIdentity
+unchanged. P2S-E1 is **CLOSED for its bounded authored-source profile** (not
+generally frozen); P2D-B **BLOCKED**, whole-subject TemporalIdentity
 **OPEN**, and Stable Representation Correspondence remains a separate gate.
 
 ## 2. Trust root
