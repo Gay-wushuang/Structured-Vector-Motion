@@ -16,12 +16,19 @@ from svm.adapters.multipart_subject_evidence import (
     _compare_claims,
     _hash,
     claim_key,
+    derive,
 )
 from svm.artifacts import ArtifactKind
 from svm.change_authority import change_authority
 from svm.evaluator import canonical_bytes
 from svm.multipart_witness import authenticate_witnesses, collect_witnesses
-from svm.proposals import ProposalArtifactError, ProposalConflictError, ProposalPolicyError
+from svm.proposals import (
+    GeneratorProvenance,
+    Proposal,
+    ProposalArtifactError,
+    ProposalConflictError,
+    ProposalPolicyError,
+)
 from svm.revisions import AppendReferencesChange, AttachMultipartSubjectEvidenceChange
 from svm.video_ingestion import VideoSampling, ingest_video
 
@@ -459,6 +466,60 @@ class MultipartSubjectEvidenceTest(unittest.TestCase):
         ref = bad.transaction.changes[0].evidence_reference
         accept_refs(self.store, self.artifacts.resolve_reference(ref))
         self.assert_atomic(self.propose)
+
+    def test_generically_appended_valid_evidence_is_not_accepted_authority(self):
+        """Adversarial: byte-valid canonical evidence + wrong admission path.
+
+        Spec76 §10/§13/§19 require the dedicated verifier-backed Change to be
+        the only admission authority: valid bytes alone must not equal admitted
+        Multipart Subject Evidence, and a generic appended claim must stay
+        UNCERTAIN/rejected rather than become an equivalent applicable claim.
+        """
+        # A/B. Real base A; generate the normal canonical SUPPORTED candidate
+        # but do not accept its dedicated proposal. C. Take the exact artifact.
+        candidate = self.propose()
+        reference = candidate.transaction.changes[0].evidence_reference
+        record = self.record(candidate)
+        self.assertEqual(record["claim_key"], claim_key(record))
+        self.assertNotIn("status", record)
+        self.assertNotIn("judgment", record)
+
+        # D. Attach it through the ordinary registered AppendReferencesChange
+        # acceptance path (real ProposalAcceptor, unmodified artifact bytes).
+        generic = Proposal(
+            proposal_id="proposal:test-generic-append",
+            base_revision_id=self.store.head,
+            generator=GeneratorProvenance("adapter:untrusted-generic-append", "0.1", "svm", "none"),
+            transaction=Transaction(
+                "transaction:test-generic-append",
+                (AppendReferencesChange((reference,)),),
+                "Generic attachment of byte-valid Spec76 evidence",
+            ),
+            required_artifact_ids=(reference["id"],),
+        )
+        try:
+            ProposalAcceptor().accept(self.store, generic, self.artifacts)
+        except (ValueError, ProposalArtifactError, ProposalConflictError, ProposalPolicyError):
+            return  # Rejected before insertion: also a valid outcome.
+        base_b = self.store.head
+        self.assertNotEqual(candidate.base_revision_id, base_b)
+
+        # E. The generically attached artifact must not become accepted authority.
+        try:
+            _, reuse = derive(base_b, collect_witnesses(self.store, base_b), self.artifacts)
+        except MultipartSubjectDiagnostic:
+            return  # Fail-closed diagnostic without reuse: also a valid outcome.
+        self.assertIsNone(
+            reuse,
+            "valid bytes alone must not equal admitted evidence: the generically "
+            f"appended artifact became an equivalent applicable claim ({reuse['id']})",
+        )
+        repeat = self.propose()
+        self.assertNotEqual(
+            repeat.transaction.changes[0].evidence_reference["id"],
+            reference["id"],
+            "the adapter must not reuse a generically appended artifact as admitted",
+        )
 
     def test_stale_claim_from_other_branch_does_not_rebase_or_block(self):
         first = self.propose()
