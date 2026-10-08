@@ -517,6 +517,43 @@ class EstablishSVGGroupChange:
 
 
 @dataclass(frozen=True)
+class EstablishVideoArtworkGroupChange:
+    """Spec78 CREATE only; dedicated verification authenticates the complete history."""
+
+    source_revision_id: str
+    base_document_snapshot: dict[str, Any]
+    witnesses: tuple[RevisionSnapshotWitness, ...]
+    profile_identity: str
+    evidence_reference: dict[str, Any]
+    fragment: AppendSceneFragmentChange
+    group: dict[str, Any]
+    references: tuple[dict[str, Any], ...]
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if canonical_bytes(document) != canonical_bytes(self.base_document_snapshot):
+            raise DocumentError("STALE_CONSTRUCTION: incoming Document differs from base")
+        if type(self.fragment) is not AppendSceneFragmentChange or self.fragment.references:
+            raise DocumentError("Construction requires a plain fragment without references")
+        for existing, created in (
+            (document["entities"], self.fragment.entities),
+            (document["construction"]["operations"], self.fragment.operations),
+            (document.get("groups", []), (self.group,)),
+        ):
+            ids = {item["id"] for item in existing}
+            if any(item["id"] in ids for item in created):
+                raise DocumentError("Construction ID collision")
+        accepted = {ref["id"]: ref for ref in document["references"]}
+        for ref in self.references:
+            if ref["id"] in accepted and canonical_bytes(accepted[ref["id"]]) != canonical_bytes(
+                ref
+            ):
+                raise DocumentError("Construction reference descriptor conflict")
+        self.fragment.apply(document)
+        document.setdefault("groups", []).append(copy.deepcopy(self.group))
+        AppendReferencesChange(self.references).apply(document)
+
+
+@dataclass(frozen=True)
 class ImportLayeredSceneChange:
     """Core-owned primitive for a verifier-bound layered scene fragment."""
 

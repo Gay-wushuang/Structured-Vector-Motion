@@ -366,7 +366,11 @@ def _validate_groups(groups: Any, known_entities: set[str], reference_ids: set[s
                 != {"type", "authority_identity", "profile_identity", "construction_artifact_id"}
                 or provenance["type"] != "construction-established-group@0.1"
                 or provenance["authority_identity"] != "svm-construction-derived-group@0.1"
-                or provenance["profile_identity"] != "svm-svg-two-part-group-construction@0.1"
+                or provenance["profile_identity"]
+                not in (
+                    "svm-svg-two-part-group-construction@0.1",
+                    "svm-video-two-part-group-construction@0.1",
+                )
                 or not isinstance(provenance["construction_artifact_id"], str)
                 or re.fullmatch(r"artifact:[0-9a-f]{64}", provenance["construction_artifact_id"])
                 is None

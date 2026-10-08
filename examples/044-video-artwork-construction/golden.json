@@ -1,0 +1,39 @@
+{
+  "document_hash": "sha256:cf9a67e616b4c0d7edbc706a7803af4d4d8a365d8cc2aaf9d439f727d5008ec3",
+  "entity_ids": [
+    "entity:eea3bdf4975a00e2452136ca655ea4c28335e88a4aa86057f479b00d8f06e3c4",
+    "entity:e41b0949fa5c081d7d634a7989ecd67c2b5139d2c0c6d112e5481863559cbfad"
+  ],
+  "evidence_artifact_id": "artifact:45861f9b0ad1723fd3c3b624a7d820042a8e665f72d30cb5b4c80f1a4ba99ad4",
+  "group_id": "group:1f24284859439580faac31e69df1aa7bf6a1a28c450d8ddae2e3b42e48b656ac",
+  "implementation_baseline": "0497db6b1ef4202f5e3d0708e5cfe4cc3f1b29fd",
+  "manifest_artifact_id": "artifact:7d0b42099c1a717bb3b7c9c944f29d7e7fd8946d6ab4eb579e32e3228fb729f5",
+  "members": [
+    "entity:e41b0949fa5c081d7d634a7989ecd67c2b5139d2c0c6d112e5481863559cbfad",
+    "entity:eea3bdf4975a00e2452136ca655ea4c28335e88a4aa86057f479b00d8f06e3c4"
+  ],
+  "operation_ids": [
+    "op:e68ba2bd468131455ed18f3e85350b92663086653028f2abbc9482fc32d504fd",
+    "op:f53631a1d4d30a0f8366fa7e5c4a8243adfa24557e02cec03fd3da04c1cf95ce"
+  ],
+  "origin": [
+    116.0,
+    97.0
+  ],
+  "profile_identity": "svm-video-two-part-group-construction@0.1",
+  "receipt_artifact_id": "artifact:5fc6ec132b566fa20201cc74aeceaaf31c82a9fe2fb7802357c9761a24a9db3b",
+  "representation_claim": null,
+  "revision_id": "revision:e54b39d3b14a15047a29e1313d9d8b6bcaa8a798a7e2f5360e996d114fc320b3",
+  "source_base_revision_id": "revision:6ce22d3c175531fd5348de5a2e6e2577cdb67764c18861d873113b404e24bc53",
+  "svg_hash": "sha256:4552399140954d1d9e95d7fc0369dff37695efc02023862f503ba6b2bbb5efc4",
+  "svg_options": {
+    "height": 256,
+    "view_box": [
+      0,
+      0,
+      256,
+      256
+    ],
+    "width": 256
+  }
+}

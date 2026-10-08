@@ -1,10 +1,10 @@
 # P2S-F0 — First Video-backed Artwork Construction Profile
 
-Status: **SPECIFIED / NOT IMPLEMENTED / NOT FROZEN**.
+Status: **IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**.
 Design baseline: `1584de5f74a69b825777cc453b87c7d6a83e5ad4` (clean working tree).
-This is a one-pass contract design. It adds no runtime code, no Change
-registration, no validator/schema edit and no fixture. SHALL statements constrain
-a future implementation; they do not describe current capability.
+Implementation baseline: `0497db6b1ef4202f5e3d0708e5cfe4cc3f1b29fd`.
+The executable bounded profile, registered Change, dedicated verifier, closed
+validator/schema enum and Golden fixture implement the contract below.
 
 Profile identity: `svm-video-two-part-group-construction@0.1`.
 Authority: `svm-construction-derived-group@0.1` ([spec/72](72-construction-derived-group-authority.md)).
@@ -496,7 +496,7 @@ observation subject  <->  persistent artwork representation   NOT SOLVED HERE
 
 | Capability | Status |
 | --- | --- |
-| First video-backed artwork construction profile (this document) | SPECIFIED / NOT IMPLEMENTED / NOT FROZEN |
+| First video-backed artwork construction profile (this document) | IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN |
 | Whole-subject TemporalIdentity | OPEN |
 | Stable Representation Correspondence (spec/71) | DESIGN CONTRACT / NOT IMPLEMENTED |
 | Construction-history/current-coverage consumption proof | NOT IMPLEMENTED |
@@ -514,7 +514,7 @@ stylization, deformation, occlusion or flicker claim.
 
 ## 14. Implementation boundary and Codex-ready acceptance criteria
 
-Future implementation touches exactly:
+The implementation touches exactly:
 
 1. `svm/revisions.py`: add `EstablishVideoArtworkGroupChange` with fields
    `source_revision_id`, `base_document_snapshot`, `witnesses`,
@@ -559,3 +559,50 @@ Codex-ready acceptance criteria:
 No structural blocker was found: the authority, witness, registry, validator,
 schema and renderer surfaces required by this profile all exist, and the only
 Core-adjacent edits are the two closed-set enum extensions in item 4–5.
+
+## 15. Measured implementation record
+
+The real Spec75 → Spec76 dedicated admission pipeline reproduces the existing
+evidence Artifact ID in §12. The F0 producer and independent verifier share a
+deterministic derivation, but the verifier receives only the Acceptor-resolved
+`Change.references` and authenticated witnesses. It enumerates every base
+Spec76 descriptor with an exact ancestral admission event before considering
+eligibility. Legacy descriptors are excluded without resolving their bytes.
+
+`source`, `video` and `manifest` record summaries are resolved by Artifact ID in
+the record's authenticated historical base, checked against their recorded
+hashes/media type, and compared as complete descriptors against the current
+base. Every event-bearing evidence record and each exact-present dependency is
+transported in canonical Artifact-ID order; manifest and receipt follow. The
+Golden transports 16 descriptors and adds exactly the two new output references.
+Omitting any required descriptor or supplying a selective subset rejects during
+independent replay. No pixel closure is rerun and no admission event is created.
+
+The actual Spec75 `_triangles` parser is used unchanged. Its grammar permits
+one canonical spelling of each integer triangle path, so formatting its parsed
+vertices recovers the exact source `d` lexemes without a second grammar.
+Entity/Operation/Group allocation and origin match every design-time value in
+§12; measured identities are pinned as literal expectations in the F0 tests:
+
+| Record | Measured identity |
+| --- | --- |
+| Authenticated construction base | `revision:6ce22d3c175531fd5348de5a2e6e2577cdb67764c18861d873113b404e24bc53` |
+| Construction manifest | `artifact:7d0b42099c1a717bb3b7c9c944f29d7e7fd8946d6ab4eb579e32e3228fb729f5` |
+| Establishment receipt | `artifact:5fc6ec132b566fa20201cc74aeceaaf31c82a9fe2fb7802357c9761a24a9db3b` |
+| Accepted Document | `sha256:cf9a67e616b4c0d7edbc706a7803af4d4d8a365d8cc2aaf9d439f727d5008ec3` |
+| Acceptance Revision | `revision:e54b39d3b14a15047a29e1313d9d8b6bcaa8a798a7e2f5360e996d114fc320b3` |
+| SVG bytes | `sha256:4552399140954d1d9e95d7fc0369dff37695efc02023862f503ba6b2bbb5efc4` |
+
+The reviewable 950-byte SVG uses `SVGRenderOptions(width=256, height=256,
+view_box=(0, 0, 256, 256))` to expose the authored source coordinates. Both
+paths have black fill, no stroke and opacity 1, and retain source render order.
+`examples/044-video-artwork-construction/golden.json` records these measured
+identities; `group.svg` is compared byte-for-byte and against its literal hash.
+No frozen source, video or prior Golden was changed. There is no deviation from
+the authority semantics of sections 1–14. The unresolved gates in §13 remain open.
+
+Verification: 29 focused F0 tests cover every §11 row; 104 Spec73/75/76/77,
+ProposalAcceptor/ChangeAuthority and LayerD regressions pass; the full unittest
+suite passes all 643 tests. Ruff lint, Ruff formatting, Pyright, compileall and
+`git diff --check` pass. The unchanged ProposalAcceptor retains its reviewed
+SHA-256 pin `0336d93e1151c49bc8f46a37960b01d323632ba4c17873904096336949985b97`.

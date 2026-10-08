@@ -31,6 +31,7 @@ from .revisions import (
     CreateStyleTrackChange,
     CreateTrackChange,
     EstablishSVGGroupChange,
+    EstablishVideoArtworkGroupChange,
     ImportLayeredSceneChange,
     ImportPrimitiveSequenceChange,
     ImportRasterLayerEvidenceChange,
@@ -91,6 +92,12 @@ def _establish_svg_group(change: Any) -> tuple[Intent, ...]:
 
 def _verify_svg_group(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
     from .adapters.svg_group_construction import verify_change
+
+    verify_change(change, resolved)
+
+
+def _verify_video_artwork(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.video_artwork_construction import verify_change
 
     verify_change(change, resolved)
 
@@ -530,6 +537,15 @@ CHANGE_AUTHORITIES = {
             ),
             _establish_svg_group,
             _verify_svg_group,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            EstablishVideoArtworkGroupChange,
+            frozenset(
+                {"establish_group", "import_scene", "set_group_transform", "attach_analysis"}
+            ),
+            _establish_svg_group,
+            _verify_video_artwork,
             _source_revision,
         ),
         ChangeAuthority(

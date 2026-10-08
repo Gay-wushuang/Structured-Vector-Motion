@@ -161,7 +161,12 @@
               "properties": {
                 "type": {"const": "construction-established-group@0.1"},
                 "authority_identity": {"const": "svm-construction-derived-group@0.1"},
-                "profile_identity": {"const": "svm-svg-two-part-group-construction@0.1"},
+                "profile_identity": {
+                  "enum": [
+                    "svm-svg-two-part-group-construction@0.1",
+                    "svm-video-two-part-group-construction@0.1"
+                  ]
+                },
                 "construction_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"}
               }
             }
