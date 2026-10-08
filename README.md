@@ -413,9 +413,9 @@ generally frozen. Entity/Group semantics are unchanged.
 acceptance with versioned trusted admission events: generic attachment cannot
 establish Spec76 authority, and legacy unproven references remain historical
 data until a fresh dedicated proposal is independently verified and accepted.
-[P2S-F0](spec/78-first-video-backed-artwork-construction-profile.md) specifies
-the first video-backed artwork construction profile: **SPECIFIED / NOT
-IMPLEMENTED / NOT FROZEN**. It consumes only genuinely admitted Spec76 evidence,
+[P2S-F0](spec/78-first-video-backed-artwork-construction-profile.md) implements
+the first video-backed artwork construction profile: **IMPLEMENTED / GOLDEN
+VERIFIED / NOT FROZEN**. It consumes only genuinely admitted Spec76 evidence,
 authenticated through Spec77 history, and atomically establishes two renderable
 path Entities plus one construction-origin Group with a neutral initial
 Transform. It creates no TemporalIdentity, Track or MotionTargetBinding;
