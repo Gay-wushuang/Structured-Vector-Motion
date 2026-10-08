@@ -51,7 +51,13 @@ def _document(store: RevisionStore, revision_id: str) -> dict[str, Any]:
     document = store.get_document(revision_id)
     witness = store.revisions[revision_id]
     if (
-        store._make_revision(document, witness.parent_ids, witness.transaction_id, witness.message)
+        store._make_revision(
+            document,
+            witness.parent_ids,
+            witness.transaction_id,
+            witness.message,
+            getattr(witness, "admissions", ()),
+        )
         != witness
     ):
         raise AuthoredRasterProductionError("Revision witness does not reproduce")

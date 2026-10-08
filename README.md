@@ -407,8 +407,11 @@ The Spec75 report supplies no authority.
 Ordinary-video ownership inference is **NOT SOLVED**; whole-subject
 TemporalIdentity is **OPEN**; Stable Representation Correspondence is the
 **NEXT GATE**; P2D-B remains **BLOCKED**; Single-Entity Motion Target remains
-**OPEN**. E1 is not generally frozen. Entity/Group semantics and ProposalAcceptor
-behavior are unchanged.
+**OPEN**. E1 is **NOT CLOSED** and not generally frozen. Entity/Group semantics
+are unchanged. [P2S-E1C](spec/77-trusted-spec76-admission-history.md) extends Core
+acceptance with versioned trusted admission events: generic attachment cannot
+establish Spec76 authority, and legacy unproven references remain historical
+data until a fresh dedicated proposal is independently verified and accepted.
 
 ## Development
 

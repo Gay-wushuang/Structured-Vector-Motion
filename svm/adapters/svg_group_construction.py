@@ -128,10 +128,16 @@ def _parameters(content: bytes) -> tuple[dict[str, float], ...]:
 
 def _authenticate(change: EstablishSVGGroupChange) -> None:
     witness = change.base_revision
-    if type(witness) is not Revision:
+    from ..revisions import AdmittedRevision
+
+    if type(witness) not in {Revision, AdmittedRevision}:
         raise SVGGroupConstructionError("Construction requires an existing-format Revision witness")
     reproduced = RevisionStore._make_revision(
-        change.base_document_snapshot, witness.parent_ids, witness.transaction_id, witness.message
+        change.base_document_snapshot,
+        witness.parent_ids,
+        witness.transaction_id,
+        witness.message,
+        getattr(witness, "admissions", ()),
     )
     if reproduced != witness or reproduced.revision_id != change.source_revision_id:
         raise SVGGroupConstructionError("Construction base Revision witness mismatch")

@@ -330,12 +330,22 @@ def _derive(
     for ref in refs:
         if ref["media_type"] != MEDIA:
             continue
+        admissions = [
+            event
+            for rid in ancestors(base, witnesses)
+            for event in getattr(witnesses[rid].revision, "admissions", ())
+            if event.artifact_reference == ref
+        ]
+        if not admissions:
+            continue  # Legacy/unproven bytes remain data, never admitted ownership.
         stored = _read(ref, artifacts)
         if stored.get("profile_identity") != PROFILE or stored.get("schema_version") != SCHEMA:
             _reject("UNKNOWN_PROFILE")
         if "status" in stored or "judgment" in stored:
             _reject("SELF_ATTESTED_STATUS")
         oldbase = stored["base"]["revision_id"]
+        if not any(event.base_revision_id == oldbase for event in admissions):
+            _reject("FORGED_BASE_OR_DEPENDENCY")
         if oldbase == base:
             _reject("FORGED_BASE_OR_DEPENDENCY")
         if oldbase not in ancestors(base, witnesses):

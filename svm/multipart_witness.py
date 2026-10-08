@@ -6,7 +6,8 @@ import copy
 from dataclasses import dataclass
 from typing import Any
 
-from .revisions import Revision, RevisionStore
+from .admission_history import validate_admissions
+from .revisions import AdmittedRevision, Revision, RevisionStore
 
 
 @dataclass(frozen=True)
@@ -33,11 +34,18 @@ def authenticate_witnesses(
     """Authenticate the complete ancestral DAG against the externally anchored base ID."""
     found = {}
     for item in witnesses:
-        if type(item) is not RevisionSnapshotWitness or type(item.revision) is not Revision:
+        if type(item) is not RevisionSnapshotWitness or type(item.revision) not in {
+            Revision,
+            AdmittedRevision,
+        }:
             raise ValueError("FORGED_BASE_OR_DEPENDENCY: invalid revision witness type")
         revision = item.revision
         expected = RevisionStore._make_revision(
-            item.document, revision.parent_ids, revision.transaction_id, revision.message
+            item.document,
+            revision.parent_ids,
+            revision.transaction_id,
+            revision.message,
+            getattr(revision, "admissions", ()),
         )
         if expected != revision or revision.revision_id in found:
             raise ValueError("FORGED_BASE_OR_DEPENDENCY: revision hash mismatch/duplicate")
@@ -54,6 +62,11 @@ def authenticate_witnesses(
             pending.extend(found[rid].revision.parent_ids)
     if reachable != set(found):
         raise ValueError("FORGED_BASE_OR_DEPENDENCY: unanchored witness")
+    for item in found.values():
+        parents = item.revision.parent_ids
+        validate_admissions(
+            item.revision, item.document, found[parents[0]].document if parents else None
+        )
     return found
 
 

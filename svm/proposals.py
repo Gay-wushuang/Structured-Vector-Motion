@@ -4,6 +4,11 @@ import copy
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from .admission_history import (
+    AdmissionError,
+    admission_events,
+    apply_verified_transaction,
+)
 from .anchored_regeneration import (
     AnchoredRegenerationContract,
     AnchoredRegenerationError,
@@ -252,14 +257,22 @@ class ProposalAcceptor:
         require_head: bool,
         anchored_contract: AnchoredRegenerationContract | None = None,
     ) -> Revision:
-        self._validate(
+        candidate = self._validate(
             store,
             proposal,
             artifacts,
             require_head=require_head,
             anchored_contract=anchored_contract,
         )
-        return store.commit(proposal.base_revision_id, proposal.transaction)
+        events = admission_events(
+            proposal.base_revision_id,
+            store.get_document(proposal.base_revision_id),
+            candidate,
+            proposal.transaction,
+        )
+        return store._commit_verified(
+            proposal.base_revision_id, proposal.transaction, candidate, events
+        )
 
     def _validate(
         self,
@@ -294,7 +307,10 @@ class ProposalAcceptor:
             )
         except PolicyEnforcementError as exc:
             raise ProposalPolicyError(str(exc)) from exc
-        return proposal.transaction.apply(document)
+        try:
+            return apply_verified_transaction(document, proposal.transaction)
+        except AdmissionError as exc:
+            raise ProposalArtifactError(str(exc)) from exc
 
     @staticmethod
     def _verify_trusted_change_types(proposal: Proposal) -> None:

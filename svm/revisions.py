@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import re
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
@@ -2222,12 +2222,27 @@ class Transaction:
 
 
 @dataclass(frozen=True)
+class AdmissionEvent:
+    contract: str
+    change_identity: str
+    authority_identity: str
+    base_revision_id: str
+    artifact_reference: dict[str, Any]
+    transition_hash: str
+
+
+@dataclass(frozen=True)
 class Revision:
     revision_id: str
     parent_ids: tuple[str, ...]
     transaction_id: str | None
     document_hash: str
     message: str = ""
+
+
+@dataclass(frozen=True)
+class AdmittedRevision(Revision):
+    admissions: tuple[AdmissionEvent, ...] = ()
 
 
 @dataclass
@@ -2250,8 +2265,22 @@ class RevisionStore:
         if base_revision_id not in self.revisions:
             raise KeyError(base_revision_id)
         candidate = transaction.apply(self._documents[base_revision_id])
+        return self._commit_verified(base_revision_id, transaction, candidate, ())
+
+    def _commit_verified(
+        self,
+        base_revision_id: str,
+        transaction: Transaction,
+        candidate: dict[str, Any],
+        admissions: tuple[AdmissionEvent, ...],
+    ) -> Revision:
+        """Trusted Core only: publish a fully validated candidate and its admission facts."""
         revision = self._make_revision(
-            candidate, (base_revision_id,), transaction.transaction_id, transaction.message
+            candidate,
+            (base_revision_id,),
+            transaction.transaction_id,
+            transaction.message,
+            admissions,
         )
         self.revisions[revision.revision_id] = revision
         self._documents[revision.revision_id] = copy.deepcopy(candidate)
@@ -2285,6 +2314,7 @@ class RevisionStore:
         parent_ids: tuple[str, ...],
         transaction_id: str | None,
         message: str,
+        admissions: tuple[AdmissionEvent, ...] = (),
     ) -> Revision:
         document_hash = f"sha256:{hashlib.sha256(canonical_bytes(document)).hexdigest()}"
         revision_payload = {
@@ -2293,5 +2323,17 @@ class RevisionStore:
             "transaction_id": transaction_id,
             "message": message,
         }
+        if admissions:
+            revision_payload["revision_contract"] = "svm-revision-admission@0.1"
+            revision_payload["admissions"] = [asdict(event) for event in admissions]
         revision_id = f"revision:{hashlib.sha256(canonical_bytes(revision_payload)).hexdigest()}"
+        if admissions:
+            return AdmittedRevision(
+                revision_id,
+                parent_ids,
+                transaction_id,
+                document_hash,
+                message,
+                copy.deepcopy(admissions),
+            )
         return Revision(revision_id, parent_ids, transaction_id, document_hash, message)

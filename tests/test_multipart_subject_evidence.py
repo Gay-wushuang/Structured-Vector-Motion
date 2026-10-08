@@ -16,7 +16,6 @@ from svm.adapters.multipart_subject_evidence import (
     _compare_claims,
     _hash,
     claim_key,
-    derive,
 )
 from svm.artifacts import ArtifactKind
 from svm.change_authority import change_authority
@@ -458,14 +457,18 @@ class MultipartSubjectEvidenceTest(unittest.TestCase):
             _compare_claims(record, changed)
         self.assertEqual(caught.exception.reason_codes, ("OBSERVATION_REUSED",))
 
-    def test_forged_accepted_claim_is_not_authority(self):
+    def test_forged_legacy_reference_is_data_not_authority(self):
         proposal = self.propose()
         bad = self.mutate_record(
             proposal, lambda r: r["subject"].update(subject_id="subject:forged")
         )
         ref = bad.transaction.changes[0].evidence_reference
+        # Trusted host reconstructs legacy data; this creates no admission event.
         accept_refs(self.store, self.artifacts.resolve_reference(ref))
-        self.assert_atomic(self.propose)
+        fresh = self.propose()
+        self.assertNotEqual(fresh.preview_artifacts[0].artifact_id, ref["id"])
+        self.accept(fresh)
+        self.assertIn(ref, self.store.get_document(self.store.head)["references"])
 
     def test_generically_appended_valid_evidence_is_not_accepted_authority(self):
         """Adversarial: byte-valid canonical evidence + wrong admission path.
@@ -497,29 +500,16 @@ class MultipartSubjectEvidenceTest(unittest.TestCase):
             ),
             required_artifact_ids=(reference["id"],),
         )
-        try:
+        before = copy.deepcopy(self.store)
+        with self.assertRaisesRegex(ProposalArtifactError, "SPEC76_ADMISSION_REQUIRED"):
             ProposalAcceptor().accept(self.store, generic, self.artifacts)
-        except (ValueError, ProposalArtifactError, ProposalConflictError, ProposalPolicyError):
-            return  # Rejected before insertion: also a valid outcome.
-        base_b = self.store.head
-        self.assertNotEqual(candidate.base_revision_id, base_b)
-
-        # E. The generically attached artifact must not become accepted authority.
-        try:
-            _, reuse = derive(base_b, collect_witnesses(self.store, base_b), self.artifacts)
-        except MultipartSubjectDiagnostic:
-            return  # Fail-closed diagnostic without reuse: also a valid outcome.
-        self.assertIsNone(
-            reuse,
-            "valid bytes alone must not equal admitted evidence: the generically "
-            f"appended artifact became an equivalent applicable claim ({reuse['id']})",
+        self.assertEqual(self.store.head, before.head)
+        self.assertEqual(self.store.get_document(self.store.head), before.get_document(before.head))
+        self.assertEqual(
+            self.store.get_document(self.store.head)["references"],
+            before.get_document(before.head)["references"],
         )
-        repeat = self.propose()
-        self.assertNotEqual(
-            repeat.transaction.changes[0].evidence_reference["id"],
-            reference["id"],
-            "the adapter must not reuse a generically appended artifact as admitted",
-        )
+        self.assertEqual(self.store, before)
 
     def test_stale_claim_from_other_branch_does_not_rebase_or_block(self):
         first = self.propose()
@@ -621,7 +611,9 @@ class MultipartSubjectEvidenceTest(unittest.TestCase):
         self.accept(repeat)
 
     def test_two_independently_replayed_byte_different_subjects_conflict(self):
-        first = self.record(self.propose())
+        first_proposal = self.propose()
+        first = self.record(first_proposal)
+        self.assertTrue(self.accept(first_proposal).admissions)
         artifacts, store, *_ = pipeline(self.source.content + b"\n")
         second = self.adapter.propose(
             AdapterRequest.from_store(store, store.head, ("document",)),
@@ -629,6 +621,7 @@ class MultipartSubjectEvidenceTest(unittest.TestCase):
             witnesses=collect_witnesses(store, store.head),
         )
         second_record = json.loads(artifacts.get(second.preview_artifacts[0].artifact_id).content)
+        self.assertTrue(ProposalAcceptor().accept(store, second, artifacts).admissions)
         self.assertNotEqual(first["subject"]["subject_id"], second_record["subject"]["subject_id"])
         with self.assertRaises(MultipartSubjectDiagnostic) as caught:
             _compare_claims(first, second_record)

@@ -5,6 +5,8 @@ Inspection baseline: `c7d5af4f11ee2d81bbecf4dcb6e2a3cb18ebc3d1` (clean working
 tree). This document admits the first positive Multipart Subject Evidence
 profile on the [spec/75](75-authored-multipart-raster-production.md) bridge.
 Implementation baseline: `e73efe2b31ec90a36e2b92665444dec709ab21f3`.
+Admission-history amendment: [Spec77](77-trusted-spec76-admission-history.md)
+supersedes the original content-only historical admission rule. P2S-E1 is NOT CLOSED.
 The first bounded runtime, dedicated verifier-backed Change, Golden and
 adversarial tests are implemented. Whole-subject TemporalIdentity
 remains **OPEN**; P2D-B remains **BLOCKED**. Ordinary-video ownership inference
@@ -219,8 +221,9 @@ frozen contracts.
 
 ## 9. Claim equivalence and competing claims
 
-An **accepted SUPPORTED claim** is an accepted evidence artifact under this
-schema and profile. Only SUPPORTED results are ever admitted (§10, §13), so
+An **accepted SUPPORTED claim** requires a trusted Spec77 admission event AND
+independent replay under this schema and profile. Legacy reference presence alone
+is not admission. Only SUPPORTED results are ever admitted (§10, §13), so
 the accepted claim set contains no diagnostic records. The verifier enumerates
 the complete currently applicable claim set from the authenticated base — all
 accepted claims whose schema and profile identity match — in evidence Artifact
@@ -467,7 +470,8 @@ dependency identities are all fixed before the evidence bytes exist.
 The dedicated registered evidence-only Change appends ONLY the verified SUPPORTED
 evidence reference, in one atomic transaction. It must not create an Entity,
 Group, TemporalIdentity, Track, MotionTargetBinding or Render Stack state, and
-must not change the ProposalAcceptor or verifier interface.
+retains the verifier interface. Spec77 adds the narrowly scoped ProposalAcceptor
+admission-history enforcement required to distinguish admission from attachment.
 
 The Change admits only a record that the verifier independently reconstructs
 as SUPPORTED (§10) with complete canonical bytes (§12). Every other outcome —
@@ -622,8 +626,9 @@ ARCHITECTURAL QUESTION**.
 
 Runtime: `svm/adapters/multipart_subject_evidence.py`, with
 `AttachMultipartSubjectEvidenceChange` registered under `attach_analysis`.
-There is no generic dispatch. ProposalAcceptor, the two-argument ArtifactVerifier
-interface and existing source-revision resolver semantics are unchanged.
+There is no generic dispatch. The two-argument ArtifactVerifier interface and
+existing source-revision resolver semantics are unchanged. Spec77 extends the
+ProposalAcceptor to enforce and persist dedicated admission authority.
 The Change's `source_revision_id` denotes the current Proposal base; the
 record's `source.source_revision_id` denotes the earlier authored-source revision.
 
@@ -686,7 +691,10 @@ Artifact or Document mutation. Malformed/forged inputs may hard-reject. Acceptan
 uses ordinary atomic artifact/policy/conflict rejection. The ordinary-video
 control is exactly `UNCERTAIN / OWNERSHIP_UNPROVEN`.
 
-An old record is reconstructed against its authenticated ancestor base, including
+An admitted old record must first have a matching trusted Spec77 ancestor event.
+Unproven legacy references remain data and are excluded from ownership claims;
+fresh explicit re-admission is specified by Spec77. An admitted record is then
+reconstructed against its authenticated ancestor base, including
 the old audit. Its required descriptors must remain accepted, and its current
 closure and stable facts must reproduce. Stored keys never establish equivalence.
 Stale or other-branch claims are not rebased or reused. Different independently
