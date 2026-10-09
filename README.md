@@ -404,7 +404,7 @@ appended. UNCERTAIN/REJECTED results remain diagnostics; applicable equivalent
 claims reuse their Artifact, and incompatible supported ownership claims reject.
 The Spec75 report supplies no authority.
 
-Ordinary-video ownership inference is **NOT SOLVED**; whole-subject
+Ordinary-video ownership inference is **NOT SOLVED**; arbitrary-video whole-subject
 TemporalIdentity is **OPEN**; Stable Representation Correspondence is the
 **NEXT GATE**; P2D-B remains **BLOCKED**; Single-Entity Motion Target remains
 **OPEN**. E1 is **CLOSED for its bounded authored-source profile** and is not
@@ -421,6 +421,18 @@ path Entities plus one construction-origin Group with a neutral initial
 Transform. It creates no TemporalIdentity, Track or MotionTargetBinding;
 Stable Representation Correspondence remains the **NEXT GATE**; P2D-B remains
 **BLOCKED**.
+
+[P2S-F1A](spec/79-source-backed-whole-subject-observation-bridge.md) adds the bounded
+source-backed whole-subject observation bridge for the existing two-triangle,
+two-occurrence Spec75/76 fixture. Genuine Spec77 admission and complete Spec76
+replay produce one bounds-only subject observation per occurrence in the existing
+v0.1 observation envelope. The actual frozen R0 derives correspondence; a dedicated
+verifier replays the original membership and complete R0 output before delegating
+to unchanged R1. The [Golden](examples/045-subject-observation-bridge/README.md)
+pins one new whole-subject TemporalIdentity distinct from both preserved part
+identities. Companions remain recomputable data; consumers must independently
+verify source-backed meaning. Landmark geometry, artwork correspondence, motion
+target binding and P2D-B remain separate gates.
 
 ## Development
 

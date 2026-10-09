@@ -11,6 +11,7 @@ from .revisions import (
     AddKeyframeChange,
     AppendReferencesChange,
     AppendSceneFragmentChange,
+    ApplySubjectIdentityBridgeChange,
     ApplyTemporalIdentitySelectionChange,
     AttachCameraCompensationEvidenceChange,
     AttachMultiAnchorCameraEvidenceChange,
@@ -24,6 +25,7 @@ from .revisions import (
     AttachRasterSimilarityEvidenceChange,
     AttachSparseCompensatedMotionChange,
     AttachSparseObservationPolicyChange,
+    AttachSubjectObservationsChange,
     AttachSVGGeometryObservationsChange,
     BindTemporalMotionTargetChange,
     CreateCameraTransformTrackChange,
@@ -79,6 +81,26 @@ def _verify_multipart_subject(change: Any, resolved: dict[str, ArtifactSnapshot]
     from .adapters.multipart_subject_evidence import verify_change
 
     verify_change(change, resolved)
+
+
+def _verify_subject_observations(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .adapters.subject_observation_bridge import verify_change
+
+    verify_change(change, resolved)
+
+
+def _verify_subject_identity(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    _verify_subject_observations(change, resolved)
+    _verify_temporal_identity_promotion(change.delegated_promotion, resolved)
+
+
+def _subject_identity_intents(change: Any) -> tuple[Intent, ...]:
+    if type(change.delegated_promotion) is not PromoteTemporalIdentityChange:
+        raise ValueError("Subject identity bridge requires exact frozen R1 Change")
+    return (
+        *_promote_temporal_identity(change.delegated_promotion),
+        ("attach_analysis", "document", None),
+    )
 
 
 def _establish_svg_group(change: Any) -> tuple[Intent, ...]:
@@ -510,6 +532,20 @@ CHANGE_AUTHORITIES = {
             frozenset({"attach_analysis"}),
             _single("attach_analysis"),
             _verify_multipart_subject,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            AttachSubjectObservationsChange,
+            frozenset({"attach_analysis"}),
+            _single("attach_analysis"),
+            _verify_subject_observations,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            ApplySubjectIdentityBridgeChange,
+            frozenset({"promote_temporal_identity", "attach_analysis"}),
+            _subject_identity_intents,
+            _verify_subject_identity,
             _source_revision,
         ),
         ChangeAuthority(

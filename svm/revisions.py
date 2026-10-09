@@ -481,6 +481,33 @@ class AttachMultipartSubjectEvidenceChange:
 
 
 @dataclass(frozen=True)
+class AttachSubjectObservationsChange:
+    """Spec79 data production; membership is independently replayed Spec76 ownership."""
+
+    source_revision_id: str
+    base_document_snapshot: dict[str, Any]
+    witnesses: tuple[RevisionSnapshotWitness, ...]
+    profile_identity: str
+    source_references: tuple[dict[str, Any], ...]
+    observation_reference: dict[str, Any]
+    evidence_reference: dict[str, Any]
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        refs = {ref["id"]: ref for ref in self.source_references}
+        for ref in (self.observation_reference, self.evidence_reference):
+            refs.setdefault(ref["id"], ref)
+        return tuple(refs[aid] for aid in sorted(refs))
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if canonical_bytes(document) != canonical_bytes(self.base_document_snapshot):
+            raise DocumentError("STALE_SUBJECT_BRIDGE: incoming Document differs from base")
+        AppendReferencesChange((self.observation_reference, self.evidence_reference)).apply(
+            document
+        )
+
+
+@dataclass(frozen=True)
 class EstablishSVGGroupChange:
     """Spec/73 creation only; acceptance independently replays the complete source."""
 
@@ -1035,6 +1062,40 @@ class PromoteTemporalIdentityChange:
                     )
                 )
         identities.sort(key=lambda item: item["id"])
+
+
+@dataclass(frozen=True)
+class ApplySubjectIdentityBridgeChange:
+    """Spec79 full source/R0 replay followed by exact frozen R1 delegation."""
+
+    source_revision_id: str
+    base_document_snapshot: dict[str, Any]
+    witnesses: tuple[RevisionSnapshotWitness, ...]
+    profile_identity: str
+    source_references: tuple[dict[str, Any], ...]
+    observation_reference: dict[str, Any]
+    r0_evidence_reference: dict[str, Any]
+    delegated_promotion: PromoteTemporalIdentityChange
+    evidence_reference: dict[str, Any]
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        refs = {ref["id"]: ref for ref in self.source_references}
+        for ref in (
+            self.observation_reference,
+            self.r0_evidence_reference,
+            self.evidence_reference,
+        ):
+            refs.setdefault(ref["id"], ref)
+        return tuple(refs[aid] for aid in sorted(refs))
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if canonical_bytes(document) != canonical_bytes(self.base_document_snapshot):
+            raise DocumentError("STALE_SUBJECT_BRIDGE: incoming Document differs from base")
+        if type(self.delegated_promotion) is not PromoteTemporalIdentityChange:
+            raise DocumentError("Subject identity bridge requires exact frozen R1 Change")
+        self.delegated_promotion.apply(document)
+        AppendReferencesChange((self.evidence_reference,)).apply(document)
 
 
 @dataclass(frozen=True)
