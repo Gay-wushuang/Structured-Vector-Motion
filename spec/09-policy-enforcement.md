@@ -42,6 +42,7 @@ The v0.1 intents are:
 | `AppendSceneFragmentChange` | `import_scene` | `document` | none |
 | `ReplaceSceneFragmentChange` | `reconcile_scene` | `document` and each scoped Entity ID | none |
 | `AppendReferencesChange` | `attach_analysis` | `document` | none |
+| `CertifyArtworkRepresentationChange` | `certify_representation` and `attach_analysis` | `document` | none |
 | `PromoteComponentsChange` | `promote_components` | `document` | none |
 | `PromoteGroupsChange` | `promote_group` | `document` | none |
 | `PromoteTemporalIdentityChange` | `promote_temporal_identity` | `document` | candidate ID |
@@ -60,6 +61,11 @@ The v0.1 intents are:
 
 An unknown Change always fails closed before policy enforcement because Core
 cannot prove its executable semantics or intent.
+
+Spec80's evidence-only certification requires both dedicated intents and an
+exact current base. Its bounded transaction contains one certification Change;
+neither a preceding nor following Change may alter the verified representation
+before publication. The existing policy semantics of other Changes are unchanged.
 
 ## 3. PreserveParameter Constraint
 

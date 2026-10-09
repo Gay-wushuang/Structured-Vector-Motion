@@ -1,4 +1,4 @@
-"""Spec76 admission facts. Trust comes from Core acceptance, not serialized claims."""
+"""Two bounded admission families; trust comes from Core acceptance, not bytes."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from .revisions import (
     AdmissionEvent,
     AdmittedRevision,
     AttachMultipartSubjectEvidenceChange,
+    CertifyArtworkRepresentationChange,
     Revision,
     RevisionStore,
     Transaction,
@@ -22,6 +23,10 @@ MEDIA = "application/vnd.svm.multipart-subject-evidence+json;version=0.1"
 CONTRACT = "svm-spec76-admission@0.1"
 CHANGE = "svm.revisions.AttachMultipartSubjectEvidenceChange@0.1"
 AUTHORITY = "svm-spec76-independent-verifier@0.1"
+CERT_MEDIA = "application/vnd.svm.representation-certification+json;version=0.1"
+CERT_CONTRACT = "svm-present-representation-certification-admission@0.1"
+CERT_CHANGE = "svm.revisions.CertifyArtworkRepresentationChange@0.1"
+CERT_AUTHORITY = "svm-present-representation-independent-verifier@0.1"
 REVISION_CONTRACT = "svm-revision-admission@0.1"
 
 
@@ -37,40 +42,74 @@ def transition_hash(
 
 
 def _reserved(document: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    return {r["id"]: r for r in document["references"] if r["media_type"] == MEDIA}
+    return {r["id"]: r for r in document["references"] if r["media_type"] in {MEDIA, CERT_MEDIA}}
+
+
+def _dedicated_reference(change: Any) -> tuple[str, dict[str, Any]] | None:
+    if type(change) is AttachMultipartSubjectEvidenceChange:
+        media, ref = MEDIA, change.evidence_reference
+    elif type(change) is CertifyArtworkRepresentationChange:
+        media, ref = CERT_MEDIA, change.association_reference
+    else:
+        return None
+    if type(ref) is not dict or ref.get("media_type") != media:
+        _reject(media, "dedicated reference has wrong media type")
+    return media, ref
+
+
+def _identity(media: str) -> tuple[str, str, str] | None:
+    if media == MEDIA:
+        return CONTRACT, CHANGE, AUTHORITY
+    if media == CERT_MEDIA:
+        return CERT_CONTRACT, CERT_CHANGE, CERT_AUTHORITY
+    return None
+
+
+def _reject(media: str, detail: str) -> None:
+    prefix = "SPEC76_ADMISSION_REQUIRED" if media == MEDIA else "CERTIFICATION_ADMISSION_REQUIRED"
+    raise AdmissionError(f"{prefix}: {detail}")
 
 
 def apply_verified_transaction(
     document: dict[str, Any], transaction: Transaction
 ) -> dict[str, Any]:
     """After exact registry/verifier/policy checks, inspect each actual mutation."""
+    if len(transaction.changes) != 1 and any(
+        type(change) is CertifyArtworkRepresentationChange for change in transaction.changes
+    ):
+        _reject(CERT_MEDIA, "certification requires one dedicated Change")
     candidate = copy.deepcopy(document)
     original = _reserved(document)
     dedicated_ids: set[str] = set()
     for change in transaction.changes:
-        dedicated = type(change) is AttachMultipartSubjectEvidenceChange
-        if dedicated:
-            aid = change.evidence_reference["id"]
+        dedicated = _dedicated_reference(change)
+        allowed: dict[str, dict[str, Any]] = {}
+        if dedicated is not None:
+            media, ref = dedicated
+            aid = ref["id"]
             if aid in dedicated_ids:
-                raise AdmissionError("SPEC76_ADMISSION_REQUIRED: duplicate dedicated Change")
+                _reject(media, "duplicate dedicated Change")
             dedicated_ids.add(aid)
-        else:
-            # Also disallow a generic no-op laundering a new reference after a
-            # dedicated Change. Existing exact references remain ordinary inputs.
-            for ref in getattr(change, "references", ()):
-                if ref.get("media_type") == MEDIA and original.get(ref["id"]) != ref:
-                    raise AdmissionError("SPEC76_ADMISSION_REQUIRED: generic attachment")
-        before = _reserved(candidate)
+            allowed[aid] = ref
+        # Compare every declared input with the original base, including the
+        # other dedicated family. An earlier addition cannot launder a no-op.
+        for ref in getattr(change, "references", ()):
+            if (
+                ref.get("media_type") in {MEDIA, CERT_MEDIA}
+                and original.get(ref["id"]) != ref
+                and allowed.get(ref["id"]) != ref
+            ):
+                _reject(ref["media_type"], "generic attachment")
+        before = copy.deepcopy(_reserved(candidate))
         change.apply(candidate)
         after = _reserved(candidate)
         additions = {aid: ref for aid, ref in after.items() if before.get(aid) != ref}
-        if any(after.get(aid) != ref for aid, ref in before.items()):
-            raise AdmissionError("SPEC76_ADMISSION_REQUIRED: reserved reference replacement")
-        allowed: dict[str, dict[str, Any]] = (
-            {change.evidence_reference["id"]: change.evidence_reference} if dedicated else {}
-        )
-        if any(allowed.get(aid) != ref for aid, ref in additions.items()):
-            raise AdmissionError("SPEC76_ADMISSION_REQUIRED: unauthorized actual addition")
+        for aid, ref in before.items():
+            if after.get(aid) != ref:
+                _reject(ref["media_type"], "reserved reference replacement")
+        for aid, ref in additions.items():
+            if allowed.get(aid) != ref:
+                _reject(ref["media_type"], "unauthorized actual addition")
     validate_document(candidate)
     return candidate
 
@@ -79,16 +118,25 @@ def admission_events(
     base: str, before: dict[str, Any], after: dict[str, Any], transaction: Transaction
 ) -> tuple[AdmissionEvent, ...]:
     """Core-only builder, called after all verification and transition checks succeed."""
-    old = _reserved(before)
+    old, new = _reserved(before), _reserved(after)
     commitment = transition_hash(after, (base,), transaction.transaction_id, transaction.message)
-    return tuple(
-        AdmissionEvent(
-            CONTRACT, CHANGE, AUTHORITY, base, copy.deepcopy(change.evidence_reference), commitment
-        )
-        for change in transaction.changes
-        if type(change) is AttachMultipartSubjectEvidenceChange
-        and change.evidence_reference["id"] not in old
-    )
+    events = []
+    for change in transaction.changes:
+        dedicated = _dedicated_reference(change)
+        if dedicated is None:
+            continue
+        media, ref = dedicated
+        if new.get(ref["id"]) != ref:
+            _reject(media, "dedicated output is not the final accepted descriptor")
+        if ref["id"] in old:
+            continue
+        identity = _identity(media)
+        if identity is None:
+            raise AdmissionError("Unknown admission family")
+        events.append(AdmissionEvent(*identity, base, copy.deepcopy(ref), commitment))
+    if {event.artifact_reference["id"] for event in events} != set(new) - set(old):
+        raise AdmissionError("Admission events do not cover reserved additions")
+    return tuple(events)
 
 
 def validate_admissions(
@@ -102,25 +150,41 @@ def validate_admissions(
     if len(revision.parent_ids) != 1 or parent_document is None:
         raise AdmissionError("Admission requires an exact parent transition")
     old, new = _reserved(parent_document), _reserved(document)
+    if any(new.get(aid) != ref for aid, ref in old.items()):
+        raise AdmissionError("Admission transition changes an existing reserved reference")
+    commitment = transition_hash(
+        document, revision.parent_ids, revision.transaction_id, revision.message
+    )
     seen = set()
+    certification_id: str | None = None
     for event in revision.admissions:
-        if type(event) is not AdmissionEvent or (
-            event.contract != CONTRACT
-            or event.change_identity != CHANGE
-            or event.authority_identity != AUTHORITY
-            or event.base_revision_id != revision.parent_ids[0]
-            or event.transition_hash
-            != transition_hash(
-                document, revision.parent_ids, revision.transaction_id, revision.message
-            )
-        ):
+        if type(event) is not AdmissionEvent or type(event.artifact_reference) is not dict:
             raise AdmissionError("Invalid admission event/transition")
         ref = event.artifact_reference
-        if ref["id"] in seen or ref["id"] in old or new.get(ref["id"]) != ref:
+        media = ref.get("media_type")
+        identity = _identity(media) if isinstance(media, str) else None
+        if (
+            identity is None
+            or (event.contract, event.change_identity, event.authority_identity) != identity
+            or event.base_revision_id != revision.parent_ids[0]
+            or event.transition_hash != commitment
+        ):
+            raise AdmissionError("Invalid admission event/transition")
+        aid = ref.get("id")
+        if not isinstance(aid, str) or aid in seen or aid in old or new.get(aid) != ref:
             raise AdmissionError("Admission Artifact does not match new reference")
-        seen.add(ref["id"])
+        seen.add(aid)
+        if media == CERT_MEDIA:
+            certification_id = aid
     if seen != set(new) - set(old):
         raise AdmissionError("Admission events do not cover reserved additions")
+    if certification_id is not None:
+        if len(revision.admissions) != 1:
+            raise AdmissionError("Certification transition requires exactly one admission event")
+        expected = copy.deepcopy(parent_document)
+        expected["references"].append(copy.deepcopy(new[certification_id]))
+        if canonical_bytes(expected) != canonical_bytes(document):
+            raise AdmissionError("Certification transition must only append its exact reference")
 
 
 def dump_trusted_history(store: RevisionStore) -> dict[str, Any]:

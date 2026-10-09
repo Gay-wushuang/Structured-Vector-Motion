@@ -345,6 +345,7 @@
               "set_group_transform",
               "reconcile_scene",
               "attach_analysis",
+              "certify_representation",
               "promote_components",
                 "set_keyframe_value",
                 "set_camera_transform",

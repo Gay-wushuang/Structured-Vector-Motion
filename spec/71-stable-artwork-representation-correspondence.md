@@ -1,12 +1,15 @@
 # Stable Artwork Representation Correspondence — prerequisite contract
 
-Status: **DESIGN CONTRACT / NOT IMPLEMENTED / NOT FROZEN**.
+Status: **DESIGN CONTRACT / BOUNDED PRESENT-TIME CERTIFICATION IMPLEMENTED /
+NOT FROZEN**. The original atomic construction proof mode remains unchanged;
+the additive mode in §12 has the distinct authority specified by spec/80.
 
 Repository evidence baseline: `f78da63852d8b0e5255d121e2f787ab6824a1192`.
-This specifies the semantic prerequisite identified by the Temporal Structure
-Audit. It does not implement P2D-B, admit a new evidence producer, register a
-Change, or change frozen Phase 1, P2A/P2B/R0/P2C/R1 semantics. SHALL statements
-constrain a future implementation; they do not describe existing capability.
+Sections 1–11 specify the original semantic prerequisite identified by the
+Temporal Structure Audit; their original atomic construction proof mode remains
+a design contract. Section 12 adds the bounded implemented certification mode
+and delegates its exact producer/Change/admission contract to spec/80. Neither
+mode implements P2D-B or changes frozen Phase 1, P2A/P2B/R0/P2C/R1 semantics.
 
 The near-term objective is stable vector-animation stylization. Later video
 restoration reuses the separation between persistent artwork and time-specific
@@ -55,6 +58,10 @@ The missing fact is a **representation association**:
 
 > Under a specified, accepted construction authority, this persistent artwork
 > representation was established for this accepted observation identity.
+
+This is the original construction-mode claim. The separately admitted §12 mode
+certifies the current relationship and does not assert establishment for T or
+association authority at historical birth.
 
 This is neither a claim that all observations share one component source nor a
 claim that the representation reproduces every observed contour. It establishes
@@ -371,6 +378,11 @@ to improvise in an adapter:
 - a versioned P2D consumer contract and exact acceptance schema completing the
   full-base, complete-universe and atomic delegation obligations above.
 
+These are the original design gates. Spec78 now supplies the bounded video-backed
+construction profile; §12/spec/80 supplies a bounded present-time history and
+current-coverage consumer. Broader §10 coverage, the original atomic association
+mode and a versioned P2D consumer remain separate implementation gates.
+
 The next design/implementation slice must discharge the first two gates before
 P2D-B. If existing Group construction cannot express its minimal representation,
 report that structural blocker for a separate normative decision. Do not weaken
@@ -469,11 +481,49 @@ Decision: **PREREQUISITE_STRUCTURAL_PHASE_REQUIRED**.
 
 [Spec/78](78-first-video-backed-artwork-construction-profile.md) specifies the
 first bounded representation-construction profile (video-backed two-part
-artwork construction) as **SPECIFIED / NOT IMPLEMENTED / NOT FROZEN**. It
+artwork construction) as **IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**. It
 consumes genuinely admitted Spec76 Multipart Subject Evidence through Spec77
 admission history and establishes a legal persistent construction-origin Group
 with source-fixed geometry, without creating a whole-subject TemporalIdentity.
-This discharges the specification, not the implementation, of the first
-unresolved gate above: the authenticated construction-history /
-current-coverage proof and the versioned T-to-G consumer contract remain
-unimplemented, and P2D-B remains **BLOCKED**.
+This implements the bounded construction gate. Section 12/spec/80 adds current
+certification using structural birth replay, without attesting historical F0
+verifier execution. The original atomic construction-for-T association mode and
+versioned P2D consumer remain unimplemented; P2D-B remains **BLOCKED**.
+
+## 12. Additive proof mode: present-time verified representation certification
+
+[Spec/80](80-present-time-representation-certification.md) admits one separately
+versioned, bounded **present-time certification** mode. Sections 4 and 11's
+atomic construction-for-TemporalIdentity requirements continue to govern the
+original proof mode. They are not reinterpreted as later association authority.
+
+The additional mode independently certifies, at an exact current accepted base,
+that an existing source-backed TemporalIdentity and an existing representation
+have the same complete authenticated source-qualified subject. It reproduces
+the entire historical Spec78 birth transition and verifies continuity, but
+**birth reproduction proves structural conformity, not historical dedicated
+verifier execution or historical representation association**. Spec78 receipts
+retain `representation_claim = null`. No birth admission event is inferred,
+fabricated, or backfilled, and no old Revision is rewritten.
+
+The authority is the new current dedicated certification acceptance and its
+authenticated admission event. A matching receipt, canonical association bytes,
+generic reference attachment, or trusted low-level commit without that event
+grants no association authority. The admitted relationship is evidence-only;
+it creates no MotionTargetBinding, Track, Group, Entity or TemporalIdentity.
+
+The bounded profile requires T before G's birth; complete independent Spec77/76
+and Spec79/R0/R1 replay; full birth pre/post replay; unique source-derived G;
+unchanged representation and identity through the single-parent history; and
+complete current identity, Group and competing-association enumeration. At most
+one Group may represent a T and at most one T may own a Group. Current policy,
+base binding and atomic publication are mandatory. Arbitrary artwork adoption,
+ordinary video inference and caller target selection remain unsupported.
+
+The original distinction between establishment, persistent identity and current
+applicability remains. Profile v0.1 conservatively requires unchanged bounded
+representation definitions until certification and whenever it is consumed.
+Ordinary artwork editing is still legal; a changed representation needs a
+separately admitted applicability profile rather than silently reusing this
+proof. This bounded implementation does not close all §10 obligations or admit
+P2D-B, S1 selection, animation, additional observations or general matching.

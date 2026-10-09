@@ -74,6 +74,7 @@ def validate_policy_definitions(document: dict[str, Any]) -> None:
                     "set_group_transform",
                     "reconcile_scene",
                     "attach_analysis",
+                    "certify_representation",
                     "promote_components",
                     "set_keyframe_value",
                     "create_track",

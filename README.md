@@ -434,6 +434,20 @@ identities. Companions remain recomputable data; consumers must independently
 verify source-backed meaning. Landmark geometry, artwork correspondence, motion
 target binding and P2D-B remain separate gates.
 
+[P2S-F1B](spec/80-present-time-representation-certification.md) adds one bounded
+present-time representation certification mode to Spec71. Its independent
+verifier authenticates Spec76/77 ownership, reproduces the accepted Spec79 whole
+identity and the complete historical Spec78 birth, then certifies the unchanged
+current T-to-G relationship through a distinct trusted admission event. Birth
+replay proves structural conformity; it does not claim that a dedicated F0
+verifier or association existed at birth. [Golden 046](examples/046-representation-certification/README.md)
+retains the original Group, Entity and TemporalIdentity IDs and the null-claim
+F0 receipt. Generic canonical bytes and low-level commit without an event remain
+data. Ordinary artwork editing remains legal; this initial profile requires
+unchanged representation definitions for fresh applicability verification.
+It creates no motion binding or animation and does not implement P2D-B or close
+the broader Spec71 correspondence gates.
+
 ## Development
 
 Install the project and development tools in editable mode:

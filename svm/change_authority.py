@@ -28,6 +28,7 @@ from .revisions import (
     AttachSubjectObservationsChange,
     AttachSVGGeometryObservationsChange,
     BindTemporalMotionTargetChange,
+    CertifyArtworkRepresentationChange,
     CreateCameraTransformTrackChange,
     CreateGroupTransformTrackChange,
     CreateStyleTrackChange,
@@ -87,6 +88,21 @@ def _verify_subject_observations(change: Any, resolved: dict[str, ArtifactSnapsh
     from .adapters.subject_observation_bridge import verify_change
 
     verify_change(change, resolved)
+
+
+def _verify_representation_certification(
+    change: Any, resolved: dict[str, ArtifactSnapshot]
+) -> None:
+    from .adapters.representation_certification import verify_change
+
+    verify_change(change, resolved)
+
+
+def _certify_representation(change: Any) -> tuple[Intent, ...]:
+    return (
+        ("certify_representation", "document", None),
+        ("attach_analysis", "document", None),
+    )
 
 
 def _verify_subject_identity(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
@@ -539,6 +555,13 @@ CHANGE_AUTHORITIES = {
             frozenset({"attach_analysis"}),
             _single("attach_analysis"),
             _verify_subject_observations,
+            _source_revision,
+        ),
+        ChangeAuthority(
+            CertifyArtworkRepresentationChange,
+            frozenset({"certify_representation", "attach_analysis"}),
+            _certify_representation,
+            _verify_representation_certification,
             _source_revision,
         ),
         ChangeAuthority(

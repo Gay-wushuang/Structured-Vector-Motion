@@ -508,6 +508,35 @@ class AttachSubjectObservationsChange:
 
 
 @dataclass(frozen=True)
+class CertifyArtworkRepresentationChange:
+    """Spec80 present-time certification; historical birth remains structural evidence."""
+
+    source_revision_id: str
+    base_document_snapshot: dict[str, Any]
+    witnesses: tuple[RevisionSnapshotWitness, ...]
+    profile_identity: str
+    source_references: tuple[dict[str, Any], ...]
+    association_reference: dict[str, Any]
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        refs = {ref["id"]: ref for ref in self.source_references}
+        refs.setdefault(self.association_reference["id"], self.association_reference)
+        return tuple(refs[aid] for aid in sorted(refs))
+
+    def apply(self, document: dict[str, Any]) -> None:
+        if canonical_bytes(document) != canonical_bytes(self.base_document_snapshot):
+            raise DocumentError("STALE_CERTIFICATION: incoming Document differs from base")
+        accepted = {ref["id"]: ref for ref in document["references"]}
+        existing = accepted.get(self.association_reference["id"])
+        if existing is not None and canonical_bytes(existing) != canonical_bytes(
+            self.association_reference
+        ):
+            raise DocumentError("Certification reference descriptor conflict")
+        AppendReferencesChange((self.association_reference,)).apply(document)
+
+
+@dataclass(frozen=True)
 class EstablishSVGGroupChange:
     """Spec/73 creation only; acceptance independently replays the complete source."""
 

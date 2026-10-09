@@ -173,3 +173,21 @@ pin is updated only for this reviewed Core authority extension:
 old: 617269931cd24653dc63c1fe4d9886ce086f490ff3eb9ad2a9417f910c6c8940
 new: 0336d93e1151c49bc8f46a37960b01d323632ba4c17873904096336949985b97
 ```
+
+## 8. Additive present-time certification admission
+
+[Spec/80](80-present-time-representation-certification.md) adds one exact
+present-time representation-certification family to this event mechanism.
+Its reserved media, Change identity, independent verifier identity and admission
+contract are distinct from Spec76's. The original Spec76 tuple, meanings,
+Revision preimages, mixed-transaction support and trusted-host boundary remain
+unchanged. Unknown families and media/identity mismatches reject.
+
+Only dedicated current certification acceptance emits the new event. Generic
+reference mutation and plain trusted commit grant no association authority.
+Its evidence-only singleton transition is independently checked on witness and
+trusted-history load. An event certifies the current relationship; it does not
+attest historical F0 verifier execution or retroactively add a birth admission.
+No Revision identity formula, persistence format or old record is rewritten.
+The existing ProposalAcceptor hooks implement this extension without changing
+`svm/proposals.py` or its reviewed integrity pin.
