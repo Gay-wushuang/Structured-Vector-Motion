@@ -1,8 +1,11 @@
 # Stable Artwork Representation Correspondence — prerequisite contract
 
-Status: **DESIGN CONTRACT / BOUNDED PRESENT-TIME CERTIFICATION IMPLEMENTED /
-NOT FROZEN**. The original atomic construction proof mode remains unchanged;
-the additive mode in §12 has the distinct authority specified by spec/80.
+Status: **DESIGN CONTRACT / NOT FROZEN**. The original atomic construction proof
+mode remains a design contract; the additive mode in §12 has the distinct
+authority specified by spec/80 and is **IMPLEMENTED / GOLDEN VERIFIED / FROZEN
+FOR ITS BOUNDED V0.1 PROFILE**. This document's general requirements remain
+unfrozen; the freeze covers only the bounded present-time certification v0.1
+semantics, not all Spec71 obligations.
 
 Repository evidence baseline: `f78da63852d8b0e5255d121e2f787ab6824a1192`.
 Sections 1–11 specify the original semantic prerequisite identified by the
@@ -527,3 +530,7 @@ Ordinary artwork editing is still legal; a changed representation needs a
 separately admitted applicability profile rather than silently reusing this
 proof. This bounded implementation does not close all §10 obligations or admit
 P2D-B, S1 selection, animation, additional observations or general matching.
+
+Spec80 §11 freezes the bounded present-time certification v0.1 profile only.
+P2D-B remains **BLOCKED**; [Spec/81](81-versioned-representation-target-consumer-contract.md)
+is a design-only versioned consumer contract draft and is not authorization.

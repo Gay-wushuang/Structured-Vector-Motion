@@ -435,7 +435,9 @@ verify source-backed meaning. Landmark geometry, artwork correspondence, motion
 target binding and P2D-B remain separate gates.
 
 [P2S-F1B](spec/80-present-time-representation-certification.md) adds one bounded
-present-time representation certification mode to Spec71. Its independent
+present-time representation certification mode to Spec71, now **FROZEN FOR ITS
+BOUNDED V0.1 PROFILE** after an independent Gate **PASS** (36 focused and 706
+full-suite tests, GitHub CI 4/4). Its independent
 verifier authenticates Spec76/77 ownership, reproduces the accepted Spec79 whole
 identity and the complete historical Spec78 birth, then certifies the unchanged
 current T-to-G relationship through a distinct trusted admission event. Birth
@@ -446,7 +448,12 @@ F0 receipt. Generic canonical bytes and low-level commit without an event remain
 data. Ordinary artwork editing remains legal; this initial profile requires
 unchanged representation definitions for fresh applicability verification.
 It creates no motion binding or animation and does not implement P2D-B or close
-the broader Spec71 correspondence gates.
+the broader Spec71 correspondence gates. The freeze covers only the bounded
+present-time certification v0.1 semantics; Spec71's original atomic
+construction-for-T mode stays a design contract.
+[Spec/81](spec/81-versioned-representation-target-consumer-contract.md) is a
+**DESIGN ONLY / NOT IMPLEMENTED** P2D-B0 consumer contract draft; P2D-B remains
+**BLOCKED** and is not ready.
 
 ## Development
 

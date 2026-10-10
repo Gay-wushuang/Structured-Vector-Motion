@@ -1,7 +1,8 @@
 # P2S-F1B — Present-time Verified Representation Certification
 
-Status: **IMPLEMENTED / GOLDEN VERIFIED / NOT FROZEN**.
-Baseline: `f8f9ef57243fb4feb5ca9d9bd6d04f3dad9e3ed7`.
+Status: **IMPLEMENTED / GOLDEN VERIFIED / FROZEN FOR ITS BOUNDED V0.1 PROFILE**.
+Design/implementation baseline: `f8f9ef57243fb4feb5ca9d9bd6d04f3dad9e3ed7`.
+Freeze gate baseline: `38abfde2a299a8d024cbff38b22698c48cc7f1ff`.
 Governing invariants: INV-PROP-001/002, INV-TXN-001, INV-REF-001,
 INV-ID-001/002 and INV-TIME-011; Spec71 §12 supplements its unchanged initial
 atomic construction proof mode.
@@ -320,3 +321,41 @@ All existing artwork/observation identities and rendering bytes are preserved.
 `admitted_associations` provides read-only, independently replayed current
 consumption; an equivalent valid repeat reuses the same descriptor without a new
 event. The trusted-history roundtrip preserves the admitted relationship.
+
+## 11. Freeze record (bounded v0.1)
+
+An independent read-only Gate audit at baseline
+`38abfde2a299a8d024cbff38b22698c48cc7f1ff` found no P0/P1 issue and returned
+**PASS**. Evidence: 36 focused representation-certification tests and the
+complete 706-test suite passed; GitHub CI succeeded on ubuntu/windows ×
+Python 3.11/3.12 (4/4); Ruff formatting/lint, Pyright, `git show --check` and
+`svm validate examples/046-representation-certification/accepted.svm.json`
+passed; `git diff --check` was clean.
+
+Frozen scope: exactly the bounded present-time certification v0.1 semantics of
+§§1–10 in this document. The freeze changes no proof semantics of this document,
+Spec76/77, Spec78/79 or frozen R0/R1/P2D-A.
+
+Explicitly outside this freeze:
+
+- Spec71's general requirements. The original atomic construction-for-T proof
+  mode remains **DESIGN CONTRACT / NOT IMPLEMENTED / NOT FROZEN**.
+- General artwork matching, arbitrary video ownership, arbitrary Group adoption.
+- P2D-B remains **BLOCKED**. This freeze does not authorize a P2D consumer;
+  [Spec/81](81-versioned-representation-target-consumer-contract.md) is a
+  design-only consumer contract draft, not authorization.
+
+Two non-blocking observations from the Gate are recorded for future hardening.
+Neither is a correctness defect and neither was waived in any acceptance path:
+
+1. **Long-history replay cost and recursion depth.** Each derivation call
+   replays complete history; nested re-authentication occurs through the Spec79
+   identity reproduction; recursive admitted-claim replay depth grows with the
+   number of admitted claims. Very deep chains can raise a Python
+   `RecursionError`, which still fails closed. Future optimization MUST NOT skip
+   witness authentication or event verification to buy speed.
+2. **Missing-artifact error normalization.** `verify_change` indexes resolved
+   artifacts directly; a proposal missing a required descriptor raises a bare
+   `KeyError` instead of a domain error. The standard propose path cannot reach
+   this state and rejection remains fail-closed; normalizing the error is future
+   hardening, not a semantic change.
