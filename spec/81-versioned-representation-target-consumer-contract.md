@@ -10,6 +10,21 @@ Bindings. It does not implement P2D-B, register a Change, produce an Artifact,
 create a Golden, or reinterpret P2D-A. P2D-B remains **BLOCKED**; this document
 is not authorization.
 
+Revision r2 (design-gate revision) resolved the five gaps identified by the
+P2D-B0 design gate: the historical witness contract (§7.1–§7.4), the bound-state
+versus evidence-authentication ordering (§6), the bounded v0.1 selection
+cardinality (§4.4), the deterministic error classification (§5) and the
+idempotence / determinism distinctions (§7.6). Revision r3 closes the two
+remaining gate findings: the certification return-value contract
+(§3.5: `admitted_associations` returns applicable References, not decoded
+records) and the ordering of transport validation versus the zero-claim
+short-circuit, including the non-promise of an Acceptor-side error code
+(§5.1, §5.1b, §7.3). Revision r3 (final) fixes a P0 in the first r3 draft by
+adopting the single canonical stage authority **S0–S7** defined in §5.1 —
+witness/base/admission authentication first (S0), then the content-free
+reference-universe structure (S1) — so that a witness defect always outranks a
+transport defect. No runtime behavior is added or promised by these revisions.
+
 This contract is deliberately versioned and separable from
 [spec/70](70-p2d-exact-provenance-motion-target-binding.md) (P2D-A/P2D-B). P2D-A
 keeps its exact-provenance rules, reason tokens and abstention semantics
@@ -35,6 +50,10 @@ At a given accepted base it:
    `SELECTED` / `ABSTAIN` / `REJECT` outcome;
 4. proposes frozen bindings for the globally unambiguous `SELECTED` pairs only;
 5. materializes atomically through the existing authority boundary.
+
+For profile v0.1 the selection cardinality is at most one `SELECTED` T→G pair
+per base (§4.4); multi-target atomic binding is a future extension, not a v0.1
+guarantee.
 
 The consumer performs **no geometric inference of any kind** — no distance,
 overlap, centroid, bounds similarity, render-order, first-wins, fill similarity,
@@ -68,28 +87,140 @@ list records every inspected certification and its replay outcome.
 ## 3. Certification acquisition (B)
 
 Valid bytes, artifact presence, provenance, a `verified`-style flag, a
-transaction message or a caller list SHALL NOT establish authority. For every
-reserved-media reference the consumer SHALL:
+transaction message or a caller list SHALL NOT establish authority. Acquisition
+is the deterministic, fail-closed pipeline of §5.1; this section defines its
+evidence stages.
 
-1. require a matching admission event in the authenticated ancestry; references
-   without an event are **data**: they are excluded from authority, cannot
-   satisfy equivalence, cannot create conflicts and cannot be selected;
-2. independently replay the claim through the Spec80 v0.1 semantics — the
-   `admitted_associations`-equivalent contract: complete witness authentication,
-   reproduction of the record at its own recorded base, exact descriptor and
-   byte agreement, and current-base applicability per spec/80 §5–§6;
-3. treat an event-bearing claim whose bytes cannot be resolved or reproduced as
-   a hard verification failure (`REJECT`, §5) — never as data, never as a
-   silent omission;
-4. map the replayed association `{subject_id, temporal_identity_id, group_id}`
-   to the current base: the identity and Group must each exist exactly once, and
-   their current definitions must canonically equal the certified
-   representation projection (already required by replay; re-checked here for
-   the current base).
+### 3.1 Structural classification (S2)
 
-Exactly one applicable certification per identity may be `SELECTED`-eligible.
-The consumer never invents a target for an identity without an applicable
-certification, and never widens a claim's scope.
+For every reserved-media reference in the authenticated base, match admission
+events in the authenticated ancestry:
+
+- **zero matching events** → the reference is **data**. It is excluded from
+  authority, cannot satisfy equivalence, cannot create conflicts and cannot be
+  selected. Data alone never triggers `REJECT`.
+- **exactly one matching event** → a candidate claim. Its
+  `(contract, change_identity, authority_identity)` tuple MUST be exactly
+  `svm-present-representation-certification-admission@0.1` /
+  `svm.revisions.CertifyArtworkRepresentationChange@0.1` /
+  `svm-present-representation-independent-verifier@0.1`; mismatch is
+  `UNREPLAYABLE_ASSOCIATION`.
+- **two or more matching events for one descriptor** → whole-proposal
+  `AMBIGUOUS_ASSOCIATION`.
+
+When zero candidate claims remain, the outcome is
+`ABSTAIN / NO_ADMITTED_ASSOCIATION`. The short-circuit happens only **after**
+the structural preconditions hold — S0 (base anchoring, complete witness DAG
+and admission-history authentication) and S1 (complete reference-universe
+structural validation, no Artifact content parsed) per §5.1 — and before any
+content parsing: "no admitted claim" is fully determined by the
+reserved-reference set plus the authenticated event history, and the Spec80
+replay engine is **not** invoked, because its preconditions (a complete bounded
+Spec80 world) are not guaranteed for arbitrary Documents. A byte-valid reserved
+reference that is omitted from, or conflicts with, the transported descriptor
+set is a structural failure (S1), not an abstention; it is never silently
+dropped.
+
+### 3.2 Per-claim authentication (S3, Mode A)
+
+Every candidate claim is independently replayed through the Spec80 v0.1
+semantics using only the transported universe and the authenticated witness
+DAG. The replay base is the **certification acceptance Revision R**, located
+structurally in the authenticated DAG — never from `event.transition_hash`,
+which is the frozen legacy-form transition commitment, not the AdmittedRevision
+id (the admitted id additionally commits its admission events):
+
+- R is the unique authenticated revision whose parent Document lacks the
+  claim's exact reserved descriptor and whose own Document contains it (the
+  reference birth);
+- for a genuine claim, R.parent_ids MUST be exactly
+  `(event.base_revision_id,)` and R's Document MUST canonically equal the
+  event-base Document plus exactly that descriptor (the frozen evidence-only
+  certification transition);
+- zero or multiple candidates reject (`UNREPLAYABLE_ASSOCIATION`).
+
+The exact replay entry is the frozen `admitted_associations` contract applied
+at R with the witness subset `ancestors(R)` derived from the authenticated DAG
+(canonical order, deterministic). Success requires exact byte, descriptor and
+event-bound record reproduction. Failure (raise, or a result that does not
+contain this claim as its single applicable relation) is
+`UNREPLAYABLE_ASSOCIATION`.
+
+Mode A authenticates the **historical evidence**. It never depends on the
+current binding state, and no current binding can suppress it.
+
+### 3.3 Current-base applicability (S6, Mode B)
+
+Evaluated only when the authenticated current base has no binding addressing
+the claim's endpoints and no relevant Track (§5.1 S4–S5). The exact replay
+entry is the `admitted_associations` contract applied at the current base with
+the complete authenticated witness DAG. Outcomes:
+
+- the claim is the single applicable relation → continue to classification;
+- engine failure of any kind → whole-proposal `UNREPLAYABLE_ASSOCIATION`
+  (fail-fast, §5);
+- engine success but the event-bearing claim is not applicable → contradictory,
+  fail-closed `UNREPLAYABLE_ASSOCIATION`.
+
+Mode B is skipped for bound or tracked endpoints: Spec80 v0.1's own rule that
+a binding blocks this profile's new certification/consumption is preserved
+unchanged and is never reinterpreted as evidence invalidity (§6).
+
+### 3.4 No message parsing, no partial results
+
+The Spec80 replay engine is fail-fast: it raises on the first violated
+precondition and never returns partial results. The consumer MUST NOT: parse
+exception messages to establish authority or to choose a stable reason code;
+substitute a caller-selected subset for the complete transported universe;
+treat an engine failure as a soft abstention.
+
+Exactly one applicable certification per identity may be `SELECTED`-eligible
+(§4.4 cardinality). The consumer never invents a target for an identity without
+an applicable certification, and never widens a claim's scope.
+
+### 3.5 Reference → Artifact → authenticated record data flow
+
+`admitted_associations()` returns the tuple of **applicable Artifact
+References** (`_Replay.claims()[1]`), not expanded or decoded certification
+records. Every consumer stage that needs endpoint identities or the claim
+equivalence key MUST perform this exact flow, in order:
+
+1. **Accept only replayed References.** The input set is exactly the tuple
+   returned by the frozen `admitted_associations` contract (or the equivalent
+   internal `claims()[1]`). A caller-supplied reference list, a
+   reserved-media reference that did not pass replay, or a Reference the caller
+   asserts is authenticated, is never an input.
+2. **Resolve each Reference to its transported Artifact** via the existing
+   repository interface (`resolve_reference`), yielding the accepted
+   `ArtifactSnapshot` (content-addressed blob + descriptor). No new Spec80 or
+   Core API is added for this step.
+3. **Verify Reference ↔ Artifact ↔ bytes consistency.** The resolved snapshot
+   MUST reproduce the reference descriptor exactly
+   (`snapshot.document_reference()` canonically equals the Reference), and the
+   existing resolution checks (blob content hash, artifact-id ↔ content,
+   registered kind / media_type / provenance / locator) MUST hold. A
+   descriptor conflict for one Artifact id is fail-closed.
+4. **Decode the record from the authenticated Artifact.** Use the existing
+   canonical-JSON record decoding (`_record` contract): the bytes MUST parse as
+   a JSON object whose `canonical_bytes` equals the stored content. From that
+   authenticated record, take the T/G endpoints (`association.subject_id`,
+   `association.temporal_identity_id`, `association.group_id`) and the
+   equivalence key (`claim_key`, the hash of the record excluding `base` and
+   `universe`, §4.3 / spec/80 §6). Endpoints and equivalence are never read from
+   the Reference, from caller metadata or from an unverified copy.
+5. **Fail closed on any defect**: missing Reference, unresolvable Artifact,
+   descriptor conflict, non-canonical or non-object bytes, absent association
+   fields, or a recomputed `claim_key` mismatch. None of these may degrade to
+   `ABSTAIN`, to a silent omission or to a substitute target.
+6. **No new Spec80 API and no caller-trusted copies.** The flow reuses
+   `admitted_associations`, `resolve_reference` and the existing record-decoding
+   contract unchanged. A replicated, serialized or caller-provided certification
+   record is data and carries no authority; equivalence and endpoint identity
+   are always recomputed from the resolved, replayed Artifact.
+
+This flow is the only path from `SELECTED`-eligibility to endpoint identities.
+It never widens §3.1's structural short-circuit: the flow runs only at S3, when
+at least one candidate claim survived S0–S2.
 
 ## 4. Classification (C)
 
@@ -116,8 +247,8 @@ contradicted. Stable codes:
 
 | Code | Condition |
 | --- | --- |
-| `NO_ADMITTED_ASSOCIATION` | The universe contains zero genuinely admitted certifications (reserved bytes without events are data) |
-| `NO_CERTIFICATION_FOR_IDENTITY` | Admitted certifications exist but none addresses this identity |
+| `NO_ADMITTED_ASSOCIATION` | The universe contains zero genuinely admitted certifications (reserved bytes without events are data); the replay engine is not invoked |
+| `NO_CERTIFICATION_FOR_IDENTITY` | Authenticated claims exist but none addresses this identity |
 
 `ABSTAIN` is the correct outcome for a Document where certification simply has
 not happened yet. A fresh, genuine certification proposal could legitimately
@@ -126,140 +257,380 @@ fill this state; the consumer must not guess a target in the meantime.
 ### 4.3 REJECT
 
 An identity (or, where noted, the whole proposal) is `REJECT` iff evidence
-claims authority but fails verification, applicability or uniqueness. Stable
-codes:
+claims authority but fails verification, applicability or uniqueness. The
+stable v0.1 acceptance-path codes are exactly the six below; each has a
+structurally verifiable trigger, a fixed deciding stage and a fixed scope (§5).
+Codes are never derived from exception text.
 
-| Code | Condition | Scope |
-| --- | --- | --- |
-| `ALREADY_BOUND` | Identity or its resolved Group already participates in an accepted `motion_target_bindings` entry; the existing binding id is recorded | identity |
-| `COMPETING_ASSOCIATION` | Two or more non-equivalent admitted claims share the identity or the Group | whole proposal |
-| `AMBIGUOUS_ASSOCIATION` | Two or more equivalent admitted claims exist (duplicate descriptors / duplicate evidence) | whole proposal |
-| `MISSING_ASSOCIATION_ARTIFACT` | An event-bearing claim's required bytes are unresolvable in the accepted repository | claim endpoints |
-| `UNREPLAYABLE_ASSOCIATION` | An event-bearing claim fails independent Spec80 replay at its own base (bytes, descriptor, event binding, provenance mismatch) | claim endpoints |
-| `REPRESENTATION_MODIFIED` | The certified Group / member Entities / Operations / bindings / styles / render order / construction provenance no longer canonically match the certified representation (spec/80 §5) | claim endpoints |
-| `IDENTITY_EXTENDED` | The identity's current definition is not exactly the certified definition (extra bindings, extra provenance, merged owners) | claim endpoints |
-| `DEPENDENCY_CHANGED` | A required source / manifest / receipt / membership / identity / R0 descriptor changed or was removed | claim endpoints |
-| `COVERAGE_INCOMPLETE` | The certified observation/membership coverage does not reproduce completely at the current base | claim endpoints |
-| `TRACKED_REPRESENTATION` | A Track targets the Group, a member Entity or a member geometry Operation | claim endpoints |
-| `HISTORY_BROKEN` | The single-parent continuity or Group birth transition required by spec/80 §4–§5 cannot be authenticated | claim endpoints |
+| Code | Structural trigger | Scope | Stage |
+| --- | --- | --- | --- |
+| `HISTORY_BROKEN` | Witness DAG authentication fails: broken ancestry link (missing witness), reachability gap (pruned), unanchored extra witness (substituted), noncanonical order (reordered), or Revision commitment mismatch (forged / rehashed) | whole proposal | S0 |
+| `AMBIGUOUS_ASSOCIATION` | Two or more matching admission events for one descriptor, or two or more authenticated records with equal equivalence keys | whole proposal | S2 / S3 |
+| `UNREPLAYABLE_ASSOCIATION` | S1 structural transport mismatch (base snapshot inequality, partial or conflicting descriptor set); §3.5 flow failure (descriptor/byte/decode inconsistency); Mode A or Mode B failure (raise, non-reproduction, claim not applicable); any other fail-fast engine failure | whole proposal | S1 / S3 / S6 |
+| `COMPETING_ASSOCIATION` | Two or more authenticated claim records share the temporal identity or the Group while their equivalence keys differ | whole proposal | S3 |
+| `ALREADY_BOUND` | An authenticated base binding addresses the claim's identity or Group; the existing binding id is recorded; no mutation; reported only after S0–S3 pass | claim endpoints | S4 |
+| `TRACKED_REPRESENTATION` | A Track targets the Group, a member Entity or a member geometry Operation | claim endpoints | S5 |
+
+These six codes are the complete stable v0.1 acceptance-path vocabulary.
+`MISSING_ASSOCIATION_ARTIFACT` is a read-only-path diagnostic only (§5.1b) and
+is not part of this vocabulary.
+
+`REPRESENTATION_MODIFIED`, `IDENTITY_EXTENDED`, `DEPENDENCY_CHANGED` and
+`COVERAGE_INCOMPLETE` are **reserved future refinements**, not stable v0.1
+codes: the fail-fast engine surfaces them only as failures, so v0.1 folds them
+into `UNREPLAYABLE_ASSOCIATION`. A later revision MAY promote each only with
+its own structural predicate — never by message parsing.
 
 `REJECT` is deterministic: no tie-break, no best-pick, no winner selection, no
 replacement of an existing binding. A whole-proposal rejection produces no
-Proposal, no evidence and no mutation.
+Proposal, no evidence artifact and no mutation — even when other identities or
+claims would individually have been selectable.
 
-### 4.4 Global selection semantics
+### 4.4 Selection cardinality and global semantics
 
-- `SELECTED` pairs are proposed **ALL-or-none** in one proposal, in canonical
-  identity-id order — never one best pair.
-- Two identities contending for one Group cannot both be `SELECTED`; this state
-  is reachable only through evidence defects and is therefore `REJECT`
-  (`COMPETING_ASSOCIATION`), not a tie-break.
-- Zero `SELECTED` pairs → abstention at the proposal level: no Proposal, no
-  evidence artifact, no mutation (`ABSTAIN / ZERO_SELECTED` proposal outcome).
+**Bounded v0.1 cardinality: at most one `SELECTED` T→G pair per base.** This is
+an evidence-backed property of the frozen Spec80 v0.1 replay, not a policy
+choice:
+
+- `_Replay.facts()` constructs exactly one relation triple
+  (`association: {subject_id, temporal_identity_id, group_id}`) and requires a
+  single bounded world: exactly one accepted whole-subject identity companion,
+  exactly one matching membership companion, exactly one source-derived Group
+  intersecting the allocated members, and exactly one authenticated Group birth
+  transition. Two independent whole-subject worlds fail closed at these
+  exactly-one checks.
+- `_Replay.claims()` compares every admitted claim against that single facts
+  equivalence and fails on duplicate-equivalent claims or on endpoint-sharing
+  non-equivalent claims.
+- `admitted_associations()` returns that applicable set, so v0.1 can never
+  yield two independent applicable relations at one base.
+
+Consequences:
+
+- The proposal's selected set MUST equal the complete derivation; for v0.1 it
+  is empty or exactly one pair. A Proposal claiming any pair not in the
+  derivation — including a second pair — rejects (matrix #16).
+- Multi-target atomic binding is a **future extension** requiring a new profile
+  revision; it is not a v0.1 guarantee.
+- Zero `SELECTED` pairs → proposal-level abstention: no Proposal, no evidence
+  artifact, no mutation (`ABSTAIN / ZERO_SELECTED`).
 - `ABSTAIN` identities remain visible in the complete evaluation; they never
   become `SELECTED` through any inference.
-- Precedence: `ALREADY_BOUND` is determined from the complete authenticated base
-  binding state and takes precedence over unresolved or failing certification
-  evidence for that endpoint. Already-bound identities and Groups do not
-  participate in contention, matching P2D-A §5.1 precedence with this
-  contract's own code.
+- Precedence: evidence authentication (S0–S3) ALWAYS precedes eligibility
+  (S4+). `ALREADY_BOUND` and `TRACKED_REPRESENTATION` are determined only
+  after the evidence stages pass (§5, §6); they never hide evidence failure.
+- Witness precedence: within the evidence stages, S0 (witness/base/admission
+  authentication) precedes S1 (reference-universe structure), so a witness
+  defect outranks a transport defect (§5.1 rule 2).
 
-## 5. Failure behaviour (D)
+## 5. Deterministic failure classification (D)
 
-| Condition | Outcome | Code |
-| --- | --- | --- |
-| Missing artifact for an event-bearing claim | Fail-closed REJECT; must surface as the stable code, never an unhandled exception | `MISSING_ASSOCIATION_ARTIFACT` |
-| Tampered / unreproducible claim bytes with a genuine event | REJECT | `UNREPLAYABLE_ASSOCIATION` |
-| Modified Group, member geometry, membership, style, render order or provenance | REJECT | `REPRESENTATION_MODIFIED` |
-| Identity extension beyond the certified definition | REJECT | `IDENTITY_EXTENDED` |
-| Changed / removed required dependency descriptor | REJECT | `DEPENDENCY_CHANGED` |
-| Incomplete observation or membership coverage | REJECT | `COVERAGE_INCOMPLETE` |
-| Relevant sampled Track on the representation | REJECT | `TRACKED_REPRESENTATION` |
-| Birth / continuity history not authenticable | REJECT | `HISTORY_BROKEN` |
-| Already-bound identity or Group | REJECT; existing binding recorded; no replacement | `ALREADY_BOUND` |
-| Competing non-equivalent claims | Whole-proposal REJECT | `COMPETING_ASSOCIATION` |
-| Duplicate equivalent claims | Whole-proposal REJECT | `AMBIGUOUS_ASSOCIATION` |
-| Zero admitted certifications | ABSTAIN; no Proposal | `NO_ADMITTED_ASSOCIATION` |
-| No certification addresses the identity | ABSTAIN for that identity | `NO_CERTIFICATION_FOR_IDENTITY` |
+### 5.1 Stage order (single normative authority; first failure wins)
 
-None of these outcomes ever produce a substitute target. A rejection caused by
-`REPRESENTATION_MODIFIED`, `IDENTITY_EXTENDED`, `DEPENDENCY_CHANGED`,
-`COVERAGE_INCOMPLETE` or `HISTORY_BROKEN` is permanent for profile v0.1 (spec/80
-§5 continuity cannot be re-established after the edit); the affected pair needs
-a separately admitted future applicability profile. `ABSTAIN` states are the
-only ones a future certification proposal may legitimately resolve.
+This S0–S7 sequence is the **only** normative stage order in this document. Every
+other section's stage references, precedence statements and adversarial cases are
+defined by it; no second, conflicting execution order exists.
 
-## 6. Bound / unbound state and S1 authority (E)
+| Stage | Check | Artifact content parsed? | Basis |
+| --- | --- | --- | --- |
+| S0 | Real base anchoring: witness-DAG authentication against `source_revision_id` and per-node admission-history consistency (missing / pruned / substituted / reordered / forged / rehashed) | no | structural, frozen `authenticate_witnesses` predicates |
+| S1 | Complete reference-universe structural validation: base-Document snapshot equality and `source_references` equal to the complete current reference collection (exact descriptors, canonical Artifact-ID order, no descriptor conflict), plus presence of every declared id in the received resolved map | **no** — descriptor level only | structural |
+| S2 | Admitted-claim classification: reserved-media references vs matching admission events — data vs claim vs ambiguous event count. **Zero claims ⇒ `ABSTAIN / NO_ADMITTED_ASSOCIATION`; stop here.** | no | structural |
+| S3 | Artifact verification for a real claim plus Mode A: §3.5 Reference→Artifact→record flow, replay at the located acceptance Revision R, endpoint/`claim_key` extraction, cross-claim competition/duplication | yes | replay pass/fail |
+| S4 | Existing legal binding check | no | structural |
+| S5 | Relevant Track check | no | structural |
+| S6 | Mode B current applicability, only for unbound and untracked targets | yes | replay pass/fail |
+| S7 | Final classification and Proposal construction | — | pure |
 
-Two states exist for an identity/Group pair:
+Rules:
+
+1. **First failure wins.** Later stages never run before earlier ones pass; the
+   first failing stage decides the outcome, and S7 runs only on complete success.
+2. **Witness precedence over transport.** S0 deliberately precedes S1. When one
+   request has both a witness defect and a reference-universe structural defect,
+   the single, unique outcome is `HISTORY_BROKEN`. A transport defect is
+   reported only when the witness DAG is authentic.
+3. **Zero-claim short-circuit.** `ABSTAIN / NO_ADMITTED_ASSOCIATION` is decided
+   at S2 — after S0 and S1 pass, before any Artifact content parsing or Spec80
+   engine invocation. It never bypasses S0/S1 and is never conditional on a
+   successful engine run.
+4. **No weakened universe for a real claim.** Once at least one candidate claim
+   exists, the complete current reference universe MUST be validated (S1) and
+   its required Artifacts verified (S3); a partial transport is a rejection,
+   never a degradation of the frozen Spec80 requirement. Untrusted or external
+   storage MUST NOT be consulted to fill it.
+5. **No eligibility short-circuit.** S0–S3 authenticate evidence and MUST run
+   even when the endpoints are already bound; no endpoint may be classified
+   `ALREADY_BOUND` before S0–S3 pass. `ALREADY_BOUND` is never a way to bypass
+   historical authentication.
+6. **No partial results.** A whole-proposal failure yields no Proposal, no
+   evidence Artifact, no partial `SELECTED` set and no state mutation.
+
+**Naming note.** The stage labels S0–S7 are local to this consumer contract.
+They are unrelated to the frozen phase/slice names "S0"/"S1" used elsewhere in
+the repository: "the frozen S1 binding" always means the Motion Target Binding
+slice and its `BindTemporalMotionTargetChange` authority, never stage S1.
+
+### 5.1b Missing-artifact failure is not a promised first domain code (Acceptor boundary)
+
+The Acceptor resolves Artifact bytes **before** the registered verifier runs
+(`_verify_artifacts` precedes `_verify_artifact_bound_changes`). A declared
+Artifact the resolver cannot resolve therefore fails in the Acceptor with its
+existing `ProposalArtifactError` (text from the underlying `ArtifactError`); the
+verifier never observes that state. Because this failure occurs in a different
+layer, the two layers MUST NOT promise one unified "first domain error code":
+
+- the consumer MUST NOT promise `MISSING_ASSOCIATION_ARTIFACT` (or any other
+  code) as the guaranteed first acceptance-path error, and MUST NOT derive a code
+  by parsing exception text;
+- inside the verifier, a declared id absent from the received resolved map is
+  unreachable under the Acceptor contract and MUST fail closed with a plain
+  raise; no stable code is promised for it;
+- in the read-only derivation/preview path the consumer resolves from its own
+  repository. It MAY report the diagnostic `MISSING_ASSOCIATION_ARTIFACT` only
+  when absence is determinable **structurally** (the required id is absent from
+  its own repository index). If a structural check cannot stably separate missing
+  bytes from a corrupt descriptor, it MUST use the generic
+  `UNREPLAYABLE_ASSOCIATION` rather than inventing a specific code;
+- modifying `ProposalAcceptor`, its error types or its messages is explicitly out
+  of scope and forbidden by this contract.
+
+### 5.2 Reason matrix
+
+| Outcome | Code | Trigger | Stage | Scope |
+| --- | --- | --- | --- | --- |
+| REJECT | `HISTORY_BROKEN` | Any witness-DAG predicate: missing ancestor, unreachable/pruned branch, unanchored/substituted witness, noncanonical order, forged or rehashed Revision commitment or admission event | S0 | whole proposal |
+| REJECT | `UNREPLAYABLE_ASSOCIATION` | S1 structural transport mismatch (base snapshot inequality, `source_references` ≠ complete current universe, descriptor conflict); S3 §3.5 flow failure or Mode A failure or non-applicable event-bearing claim; S6 Mode B failure; missing/corrupt bytes of a required historical dependency that cannot be structurally separated from descriptor corruption; any other fail-fast engine failure | S1 / S3 / S6 | whole proposal |
+| REJECT | `AMBIGUOUS_ASSOCIATION` | ≥2 matching admission events for one descriptor (S2), or ≥2 authenticated records with equal equivalence keys (S3) | S2 / S3 | whole proposal |
+| REJECT | `COMPETING_ASSOCIATION` | Authenticated records share the identity or Group with differing equivalence keys | S3 | whole proposal |
+| REJECT | `ALREADY_BOUND` | Base binding addresses the endpoints; existing binding id recorded; reported only after S0–S3 pass | S4 | claim endpoints |
+| REJECT | `TRACKED_REPRESENTATION` | Track targets the Group / a member Entity / a member geometry Operation | S5 | claim endpoints |
+| ABSTAIN | `NO_ADMITTED_ASSOCIATION` | Zero candidate claims after S0/S1 pass; no content parsed; engine not invoked | S2 | universe |
+| ABSTAIN | `NO_CERTIFICATION_FOR_IDENTITY` | Authenticated claims exist but none addresses this identity | S7 | identity |
+| SELECTED | — | The single applicable, authenticated, unbound, untracked relation | S7 | identity |
+
+Precedence is the S0→S7 order above: a witness defect (S0) always outranks a
+transport defect (S1), which always outranks a claim/eligibility outcome.
+
+`MISSING_ASSOCIATION_ARTIFACT` is deliberately **absent** from this
+acceptance-path matrix: in acceptance the Acceptor resolves artifacts first and
+fails with its own `ProposalArtifactError` (§5.1b). The code exists only as a
+read-only-path diagnostic and is never promised as an acceptance domain code.
+
+### 5.3 Rules
+
+- No stable code is derived by parsing exception text; triggers are exactly the
+  structural predicates above and pass/fail of the frozen replay entries.
+- Acceptance-path codes are only those the verifier can decide structurally;
+  Acceptor-side failures (missing declared artifact, unregistered Change,
+  source-revision mismatch, policy denial) keep their existing error types and
+  are not re-coded or re-messaged by the consumer (§5.1b).
+- A whole-proposal failure produces no Proposal, no evidence artifact and no
+  mutation; partial `SELECTED` sets and incomplete evidence are forbidden.
+- Outcomes never produce a substitute target; missing authority is never
+  repaired by inference.
+- `REJECT` is permanent for the supplied evidence state: re-admitting the same
+  bytes cannot repair it. `ABSTAIN` states are the only ones a future genuine
+  certification proposal may legitimately resolve.
+
+## 6. Bound / unbound state, binding authority and execution order (E)
+
+Four layers MUST NOT be conflated:
 
 ```text
-state U — unbound; a currently applicable certification exists
-          -> eligible for SELECTED -> frozen binding proposal
-state B — bound by an accepted Motion Target Binding (S1)
-          -> authoritative; consumer reports ALREADY_BOUND and never touches it
+L1 historical evidence authenticity — base anchoring, complete witness DAG,
+   admission-history consistency, reference-universe structure and claim
+   reproduction (S0–S3). Fraud, forgery, pruning, substitution, reordering or
+   an incomplete transport fails here, always, regardless of any binding.
+L2 Spec80 current applicability — the frozen v0.1 consumption proof at the
+   current base (S6); skipped for bound or tracked targets because Spec80 v0.1
+   itself blocks new certification/consumption for bound pairs.
+L3 existing S1 binding authority — a legal accepted binding is authoritative
+   for its own semantics; it is never revoked, replaced or refreshed here.
+L4 P2D-B0 new-binding eligibility — the consumer's own decision (S4–S7); it
+   can propose only where L1–L2 succeeded and no L3 binding addresses the pair.
 ```
+
+Deterministic order: `L1 (S0 → S1 → S2 → S3) → L3 binding check (S4) → track
+check (S5) → L2 (S6, only if unbound and untracked) → L4 (S7)`. This follows the
+single stage authority of §5.1; L2 cannot run before L1, and no layer may be
+skipped.
 
 Normative rules:
 
-1. After a legal frozen S1 binding is accepted, that binding remains fully
-   authoritative for its own semantics. The consumer SHALL NOT revoke, replace,
-   rebind, re-point or "refresh" it — not even implicitly.
-2. Spec80 v0.1's non-applicability for an identity or Group once a binding
-   addresses it (spec/80 §5, "blocks this profile") is an **eligibility rule for
-   NEW certifications only**. It is not a revocation of the existing binding,
-   must not be reported as one, and must not cause a previously legal binding to
-   be dropped from any enumeration.
-3. A subsequent consumer run over the same Document classifies the bound
-   identity (and any identity resolving to the bound Group) as
-   `REJECT / ALREADY_BOUND`, recording the existing binding id — auditable
-   exclusion, exactly one evaluation entry each.
-4. One-to-one ownership (one T per binding, one G per binding) is enforced by
-   the frozen binding Change and Document validation; the consumer must not
-   duplicate or weaken that check, and must not propose a second binding for an
-   already-consumed endpoint even when a stale applicable certification exists.
-5. `ABSTAIN` and `ALREADY_BOUND` are distinct: the former is missing evidence,
-   the latter is proven existing ownership.
+1. After a legal frozen motion-target-binding acceptance (S1 slice) is recorded,
+   it remains fully authoritative.
+   The consumer SHALL NOT revoke, replace, rebind, re-point or "refresh" it.
+2. A base binding addressing the claim's endpoints is detected structurally
+   from the authenticated base document (exact match on `temporal_identity_id`
+   or `target.group_id`) and reported as `ALREADY_BOUND` with the existing
+   binding id — but ONLY after S0–S3 pass. Unauthenticated witnesses, broken
+   admission events, tampered claims, an incomplete reference universe and
+   missing event-bearing artifacts are NEVER silently accepted because an
+   endpoint is bound; those failures reject the whole proposal.
+3. Spec80 v0.1's block on new certification/consumption for bound pairs is
+   preserved unchanged: Mode B is not invoked, no certification is created,
+   and the block is never read as evidence invalidity or as revocation.
+4. A rerun after a legal binding therefore ends with the identity classified
+   `REJECT / ALREADY_BOUND` and proposal-level `ZERO_SELECTED` abstention — no
+   new Proposal is required or implied, the historical binding Revision is not
+   reproduced or replaced, and no re-binding is possible.
+5. `ABSTAIN` and `ALREADY_BOUND` are distinct: missing evidence vs proven
+   existing ownership.
+6. One-to-one ownership (one T per binding, one G per binding) remains enforced
+   by the frozen binding Change and Document validation; the consumer neither
+   duplicates nor weakens it.
 
-## 7. Proposal, preview and atomic materialization (F)
+## 7. Witness contract, transport, verifier and materialization (F)
 
-1. **Read-only derivation.** Enumeration, acquisition, classification and
-   proposal construction are pure: they must not mutate any accepted state.
-2. **Preview is read-only.** Preview output is derived from the same pure
-   derivation as acceptance; preview must not commit, must not write repository
-   artifacts outside the ordinary local import used by existing adapters, and
-   must not create an admission event.
-3. **No new authority shortcut.** Materialization SHALL go through the existing
+### 7.1 Composite Change fields (exact names reserved at implementation)
+
+```text
+source_revision_id          the real Proposal base id
+base_document_snapshot      deep copy of the complete base Document
+witnesses                   complete canonical ancestral DAG
+                            (RevisionSnapshotWitness records, sorted by
+                            Revision id), collected from the trusted store
+                            by orchestration
+policy_identity             the versioned consumer policy
+source_references           complete current base reference universe,
+                            canonical Artifact-ID order, exact descriptors
+selection_evidence_reference
+delegated_binds             exact frozen BindTemporalMotionTargetChange
+                            records, canonical pair order
+selected_pairs              the derived SELECTED set (v0.1: empty or one)
+```
+
+`witnesses` MUST be the complete DAG; a single Revision witness is permitted
+only when `source_revision_id` is a root with no parents. `source_revision_id`
+is bound by the existing `source_revision_resolver` to the real accepted base
+(existing Revision; HEAD for ordinary acceptance), and the base witness's
+Document MUST canonically equal `base_document_snapshot`.
+
+### 7.2 Witness authentication against the real base commitment
+
+Every witness is authenticated with the frozen `authenticate_witnesses`
+semantics: recompute each Revision commitment from its Document, parent ids,
+transaction id, message and admission events, then require exact equality,
+canonical order, and a reachable set exactly equal to the supplied set anchored
+at `source_revision_id`; validate every node's admission events with the frozen
+consistency contract. Failure behaviour:
+
+| Defect | Predicate | Code |
+| --- | --- | --- |
+| missing witness / broken chain | required ancestor not supplied | `HISTORY_BROKEN` |
+| pruned subtree | reachability gap inside a branch | `HISTORY_BROKEN` |
+| substituted / extra witness | unanchored witness and/or commitment mismatch | `HISTORY_BROKEN` |
+| reordered witnesses | noncanonical witness order | `HISTORY_BROKEN` |
+| forged / rehashed Revision or event | Revision commitment mismatch | `HISTORY_BROKEN` |
+
+All are whole-proposal failures at S0; no partial state. A single Revision
+witness never substitutes the authenticated ancestral history. Because S0
+precedes S1 (§5.1 rule 2), a request carrying both a witness defect and a
+reference-universe structural defect is always reported as `HISTORY_BROKEN`.
+
+### 7.3 Transport: complete current universe, historical closure by resolution
+
+`source_references` MUST equal the authenticated base's complete reference
+collection — exact descriptors, deduplicated by Artifact id, canonical order —
+the same equality Spec80's `verify_change` enforces against
+`_references(document)`. The Composite Change's `references` are exactly those
+descriptors plus the new selection evidence; `required_artifact_ids` MUST equal
+that id set (the existing ProposalAcceptor resolves exactly these). The
+certification Artifact, its complete dependency closure and every currently
+accepted reference travel in full; caller subsets are forbidden. Non-current
+historical bytes are not transported, and no external resolution is permitted.
+
+Resolution order is fixed by the existing Acceptor and is not modified:
+
+```text
+_verify_trusted_change_types → _verify_artifacts (resolves every declared id)
+  → _verify_artifact_bound_changes (source_revision_resolver, then verifier)
+  → enforce_transaction_policies → apply_verified_transaction
+```
+
+A declared id the Acceptor cannot resolve fails before the verifier with the
+Acceptor's own `ProposalArtifactError` (§5.1b); the verifier's S1 check covers
+only the structural presence of every declared id in the resolved map it
+receives. If instead a *required* historical descriptor was removed from the
+current base, the failure is one of two structural kinds: `source_references` no
+longer equals the current universe (S1), or the transported universe no longer
+reproduces the stored claim (S3) — either way whole-proposal
+`UNREPLAYABLE_ASSOCIATION`, never a degradation of the frozen Spec80
+requirement, and never filled from an untrusted or external store.
+
+### 7.4 Verifier without a live RevisionStore
+
+The registered verifier receives exactly `(change, resolved_artifacts)` and
+MUST NOT require, receive or reconstruct a live `RevisionStore`. It:
+
+1. authenticates `witnesses` against `source_revision_id` (S0, §7.2);
+2. runs S1 (content-free reference-universe structural validation, including
+   presence of every declared id in the received `resolved` map), then builds a
+   local scratch `ArtifactStore` from that universe, requiring exact descriptor
+   equality for every id (§5.1b);
+3. re-executes §3 with only that scratch store and the witness Documents:
+   S2 classification (zero claims ⇒ abstain, stop), S3 §3.5 flow plus Mode A per
+   claim (`admitted_associations` at the located acceptance Revision R from
+   §3.2 with `ancestors(R)`), S4–S5 structural eligibility, S6 Mode B when
+   unbound and untracked (full DAG at the current base);
+4. re-derives the complete `selected_pairs`, evidence bytes and delegated
+   binding records, requiring exact equality with the Change, every delegated
+   `source_revision_id` equal to the base, and no subset, superset or reorder;
+5. applies the pre-mutation `apply` guard (canonical equality of the incoming
+   Document with `base_document_snapshot`) before any delegated mutation.
+
+The Mode A entry needs no new runtime API: the acceptance Revision R is located
+structurally in the authenticated DAG by the §3.2 reference-birth predicate
+(frozen evidence-only transition), and `admitted_associations` is reused
+unchanged at R with its ancestor subset.
+
+### 7.5 Preview, delegation, evidence, atomicity, intents
+
+1. **Read-only derivation and preview.** Enumeration, acquisition,
+   classification, proposal construction and preview are pure: they must not
+   mutate any accepted state, and preview must emit no admission event.
+2. **No new authority shortcut.** Materialization goes through the existing
    `ChangeAuthority` / `ProposalAcceptor` boundary with exactly one registered
    composite Change. No direct `RevisionStore` mutation, no trusted-commit
    bypass, no new policy action, no new ProposalAcceptor capability, no
    verification-free fast path.
-4. **Authenticated base.** The composite Change SHALL reuse the proven spec/70
-   §10–§11 design: complete base-Document snapshot, detached Revision witness,
-   existing `source_revision_resolver`, complete closure re-derivation, and a
-   pre-mutation `apply` guard requiring canonical equality with the
-   authenticated snapshot. A supplied snapshot or projection without this base
-   commitment is insufficient.
-5. **Frozen delegation.** For every `SELECTED` pair the consumer delegates to
-   the frozen `TemporalMotionTargetBindingAdapter` /
-   `BindTemporalMotionTargetChange` with exactly the pair. Binding id formula,
-   snapshot hashing, stale checks, one-to-one conflicts and Document mutation
-   remain exclusively the frozen implementation's duties — the consumer must
-   not copy them.
-6. **Evidence.** One versioned evidence artifact accompanies an accepted
-   proposal (separate schema/media from P2D-A; exact identity reserved at
-   implementation). It records the complete per-identity classifications, all
-   audited claims with replay outcomes, existing bindings for `ALREADY_BOUND`
-   entries, the selected pairs in canonical order, and deterministic counts.
-   It records no geometry, distance, similarity or caller metadata as authority.
-7. **Atomicity.** Selected pairs, delegated binds and the evidence reference
+3. **Frozen delegation.** For every `SELECTED` pair, delegate to the frozen
+   `TemporalMotionTargetBindingAdapter` / `BindTemporalMotionTargetChange` with
+   exactly the pair. Binding id formula, snapshot hashing, stale checks,
+   one-to-one conflicts and Document mutation remain exclusively the frozen
+   implementation's duties.
+4. **Evidence.** One versioned evidence artifact accompanies an accepted
+   proposal (separate schema/media from P2D-A). It records the complete
+   per-identity classifications, every audited claim with its stage outcome,
+   existing bindings for `ALREADY_BOUND` entries, the selected pairs in
+   canonical order, and deterministic counts. It records no geometry, distance,
+   similarity or caller metadata as authority, and is never produced for a
+   failed proposal.
+5. **Atomicity.** Selected pairs, delegated binds and the evidence reference
    publish as one atomic transaction. Rejections (verification, policy, final
    validation, delegated failure) leave HEAD, Revision count, Document, Groups,
-   identities, bindings and reference universe unchanged; no partial mutation
-   and no evidence append after partial failure.
-8. **Existing intents only.** The registered action set is exactly
-   `bind_motion_target` (per delegated pair, from the exact delegated records)
-   plus `attach_analysis` on `document`.
+   identities, bindings and reference universe unchanged.
+6. **Existing intents only.** The registered action set is exactly
+   `bind_motion_target` (per delegated pair) plus `attach_analysis` on
+   `document`.
+
+### 7.6 Idempotence and determinism distinctions
+
+1. **Pure derivation repeat at the same base** → byte-identical classification
+   and evidence payloads (pure function; no clock, randomness or paths).
+2. **Proposal rebuild at the same base before acceptance** → identical
+   proposal id, evidence descriptor and required-artifact closure;
+   content-addressed reuse, no new Artifact.
+3. **Full reset to the baseline and re-execution of the chain** → identical
+   Revision ids (deterministic acceptance).
+4. **Re-run after a successful acceptance**: the accepted binding is history.
+   At the post-acceptance HEAD the endpoints are bound, so the run ends in
+   `ALREADY_BOUND` with proposal-level `ZERO_SELECTED` abstention — no new
+   binding Revision is required, reproduced or implied, and the existing
+   binding is never revoked. Rebuilding the Proposal at its original
+   pre-acceptance base remains case 2; acceptance of a stale base is rejected
+   by the existing base checks.
 
 ## 8. Distinct authorities (G)
 
@@ -270,12 +641,16 @@ evidence authority   — Spec80 certification + its Core admission event:
                        proves the current T <-> G relationship
 consumer authority   — complete enumeration + classification:
                        decides which certified pairs are proposed, nothing else
-binding authority    — frozen S1 Change + Document validation:
-                       decides final binding legality and owns binding identity
+binding authority    — frozen motion-target-binding Change (S1 slice) + Document
+                       validation: decides final binding legality and owns
+                       binding identity
 ```
 
 The consumer's selection is not proof of the relationship, and the
 certification is not authorization to bind without the frozen acceptance path.
+Historical evidence authentication (§5.1 S0–S3) always precedes any eligibility
+classification; the binding authority layer never suppresses evidence
+verification, and the consumer authority never reinterprets Spec80 semantics.
 No consumer-side signal — distance, similarity, sibling Group adjacency, sole
 unbound Group, "obvious" pairing — may substitute for a missing certification.
 Caller-supplied `temporal_identity_id`, `group_id`, `entity_id`, thresholds,
@@ -291,37 +666,49 @@ existing Spec78 Group `group:1f24284859439580faac31e69df1aa7bf6a1a28c450d8ddae2e
 and the admitted certification
 `artifact:6ee8fd89abc03a3094d0e1b1fbc4fbd2043345bc7ff5418d2adbe7aee6262f47`
 (baseline Revision `revision:29f30d08a83e2db47bcf01db6acb28f1468e2792a38c94417b4435d52f449e87`).
-Expected assertions: exactly one `SELECTED` pair; preview mutates nothing;
-acceptance adds exactly one `motion_target_bindings` entry with the frozen
-`policy_identity` `svm-explicit-motion-target-binding@0.1`; no Track, Keyframe,
-Entity, Group, TemporalIdentity or artwork-rendering byte changes; deterministic
-rerun reproduces identical Proposal/evidence/Revision identities; the admitted
-certification reference and complete dependency closure remain untouched.
+Expected assertions: exactly one `SELECTED` pair — the maximum v0.1 cardinality
+(§4.4); preview mutates nothing; acceptance adds exactly one
+`motion_target_bindings` entry with the frozen `policy_identity`
+`svm-explicit-motion-target-binding@0.1`; no Track, Keyframe, Entity, Group,
+TemporalIdentity or artwork-rendering byte changes; a same-base Proposal
+rebuild reproduces identical proposal/evidence identities (§7.6 case 2); the
+admitted certification reference and complete dependency closure remain
+untouched; a post-acceptance rerun at the bound HEAD ends in `ALREADY_BOUND`
+with `ZERO_SELECTED` — no new binding Revision is produced or demanded and no
+revocation occurs (§7.6 case 4).
 
 **Adversarial matrix (required when implemented; no test is created now).**
 
 | # | Case | Required outcome |
 | --- | --- | --- |
-| 1 | Certification bytes present, no admission event (generic/low-level append) | Data; excluded from authority; `NO_ADMITTED_ASSOCIATION` abstention when it is the only candidate |
-| 2 | Genuine event, tampered bytes / descriptor | `UNREPLAYABLE_ASSOCIATION`, fail-closed |
-| 3 | Genuine event, artifact unresolvable | `MISSING_ASSOCIATION_ARTIFACT` — stable domain rejection, never an unhandled `KeyError` |
-| 4 | Group / member geometry / membership / style / render order modified after certification | `REPRESENTATION_MODIFIED`; existing bindings untouched |
-| 5 | Identity extended (extra binding/provenance) or aliased | `IDENTITY_EXTENDED` |
-| 6 | Required dependency descriptor changed / removed | `DEPENDENCY_CHANGED` |
-| 7 | Coverage incomplete at current base | `COVERAGE_INCOMPLETE` |
-| 8 | Relevant Track on Group / member / Operation | `TRACKED_REPRESENTATION` |
-| 9 | Two non-equivalent admitted claims sharing T or G | Whole-proposal `COMPETING_ASSOCIATION`, no tie-break |
-| 10 | Duplicate equivalent admitted claims | Whole-proposal `AMBIGUOUS_ASSOCIATION` |
-| 11 | Already-bound identity and/or Group, with a stale applicable certification | `ALREADY_BOUND` with existing binding recorded; no replacement; existing binding remains authoritative |
-| 12 | Forged witnesses / unanchored history / invented event | `HISTORY_BROKEN` or rejection at witness authentication |
-| 13 | Omitted identity, claim or required artifact from transport or evaluation | Reject incomplete universe; no selective shortlist |
-| 14 | Subset attack: two `SELECTED` pairs, proposal keeps one | Reject: `SELECTED` pairs must equal the complete derivation |
-| 15 | Uncertified identity with an "obviously matching" Group | `ABSTAIN / NO_CERTIFICATION_FOR_IDENTITY`; never selected by proximity or sole-candidate inference |
-| 16 | Stale base after proposal | Ordinary acceptance rejects before verification |
-| 17 | Policy denial / delegated binding failure / post-verification failure | Atomic rollback; HEAD, Document, bindings, references unchanged |
-| 18 | Deterministic rerun | Identical proposal, evidence, Revision identities |
-| 19 | No Track creation in every positive case | Frozen behaviour only; consumer adds no animation |
-| 20 | Preview isolation | Preview mutates no accepted state and emits no admission event |
+| 1 | Certification bytes present, no admission event (generic/low-level append), valid descriptors and witnesses | Data; `NO_ADMITTED_ASSOCIATION` abstention decided at S2 after S0/S1; content not parsed; engine not invoked; no REJECT |
+| 2 | Genuine event, tampered bytes / descriptor | Whole-proposal `UNREPLAYABLE_ASSOCIATION` (S3 §3.5 flow), fail-closed |
+| 3 | Declared required Artifact not resolvable — **acceptance path** | Acceptor `ProposalArtifactError` before the verifier (`_verify_artifacts`); no consumer domain code promised, no Acceptor change |
+| 3b | Declared required Artifact not resolvable — **read-only/preview path** | Consumer's own diagnostic `MISSING_ASSOCIATION_ARTIFACT` **only when structurally determinable**; otherwise generic `UNREPLAYABLE_ASSOCIATION`; never a substitute target |
+| 3c | Declared id absent from the resolved map received by the verifier | Unreachable under the Acceptor contract; plain fail-closed raise, no stable code promised |
+| 3d | Historical descriptor/content required by replay absent from the validated transport (bytes vs descriptor corruption not structurally separable) | Whole-proposal `UNREPLAYABLE_ASSOCIATION` (S3); no message-derived specialized code; no untrusted/external fill |
+| 4 | Group / member geometry / membership / style / render order / provenance modified after certification | Whole-proposal REJECT at S6 (`UNREPLAYABLE_ASSOCIATION` in v0.1; finer code reserved); existing bindings untouched |
+| 5 | Identity extended (extra binding/provenance) or aliased | Whole-proposal REJECT at S6 (`UNREPLAYABLE_ASSOCIATION` in v0.1) |
+| 6 | Required dependency descriptor changed / removed | Same as #5 |
+| 7 | Coverage incomplete at the current base | Same as #5 |
+| 8 | Relevant Track on Group / member / Operation | `TRACKED_REPRESENTATION` (S5); no mutation |
+| 9 | Two non-equivalent authenticated claims sharing T or G | `COMPETING_ASSOCIATION` (S3), whole proposal, no tie-break |
+| 10 | Duplicate equivalent claims (same or different descriptors) | `AMBIGUOUS_ASSOCIATION` (S2/S3), whole proposal |
+| 11 | Already-bound endpoints with a valid historical certification | S0–S3 pass → `ALREADY_BOUND` with the existing binding id; no replacement, no revocation |
+| 12 | Already-bound endpoints with forged/broken evidence (unauthenticated witness, broken event, tampered claim) | Whole-proposal REJECT at S0–S3; `ALREADY_BOUND` never suppresses evidence failure |
+| 13 | Missing / pruned / substituted / reordered / rehashed witness | `HISTORY_BROKEN` (S0), whole proposal |
+| 14 | Base-only single witness when the base has ancestors (any incomplete DAG) | `HISTORY_BROKEN` (S0); a single Revision witness never substitutes the ancestral DAG |
+| 14b | **Both** a witness defect and a transport-structure defect in one request | `HISTORY_BROKEN` only — S0 precedes S1; the transport defect is not reported |
+| 15 | Omitted identity, claim or required artifact from transport or evaluation | Reject incomplete universe (S1/S3/S7); no selective shortlist, no weakened universe once a real claim exists |
+| 16 | Proposal carries a pair not in the derivation — including any second pair (v0.1 cardinality is ≤1) | Reject: the selected set must equal the complete derivation |
+| 17 | Uncertified identity with an "obviously matching" Group | `ABSTAIN / NO_CERTIFICATION_FOR_IDENTITY`; never proximity or sole-candidate inference |
+| 18 | Stale base after proposal | Ordinary acceptance rejects before verification |
+| 19 | Policy denial / delegated binding failure / post-verification failure | Atomic rollback; HEAD, Document, bindings, references unchanged |
+| 20 | Engine failure anywhere (continuity broken, world modified, fail-fast precondition) | Whole-proposal REJECT; no partial `SELECTED`, no evidence artifact |
+| 21 | Post-acceptance rerun at the bound HEAD | Identity `ALREADY_BOUND` + proposal-level `ZERO_SELECTED`; no new binding Revision demanded; no revocation |
+| 22 | Same-base rebuild and reset-and-replay determinism | Identical proposal/evidence identities; deterministic Revision ids on reset |
+| 23 | No Track creation in every positive case | Frozen behaviour only; consumer adds no animation |
+| 24 | Preview isolation | Preview mutates no accepted state and emits no admission event |
 
 ## 10. Performance budget and optimization direction (I)
 
@@ -334,8 +721,11 @@ number of admitted claims; deep chains fail closed (possibly via
 Initial budget (design):
 
 - one consumer run over the bounded Golden 046 fixture SHOULD complete within a
-  small constant multiple of a single Spec80 verification pass (the consumer
-  adds enumeration and classification, not new replay work);
+  small constant multiple of a single Spec80 verification pass; the pipeline
+  performs at most two replay invocations (Mode A per claim, Mode B when
+  unbound). Implementation MAY fuse Mode A into Mode B when Mode B runs — the
+  engine's per-claim reproduction is the same computation — but MUST NOT fuse
+  when Mode B is skipped for bound or tracked endpoints;
 - the exact numeric budget and any maximum claims-per-proposal bound are
   **OPEN** pending implementation measurement;
 - a run MUST NOT weaken any check to meet the budget.
@@ -364,8 +754,8 @@ This contract does not cover and its future implementation SHALL NOT add:
 - automatic animation Track or Keyframe authoring;
 - appearance repair, stylization, occlusion or flicker handling;
 - arbitrary artwork claiming / arbitrary Group adoption;
-- any change to existing animation, rendering, Camera, P2A/P2B/R0/R1/P2C/S0/S1
-  or Document semantics;
+- any change to existing animation, rendering, Camera, P2A/P2B/R0/R1/P2C phase
+  semantics, or the frozen Motion Target Binding (S1 slice) authority;
 - substitution of P2D-A's provenance rules (P2D-A stays exactly as specified).
 
 ## 12. Open decisions, implementation split and readiness
@@ -373,22 +763,28 @@ This contract does not cover and its future implementation SHALL NOT add:
 Open decisions (not decided by this draft):
 
 1. Whether a future P2D composite should ever combine certification-based pairs
-   with P2D-A provenance-based pairs in one proposal, or keep separate profiles
-   with separate evidence schemas (current design: separate).
+   with P2D-A provenance-based pairs in one proposal, or support multi-target
+   atomic binding (v0.1 cardinality is one, §4.4) — keep separate profiles with
+   separate evidence schemas (current design: separate; future extension).
 2. The exact name/version of the composite Change and evidence schema/media
    (reserved at implementation; must be a closed-world registry addition).
 3. The numeric performance budget and any per-proposal claim bound (§10).
 4. Whether `ALREADY_BOUND` consumption states should additionally record the
    archived certification descriptor for audit display (no authority effect).
+5. Promoting `REPRESENTATION_MODIFIED`, `IDENTITY_EXTENDED`,
+   `DEPENDENCY_CHANGED` and `COVERAGE_INCOMPLETE` to stable codes requires a
+   structural predicate for each; reserved for a future consumer revision.
+6. Whether the consumer exposes a read-only diagnostic report for
+   whole-proposal REJECT outcomes (never an accepted evidence artifact).
 
 Suggested Codex implementation split (future, each independently reviewable):
 
-- **B0-1** — read-only derivation: enumeration, acquisition via Spec80 replay,
-  classification, versioned reason codes, proposal-level abstention; pure
-  focused unit tests. No acceptance surface.
+- **B0-1** — read-only derivation: enumeration, acquisition via the staged
+  pipeline (S0–S7), classification, versioned reason codes, proposal-level
+  abstention; pure focused unit tests. No acceptance surface.
 - **B0-2** — composite Change + `ChangeAuthority` registration + independent
-  verifier (authenticated snapshot/witness, complete closure re-derivation,
-  Spec80 replay integration, apply guard, frozen delegation).
+  verifier (witness DAG authentication, complete closure re-derivation, Mode A/B
+  replay integration, apply guard, frozen delegation).
 - **B0-3** — adapter + Proposal + evidence artifact schema + preview isolation +
   policy intents (`bind_motion_target`, `attach_analysis`).
 - **B0-4** — Golden fixture (046 chain) + full adversarial matrix + regression +
@@ -397,15 +793,26 @@ Suggested Codex implementation split (future, each independently reviewable):
 Readiness verdict for this round:
 
 ```text
-P2S-F1B freeze:                 FROZEN (bounded v0.1 profile only)
-P2D-B0 contract draft:          PRESENT (this document, design only)
-Conditions to ENTER a P2D-B0 design gate: SATISFIED
-P2D-B implementation:           NOT AUTHORIZED — remains BLOCKED
+P2S-F1B freeze:                      FROZEN (bounded v0.1 profile only)
+P2D-B0 contract draft:               PRESENT (this document)
+Design-gate revision r2 gaps:        ALL RESOLVED (design only)
+  historical witness contract        §7.1–§7.4
+  bound-state vs evidence ordering   §6
+  v0.1 selection cardinality         §4.4 (≤ 1; single-world evidence)
+  deterministic error classification §5 (structural triggers; no parsing)
+  idempotence / determinism          §7.6
+Design-gate revision r3 findings:    ALL RESOLVED (design only)
+  Reference vs decoded record        §3.5 (returns applicable References)
+  transport vs zero-claim ordering   §5.1, §5.1b, §7.3
+P2D-B implementation:                NOT AUTHORIZED — remains BLOCKED
 ```
 
-The conditions to enter a design gate are satisfied because the consumed
-authority (spec/80 v0.1) is frozen, the consumption primitive
-(`admitted_associations`) exists and is independently replayed, the frozen
-binding boundary (S1) is unchanged, and no runtime change is required to review
-this contract. This is not a READY state: implementation awaits an explicit
-design-gate decision, and P2D-B must not be marked READY by this document.
+Implementation-gate preconditions (design side, all satisfied above): the
+consumed authority (spec/80 v0.1) is frozen; every acquisition entry reuses the
+frozen `admitted_associations` contract with no new Core authority, no new
+ProposalAcceptor capability and no ChangeAuthority bypass; the composite
+transport and witness design reuse the proven spec/70 §10–§11 and spec/80
+patterns; the frozen Motion Target Binding (S1 slice) boundary is unchanged; the
+five design-gate gaps and the two r3 findings are resolved by these revisions.
+This is still not a READY state: implementation awaits an explicit gate decision,
+and P2D-B MUST NOT be marked READY by this document.
