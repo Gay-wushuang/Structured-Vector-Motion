@@ -25,6 +25,15 @@ witness/base/admission authentication first (S0), then the content-free
 reference-universe structure (S1) — so that a witness defect always outranks a
 transport defect. No runtime behavior is added or promised by these revisions.
 
+Revision r4 (evidence-contract revision) closes the B0-2 interface blocker: the
+previously reserved selection-evidence schema/media and composite Change
+identity are now fully fixed by §7.7 — the **Selection Evidence Contract v0.1** —
+which is the prerequisite design gate for B0-2. It is grounded in the
+implemented B0-1 result (`CertifiedTargetResult`, `IdentityEvaluation`,
+`ClaimAudit`), the existing `canonical_bytes` / `ArtifactStore` /
+`ArtifactDescriptor` contracts and the existing ChangeAuthority conventions. No
+runtime behavior is added or promised by this revision.
+
 This contract is deliberately versioned and separable from
 [spec/70](70-p2d-exact-provenance-motion-target-binding.md) (P2D-A/P2D-B). P2D-A
 keeps its exact-provenance rules, reason tokens and abstention semantics
@@ -483,7 +492,7 @@ Normative rules:
 
 ## 7. Witness contract, transport, verifier and materialization (F)
 
-### 7.1 Composite Change fields (exact names reserved at implementation)
+### 7.1 Composite Change fields (field names reserved at implementation; evidence contract fixed by §7.7)
 
 ```text
 source_revision_id          the real Proposal base id
@@ -506,6 +515,10 @@ only when `source_revision_id` is a root with no parents. `source_revision_id`
 is bound by the existing `source_revision_resolver` to the real accepted base
 (existing Revision; HEAD for ordinary acceptance), and the base witness's
 Document MUST canonically equal `base_document_snapshot`.
+
+The evidence schema/media, the deterministic encoding and the composite Change
+class/identity are now **fixed** by §7.7 (Selection Evidence Contract v0.1);
+the remaining field names above stay reserved for implementation.
 
 ### 7.2 Witness authentication against the real base commitment
 
@@ -601,12 +614,10 @@ unchanged at R with its ancestor subset.
    one-to-one conflicts and Document mutation remain exclusively the frozen
    implementation's duties.
 4. **Evidence.** One versioned evidence artifact accompanies an accepted
-   proposal (separate schema/media from P2D-A). It records the complete
-   per-identity classifications, every audited claim with its stage outcome,
-   existing bindings for `ALREADY_BOUND` entries, the selected pairs in
-   canonical order, and deterministic counts. It records no geometry, distance,
-   similarity or caller metadata as authority, and is never produced for a
-   failed proposal.
+   proposal. Its complete closed contract — payload field sets, deterministic
+   encoding, Artifact/Reference construction and the composite identity — is
+   §7.7 (Selection Evidence Contract v0.1, the B0-2 prerequisite gate). It is
+   never produced for a failed proposal.
 5. **Atomicity.** Selected pairs, delegated binds and the evidence reference
    publish as one atomic transaction. Rejections (verification, policy, final
    validation, delegated failure) leave HEAD, Revision count, Document, Groups,
@@ -631,6 +642,235 @@ unchanged at R with its ancestor subset.
    binding is never revoked. Rebuilding the Proposal at its original
    pre-acceptance base remains case 2; acceptance of a stale base is rejected
    by the existing base checks.
+
+### 7.7 Selection Evidence Contract v0.1 (closed; B0-2 prerequisite gate)
+
+This subsection fixes the complete, closed contract for the selection evidence
+artifact — payload, deterministic encoding, Artifact/Reference construction and
+composite identity. It is the prerequisite design gate for B0-2: the B0-2
+verifier MUST regenerate the evidence bytes by independently re-executing the
+frozen B0-1 derivation and projecting its result through §7.7.1–§7.7.3, then
+require exact canonical-byte equality with the transported artifact. This
+revision adds no Python, no Artifact, no Change and no registration; every
+constant below is grounded in the implemented B0-1 module
+(`svm/representation_target_consumer.py`), the existing `canonical_bytes`,
+`ArtifactStore`/`ArtifactDescriptor` contracts and the existing ChangeAuthority
+conventions.
+
+#### 7.7.1 Evidence payload (exact field sets)
+
+Fixed identities (never caller-overridable):
+
+```text
+schema_version   = "svm-representation-target-selection-evidence-0.1"
+media_type       = "application/vnd.svm.representation-target-selection-evidence+json;version=0.1"
+artifact kind    = DerivedArtifact
+provenance       = {"policy_identity": "svm-representation-target-consumer@0.1"}   (exactly this single key)
+locator          = none; the Reference uri equals the Artifact id
+policy_identity  = "svm-representation-target-consumer@0.1"
+reason_namespace = "svm-representation-target-consumer-reasons@0.1"
+```
+
+The payload is one canonical JSON object with exactly these top-level keys.
+Unknown, missing or renamed keys reject. Key order is irrelevant (encoding
+canonicalizes it), but every field set and every array order below is
+normative.
+
+```text
+{
+  schema_version    string, fixed
+  policy_identity   string, fixed
+  reason_namespace  string, fixed
+  base              {revision_id, document_hash}
+  result            {stage, status, rejection_reason, abstention_reason}
+  evaluations       [ identity evaluation, ... ]        complete, canonical order
+  identity_ids      [ temporal-identity id, ... ]       complete, sorted
+  group_ids         [ group id, ... ]                   complete, sorted
+  existing_bindings [ binding record, ... ]             complete, sorted by id
+  selected_pairs    [ {temporal_identity_id, group_id}, ... ]   canonical order
+  claim_audits      [ claim audit, ... ]                complete, sorted by Artifact id
+  counts            {total, selected, abstain, reject, selected_pairs}
+}
+```
+
+Field semantics:
+
+- `base.revision_id` = the derivation base
+  (`CertifiedTargetResult.base_revision_id`); `base.document_hash` = the
+  authenticated base Revision's committed `document_hash`. Both are strings.
+  `base` is always the pre-transaction base — never the resulting Revision.
+- `result.stage` = `"S7"`, `result.status` = `"SELECTED"`,
+  `result.rejection_reason` = null and `result.abstention_reason` = null in
+  every valid v0.1 evidence: evidence exists only for a SELECTED derivation
+  (§7.7.5). Any other value rejects.
+- `evaluations` entry, exactly:
+  `{temporal_identity_id, status, reason, stage, group_id,
+  association_reference, existing_binding_ids}`; the array is sorted ascending
+  by `temporal_identity_id`, one entry per identity.
+  `status`, `reason` and `stage` are the exact string values of the B0-1
+  `Status`, `Reason` and `Stage` enums (the namespace carries exactly nine
+  reasons: `HISTORY_BROKEN`, `UNREPLAYABLE_ASSOCIATION`,
+  `AMBIGUOUS_ASSOCIATION`, `COMPETING_ASSOCIATION`, `ALREADY_BOUND`,
+  `TRACKED_REPRESENTATION`, `NO_ADMITTED_ASSOCIATION`,
+  `NO_CERTIFICATION_FOR_IDENTITY`, `ZERO_SELECTED`; no other value is
+  admissible and no new reason may be invented). `reason` is null iff
+  `status == "SELECTED"` and non-null otherwise. `group_id` is a Group id
+  string or null; `association_reference` is the exact complete 5-field
+  Reference descriptor (`id`, `uri`, `content_hash`, `media_type`,
+  `import_metadata{artifact_kind, provenance}`) or null;
+  `existing_binding_ids` is an array of binding-id strings sorted ascending
+  (empty when the identity resolves to no existing binding).
+- `identity_ids` = every temporal-identity id of the authenticated base,
+  sorted ascending, each exactly once. `evaluations` MUST cover exactly this
+  set (one evaluation per identity; no identity may be dropped, including
+  unselected, unreachable and unrelated ones).
+- `group_ids` = every Group id of the authenticated base, sorted ascending,
+  each exactly once (complete Group enumeration).
+- `existing_bindings` = every `motion_target_bindings` entry of the
+  authenticated base Document, verbatim and complete, sorted ascending by
+  binding id; the empty array when none exist. Scope is the complete current
+  binding state, not only bindings addressing the selected claim.
+- `selected_pairs` entry, exactly: `{temporal_identity_id, group_id}`. The
+  array is sorted ascending by (`temporal_identity_id`, `group_id`) and, for
+  v0.1 cardinality (§4.4), contains exactly one element.
+- `claim_audits` entry, exactly:
+  `{reference, admitted, status, reason, stage, acceptance_revision_id,
+  subject_id, temporal_identity_id, group_id, claim_key}` — one entry for
+  every reserved-media reference of the authenticated base
+  (`application/vnd.svm.representation-certification+json;version=0.1`),
+  including legacy references with no admission event (they are never omitted
+  and never filtered by admission status). `reference` is the exact complete
+  descriptor. `admitted` is true or false (never null in evidence). On the
+  SELECTED path: exactly one entry has `admitted: true` — the selected claim,
+  with `status: "SELECTED"`, `reason: null`, `stage: "S7"` and non-null
+  `acceptance_revision_id` (the located birth Revision, §3.2),
+  `subject_id`, `temporal_identity_id`, `group_id` and `claim_key` (all
+  strings). Every `admitted: false` entry carries exactly
+  `{status: "ABSTAIN", reason: "NO_ADMITTED_ASSOCIATION", stage: "S2"}` with
+  the five claim fields null. A second admitted claim cannot coexist with a
+  SELECTED derivation (it fails S3 competition/ambiguity or S6 whole-set
+  reproduction), so exactly one admitted entry is a v0.1 invariant.
+- `counts` = the deterministic `CertifiedTargetResult.counts` projection:
+  `total` = `len(evaluations)` = `len(identity_ids)`; `selected`, `abstain`,
+  `reject` = counts of `evaluations` statuses; `selected_pairs` =
+  `len(selected_pairs)`. All are JSON integers (never floats). v0.1 evidence
+  invariants: `total >= 1`; `selected + abstain + reject == total`;
+  `selected == 1`; `selected_pairs == 1`.
+- `source_references` is deliberately **not** in the payload: transport
+  completeness is enforced by S1 against the independently enumerated universe
+  (a Change-level field, §7.1/§7.3), while every audit surface that must be
+  complete — identities, Groups, bindings and reserved references — is fully
+  carried above. Embedding the whole universe would duplicate authority
+  without adding any, and would create a second copy that could silently
+  diverge. Evidence MUST NOT contain the complete reference list, its own
+  descriptor, the post-transaction Document hash or the resulting Revision id.
+- Null semantics: JSON null is admissible only where this subsection
+  explicitly permits it (`reason`, `group_id`, `association_reference` and the
+  five claim-audit claim fields). Null anywhere else rejects.
+
+#### 7.7.2 Deterministic encoding
+
+- Bytes are exactly `canonical_bytes(payload)` under the existing contract
+  (`json.dumps(..., sort_keys=True, separators=(",", ":"), ensure_ascii=False)`
+  encoded UTF-8).
+- The field sets are explicit: dataclass/dict implicit serialization layouts
+  are never normative; this subsection's projection is. Booleans are JSON
+  booleans; enums are converted to their exact string values; counts are JSON
+  integers.
+- Forbidden in bytes and as authority: timestamps, clocks, randomness,
+  absolute paths, locale-dependent formatting, adapter/proposal identifiers,
+  transaction ids or messages, caller metadata, similarity or distance
+  scores.
+- Determinism: the same base revision, the same authenticated history and the
+  same resolved Artifact bytes MUST produce identical evidence bytes on every
+  derivation and every verifier re-execution.
+- Acyclicity: the payload contains no digest of itself, of the final Document
+  or of the resulting Revision, and no reference to its own Artifact id;
+  `base` is its only commitment.
+
+#### 7.7.3 Artifact, Reference and composite transport
+
+- The Artifact is created through the existing writer contract:
+  `import_bytes(canonical_bytes(payload), media_type=<fixed>,
+  kind=ArtifactKind.DERIVED, provenance=<fixed>, locator=None)`.
+- Content addressing is the existing identity rule:
+  `artifact_id = "artifact:" + sha256(bytes)`,
+  `content_hash = "sha256:" + sha256(bytes)`.
+- The resulting Reference is exactly the snapshot's `document_reference` with
+  `uri == artifact_id`. `selection_evidence_reference` MUST canonically equal
+  the resolved ArtifactSnapshot's `document_reference()`, and the resolved
+  kind, media type and provenance MUST equal the fixed constants.
+- Composite transport follows §7.3: the Change's `references` are exactly the
+  complete `source_references` descriptors plus this evidence descriptor, and
+  `required_artifact_ids` equals that id set. S1 validates the universe, S3
+  validates the claim, and the evidence itself is validated by byte
+  regeneration (§7.7.5).
+- Same-base rebuild: rebuilding from the same base, history and resolved bytes
+  MUST reproduce the identical Artifact id and descriptor (content-addressed
+  reuse; no new Artifact and no event).
+
+#### 7.7.4 Composite identity (closes §12 item 2)
+
+```text
+Change class      ApplyRepresentationTargetSelectionChange
+Change identity   svm.revisions.ApplyRepresentationTargetSelectionChange@0.1
+policy_identity   svm-representation-target-consumer@0.1
+evidence schema   svm-representation-target-selection-evidence-0.1
+evidence media    application/vnd.svm.representation-target-selection-evidence+json;version=0.1
+```
+
+- The Change is registered in the closed-world `ChangeAuthority` registry with
+  exactly the existing actions `bind_motion_target` (derived from the exact
+  delegated records) and `attach_analysis` on `document`, the existing
+  `source_revision_resolver` and one dedicated artifact verifier. No new policy
+  action, no new ProposalAcceptor capability.
+- One versioned correspondence: this Change is the only registered Change that
+  regenerates and compares this evidence schema; the schema and media never
+  appear in another Change.
+- No admission-event family is introduced, and the evidence media is
+  deliberately **not** a reserved admission family: a canonical evidence
+  reference anywhere else grants no standing authority, and nothing later
+  consumes the evidence as authority — its correctness matters only inside
+  this Change's acceptance, where the verifier regenerates it.
+- The frozen `BindTemporalMotionTargetChange`, `motion_target_binding_id`,
+  `MOTION_TARGET_BINDING_POLICY_IDENTITY` and Document binding validation are
+  untouched.
+
+#### 7.7.5 Verifier regeneration and failure boundary
+
+Within the registered verifier, under the unchanged S0–S7 authority order
+(§5.1, §7.4):
+
+1. independently re-execute the frozen B0-1 derivation
+   (`derive_certified_targets` over the authenticated witnesses, the Change's
+   base Document snapshot and the verifier's scratch store) — this is the same
+   S0–S7 pipeline, not a parallel implementation;
+2. project the result through §7.7.1 and compute `canonical_bytes`; these are
+   the regenerated evidence bytes;
+3. decode the transported evidence snapshot and require both that its bytes
+   parse as a JSON object whose `canonical_bytes` equals the stored content
+   (canonicality) and that the stored content exactly equals the regenerated
+   bytes;
+4. require `selection_evidence_reference` to equal the resolved snapshot
+   descriptor and the fixed kind/media/provenance constants (§7.7.3);
+5. compare `change.selected_pairs` against the independently derived selected
+   set (canonical order, exactly one pair in v0.1) and every `delegated_binds`
+   entry one-to-one and in order with the exact frozen records, each delegated
+   `source_revision_id` equal to the base.
+
+Caller-provided evidence bytes never determine `selected_pairs`: the set is
+derived first, and the evidence is only an equality target. Fail closed, as a
+whole-proposal rejection with no Proposal, no evidence publish and no mutation
+at every point: missing/extra/renamed fields; non-canonical bytes; forged
+counts; removed, duplicated or reordered evaluations, audits or bindings;
+reordered or omitted selected pairs; descriptor, kind, media or provenance
+mismatch; or any non-SELECTED `result` constant. A missing evidence Artifact
+follows the Acceptor boundary of §5.1b (resolved before the verifier; the
+verifier sees only the resolved map and must not promise a domain code for it).
+No stable Reason beyond the nine namespace values is introduced.
+`ZERO_SELECTED` and any REJECT derivation produce no Proposal and no evidence
+Artifact. Evidence, delegated bindings and the resulting Revision publish
+atomically; partial success is forbidden.
 
 ## 8. Distinct authorities (G)
 
@@ -709,6 +949,14 @@ revocation occurs (§7.6 case 4).
 | 22 | Same-base rebuild and reset-and-replay determinism | Identical proposal/evidence identities; deterministic Revision ids on reset |
 | 23 | No Track creation in every positive case | Frozen behaviour only; consumer adds no animation |
 | 24 | Preview isolation | Preview mutates no accepted state and emits no admission event |
+| 25 | Same-base evidence rebuild | Byte-identical payload; identical Artifact id and descriptor (§7.7.3) |
+| 26 | One SELECTED pair: complete evidence | Exactly one selected pair; `selected == 1` and `selected_pairs == 1`; `evaluations` cover every identity; exactly one admitted audit (§7.7.1) |
+| 27 | Unselected identity / legacy reserved reference | Still recorded: an evaluation for every identity, and an `admitted: false` audit for every reserved reference, legacy data included; nothing is silenced |
+| 28 | Tampered counts / removed audit or evaluation / reordered or omitted selected pairs / non-canonical bytes / forged descriptor | Whole-proposal rejection by regenerated-byte equality (§7.7.5); no partial evidence, no mutation |
+| 29 | `ZERO_SELECTED` or any REJECT derivation | No Proposal, no evidence Artifact (§7.7.5) |
+| 30 | Evidence Artifact missing or unresolvable | Acceptor `ProposalArtifactError` before the verifier (§5.1b); no consumer domain code promised |
+| 31 | Evidence media appended by any other Change, or present without this Change's acceptance | No standing authority; nothing consumes it; S0–S7 and transport checks are unaffected |
+| 32 | Frozen binding behaviour | Unchanged: `motion_target_binding_id`, snapshot hashing, stale/conflict checks, one-to-one ownership and Document validation (§7.7.4) |
 
 ## 10. Performance budget and optimization direction (I)
 
@@ -766,8 +1014,11 @@ Open decisions (not decided by this draft):
    with P2D-A provenance-based pairs in one proposal, or support multi-target
    atomic binding (v0.1 cardinality is one, §4.4) — keep separate profiles with
    separate evidence schemas (current design: separate; future extension).
-2. The exact name/version of the composite Change and evidence schema/media
-   (reserved at implementation; must be a closed-world registry addition).
+2. ~~The exact name/version of the composite Change and evidence schema/media.~~
+   **CLOSED by §7.7.4 (r4)**: `ApplyRepresentationTargetSelectionChange` /
+   `svm.revisions.ApplyRepresentationTargetSelectionChange@0.1`, schema
+   `svm-representation-target-selection-evidence-0.1`, media
+   `application/vnd.svm.representation-target-selection-evidence+json;version=0.1`.
 3. The numeric performance budget and any per-proposal claim bound (§10).
 4. Whether `ALREADY_BOUND` consumption states should additionally record the
    archived certification descriptor for audit display (no authority effect).
@@ -781,14 +1032,24 @@ Suggested Codex implementation split (future, each independently reviewable):
 
 - **B0-1** — read-only derivation: enumeration, acquisition via the staged
   pipeline (S0–S7), classification, versioned reason codes, proposal-level
-  abstention; pure focused unit tests. No acceptance surface.
-- **B0-2** — composite Change + `ChangeAuthority` registration + independent
-  verifier (witness DAG authentication, complete closure re-derivation, Mode A/B
-  replay integration, apply guard, frozen delegation).
-- **B0-3** — adapter + Proposal + evidence artifact schema + preview isolation +
+  abstention; pure focused unit tests. No acceptance surface. **IMPLEMENTED.**
+- **B0-2 prerequisite gate — CLOSED (r4)**: the §7.7 Selection Evidence
+  Contract v0.1 fixes the payload, encoding, Artifact/Reference construction and
+  composite identity, so the verifier no longer depends on undefined B0-3
+  interfaces. B0-2 may resume implementation against it.
+- **B0-2** — composite Change `ApplyRepresentationTargetSelectionChange` +
+  `ChangeAuthority` registration + independent verifier (witness DAG
+  authentication, complete closure re-derivation, Mode A/B replay integration,
+  §7.7.5 evidence regeneration, apply guard, frozen delegation).
+- **B0-3** — adapter + Proposal + evidence Artifact construction/publishing
+  (one shared pure §7.7.1 projection helper with B0-2) + preview isolation +
   policy intents (`bind_motion_target`, `attach_analysis`).
 - **B0-4** — Golden fixture (046 chain) + full adversarial matrix + regression +
   freeze update of this document.
+
+The evidence schema itself is no longer a B0-3 deliverable: it is closed here
+and consumed by both B0-2 (regeneration/comparison) and B0-3 (construction and
+publishing).
 
 Readiness verdict for this round:
 
@@ -804,7 +1065,13 @@ Design-gate revision r2 gaps:        ALL RESOLVED (design only)
 Design-gate revision r3 findings:    ALL RESOLVED (design only)
   Reference vs decoded record        §3.5 (returns applicable References)
   transport vs zero-claim ordering   §5.1, §5.1b, §7.3
-P2D-B implementation:                NOT AUTHORIZED — remains BLOCKED
+Evidence-contract revision r4:       CLOSED (design only)
+  evidence payload/encoding/artifact §7.7.1–§7.7.3
+  composite identity                 §7.7.4 (closes open item 2)
+  verifier regeneration boundary     §7.7.5
+B0-2 prerequisite gate:              CLOSED — B0-2 implementation may resume
+B0-2 / B0-3 / B0-4:                  PLANNED — none started in this revision
+P2D-B (whole slice):                 NOT READY / NOT FROZEN
 ```
 
 Implementation-gate preconditions (design side, all satisfied above): the
@@ -813,6 +1080,8 @@ frozen `admitted_associations` contract with no new Core authority, no new
 ProposalAcceptor capability and no ChangeAuthority bypass; the composite
 transport and witness design reuse the proven spec/70 §10–§11 and spec/80
 patterns; the frozen Motion Target Binding (S1 slice) boundary is unchanged; the
-five design-gate gaps and the two r3 findings are resolved by these revisions.
-This is still not a READY state: implementation awaits an explicit gate decision,
-and P2D-B MUST NOT be marked READY by this document.
+five design-gate gaps, the two r3 findings and the r4 evidence contract are
+resolved by these revisions. Closing the B0-2 prerequisite gate does **not**
+mark anything READY or FROZEN: the whole P2D-B slice remains NOT READY, B0-2
+may resume only against this closed contract, and B0-3/B0-4 remain separate
+planned steps.
