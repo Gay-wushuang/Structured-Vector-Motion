@@ -372,8 +372,10 @@ Rules:
    even when the endpoints are already bound; no endpoint may be classified
    `ALREADY_BOUND` before S0–S3 pass. `ALREADY_BOUND` is never a way to bypass
    historical authentication.
-6. **No partial results.** A whole-proposal failure yields no Proposal, no
-   evidence Artifact, no partial `SELECTED` set and no state mutation.
+6. **No partial results.** Adapter derivation failure yields no Proposal or
+   evidence Artifact. Acceptor failure rejects the submitted Proposal without
+   an accepted Revision or evidence-reference publication. Neither path permits
+   a partial `SELECTED` set or accepted-state mutation.
 
 **Naming note.** The stage labels S0–S7 are local to this consumer contract.
 They are unrelated to the frozen phase/slice names "S0"/"S1" used elsewhere in
@@ -434,8 +436,10 @@ read-only-path diagnostic and is never promised as an acceptance domain code.
   Acceptor-side failures (missing declared artifact, unregistered Change,
   source-revision mismatch, policy denial) keep their existing error types and
   are not re-coded or re-messaged by the consumer (§5.1b).
-- A whole-proposal failure produces no Proposal, no evidence artifact and no
-  mutation; partial `SELECTED` sets and incomplete evidence are forbidden.
+- Adapter failure produces no Proposal or evidence Artifact; Acceptor failure
+  rejects the submitted Proposal without publishing an accepted Revision or
+  evidence Reference. Neither permits accepted-state mutation; partial
+  `SELECTED` sets and incomplete evidence are forbidden.
 - Outcomes never produce a substitute target; missing authority is never
   repaired by inference.
 - `REJECT` is permanent for the supplied evidence state: re-admitting the same
@@ -608,6 +612,9 @@ unchanged at R with its ancestor subset.
    composite Change. No direct `RevisionStore` mutation, no trusted-commit
    bypass, no new policy action, no new ProposalAcceptor capability, no
    verification-free fast path.
+   For this bounded profile the transaction contains only that one composite;
+   preceding or following Changes reject. This restriction does not change
+   any existing transaction family.
 3. **Frozen delegation.** For every `SELECTED` pair, delegate to the frozen
    `TemporalMotionTargetBindingAdapter` / `BindTemporalMotionTargetChange` with
    exactly the pair. Binding id formula, snapshot hashing, stale checks,
@@ -617,7 +624,7 @@ unchanged at R with its ancestor subset.
    proposal. Its complete closed contract — payload field sets, deterministic
    encoding, Artifact/Reference construction and the composite identity — is
    §7.7 (Selection Evidence Contract v0.1, the B0-2 prerequisite gate). It is
-   never produced for a failed proposal.
+   never published as an accepted Document Reference for a failed proposal.
 5. **Atomicity.** Selected pairs, delegated binds and the evidence reference
    publish as one atomic transaction. Rejections (verification, policy, final
    validation, delegated failure) leave HEAD, Revision count, Document, Groups,
@@ -764,9 +771,12 @@ Field semantics:
   without adding any, and would create a second copy that could silently
   diverge. Evidence MUST NOT contain the complete reference list, its own
   descriptor, the post-transaction Document hash or the resulting Revision id.
-- Null semantics: JSON null is admissible only where this subsection
-  explicitly permits it (`reason`, `group_id`, `association_reference` and the
-  five claim-audit claim fields). Null anywhere else rejects.
+- Null semantics: in consumer-owned fields, JSON null is admissible only where
+  this subsection explicitly permits it (`result.rejection_reason`,
+  `result.abstention_reason`, `reason`, `group_id`, `association_reference` and
+  the five claim-audit claim fields). Null elsewhere in consumer-owned fields
+  rejects. Exact source descriptors and verbatim existing binding records retain
+  their pre-existing values, including any nulls; they are audit data.
 
 #### 7.7.2 Deterministic encoding
 
@@ -777,10 +787,14 @@ Field semantics:
   are never normative; this subsection's projection is. Booleans are JSON
   booleans; enums are converted to their exact string values; counts are JSON
   integers.
-- Forbidden in bytes and as authority: timestamps, clocks, randomness,
-  absolute paths, locale-dependent formatting, adapter/proposal identifiers,
-  transaction ids or messages, caller metadata, similarity or distance
-  scores.
+- The consumer-owned payload envelope MUST NOT introduce timestamps, clocks,
+  randomness, absolute paths, locale-dependent formatting, adapter/proposal
+  identifiers, transaction ids or messages, caller metadata, similarity or
+  distance scores. Exact source Reference descriptors (including `uri` and
+  `import_metadata`/provenance) and verbatim existing binding records are retained
+  as authenticated audit data under §7.7.1; pre-existing values in those records
+  are not new envelope fields and SHALL NOT establish selection authority. They
+  MUST NOT be redacted, rewritten or interpreted as authority.
 - Determinism: the same base revision, the same authenticated history and the
   same resolved Artifact bytes MUST produce identical evidence bytes on every
   derivation and every verifier re-execution.
@@ -825,8 +839,9 @@ evidence media    application/vnd.svm.representation-target-selection-evidence+j
   `source_revision_resolver` and one dedicated artifact verifier. No new policy
   action, no new ProposalAcceptor capability.
 - One versioned correspondence: this Change is the only registered Change that
-  regenerates and compares this evidence schema; the schema and media never
-  appear in another Change.
+  regenerates and compares this evidence schema as a dedicated selection proof.
+  Other registered Changes may attach its media as ordinary reference data,
+  without dedicated selection verification or standing authority.
 - No admission-event family is introduced, and the evidence media is
   deliberately **not** a reserved admission family: a canonical evidence
   reference anywhere else grants no standing authority, and nothing later
@@ -859,18 +874,21 @@ Within the registered verifier, under the unchanged S0–S7 authority order
    `source_revision_id` equal to the base.
 
 Caller-provided evidence bytes never determine `selected_pairs`: the set is
-derived first, and the evidence is only an equality target. Fail closed, as a
-whole-proposal rejection with no Proposal, no evidence publish and no mutation
-at every point: missing/extra/renamed fields; non-canonical bytes; forged
+derived first, and the evidence is only an equality target. Acceptor failures
+reject the already submitted Proposal as a whole, with no accepted Revision,
+no evidence-reference publication and no accepted-state mutation at every
+point: missing/extra/renamed fields; non-canonical bytes; forged
 counts; removed, duplicated or reordered evaluations, audits or bindings;
 reordered or omitted selected pairs; descriptor, kind, media or provenance
 mismatch; or any non-SELECTED `result` constant. A missing evidence Artifact
 follows the Acceptor boundary of §5.1b (resolved before the verifier; the
 verifier sees only the resolved map and must not promise a domain code for it).
 No stable Reason beyond the nine namespace values is introduced.
-`ZERO_SELECTED` and any REJECT derivation produce no Proposal and no evidence
-Artifact. Evidence, delegated bindings and the resulting Revision publish
-atomically; partial success is forbidden.
+At the Adapter stage, ABSTAIN (including `ZERO_SELECTED`) and any REJECT
+derivation produce no Proposal and no evidence Artifact. At acceptance, the
+submitted Proposal and any unaccepted staging Artifact bytes may already exist;
+those bytes are not a published Document Reference. Evidence, delegated bindings
+and the resulting Revision publish atomically; partial success is forbidden.
 
 ## 8. Distinct authorities (G)
 
