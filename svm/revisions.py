@@ -1445,6 +1445,66 @@ class BindTemporalMotionTargetChange:
         bindings.sort(key=lambda item: item["id"])
 
 
+@dataclass(frozen=True, slots=True)
+class ApplyRepresentationTargetSelectionChange:
+    """Spec81 verified selection, exact frozen S1 binding, and evidence attachment.
+
+    Only the registered independent verifier authorizes this composite. The
+    incoming snapshot guard and isolated mutation also protect direct internal
+    execution from a stale base or a partially applied delegation.
+    """
+
+    source_revision_id: str
+    base_document_snapshot: dict[str, Any]
+    witnesses: tuple[RevisionSnapshotWitness, ...]
+    policy_identity: str
+    source_references: tuple[dict[str, Any], ...]
+    selection_evidence_reference: dict[str, Any]
+    delegated_binds: tuple[BindTemporalMotionTargetChange, ...]
+    selected_pairs: tuple[tuple[str, str], ...]
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        # Do not hide duplicate IDs or conflicting descriptors by deduplicating.
+        return tuple(
+            sorted(
+                (*self.source_references, self.selection_evidence_reference),
+                key=lambda reference: reference["id"],
+            )
+        )
+
+    def apply(self, document: dict[str, Any]) -> None:
+        from .representation_target_consumer import POLICY_IDENTITY
+
+        if canonical_bytes(document) != canonical_bytes(self.base_document_snapshot):
+            raise DocumentError("Representation target selection requires the exact base Document")
+        if (
+            self.policy_identity != POLICY_IDENTITY
+            or type(self.selected_pairs) is not tuple
+            or len(self.selected_pairs) != 1
+            or type(self.delegated_binds) is not tuple
+            or len(self.delegated_binds) != 1
+        ):
+            raise DocumentError("Representation target selection requires one verified pair")
+        delegated = self.delegated_binds[0]
+        if type(delegated) is not BindTemporalMotionTargetChange:
+            raise DocumentError("Representation target selection requires exact frozen S1 Change")
+        pair = self.selected_pairs[0]
+        if (
+            type(pair) is not tuple
+            or len(pair) != 2
+            or any(type(endpoint) is not str for endpoint in pair)
+            or pair != (delegated.temporal_identity["id"], delegated.group["id"])
+            or delegated.source_revision_id != self.source_revision_id
+        ):
+            raise DocumentError("Representation target delegation differs from the selected pair")
+        candidate = copy.deepcopy(document)
+        BindTemporalMotionTargetChange.apply(delegated, candidate)
+        AppendReferencesChange((self.selection_evidence_reference,)).apply(candidate)
+        document.clear()
+        document.update(candidate)
+
+
 @dataclass(frozen=True)
 class VerifyObservedTranslationTrackSourceChange:
     """Verify S2 inputs and mark the created Tracks with trusted provenance."""

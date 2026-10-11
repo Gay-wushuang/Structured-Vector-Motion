@@ -12,6 +12,7 @@ from .evaluator import canonical_bytes
 from .revisions import (
     AdmissionEvent,
     AdmittedRevision,
+    ApplyRepresentationTargetSelectionChange,
     AttachMultipartSubjectEvidenceChange,
     CertifyArtworkRepresentationChange,
     Revision,
@@ -74,6 +75,10 @@ def apply_verified_transaction(
     document: dict[str, Any], transaction: Transaction
 ) -> dict[str, Any]:
     """After exact registry/verifier/policy checks, inspect each actual mutation."""
+    if len(transaction.changes) != 1 and any(
+        type(change) is ApplyRepresentationTargetSelectionChange for change in transaction.changes
+    ):
+        raise AdmissionError("Representation target selection requires one composite Change")
     if len(transaction.changes) != 1 and any(
         type(change) is CertifyArtworkRepresentationChange for change in transaction.changes
     ):

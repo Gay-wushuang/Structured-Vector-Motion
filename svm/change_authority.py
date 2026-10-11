@@ -11,6 +11,7 @@ from .revisions import (
     AddKeyframeChange,
     AppendReferencesChange,
     AppendSceneFragmentChange,
+    ApplyRepresentationTargetSelectionChange,
     ApplySubjectIdentityBridgeChange,
     ApplyTemporalIdentitySelectionChange,
     AttachCameraCompensationEvidenceChange,
@@ -76,6 +77,26 @@ class ChangeAuthority:
 
 def _source_revision(change: Any) -> str:
     return change.source_revision_id
+
+
+def _verify_representation_target_selection(
+    change: Any, resolved: dict[str, ArtifactSnapshot]
+) -> None:
+    from .representation_target_selection import verify_change
+
+    verify_change(change, resolved)
+
+
+def _representation_target_selection_intents(change: Any) -> tuple[Intent, ...]:
+    intents: list[Intent] = []
+    for delegated in change.delegated_binds:
+        if type(delegated) is not BindTemporalMotionTargetChange:
+            raise ValueError("Representation target selection requires exact frozen S1 Change")
+        authority = change_authority(delegated)
+        if authority is None:
+            raise ValueError("Frozen S1 Change authority is unavailable")
+        intents.extend(authority.intent_resolver(delegated))
+    return (*intents, ("attach_analysis", "document", None))
 
 
 def _verify_multipart_subject(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
@@ -673,6 +694,13 @@ CHANGE_AUTHORITIES = {
             frozenset({"bind_motion_target"}),
             _bind_temporal_motion_target,
             source_revision_resolver=_source_revision,
+        ),
+        ChangeAuthority(
+            ApplyRepresentationTargetSelectionChange,
+            frozenset({"bind_motion_target", "attach_analysis"}),
+            _representation_target_selection_intents,
+            _verify_representation_target_selection,
+            _source_revision,
         ),
         ChangeAuthority(
             VerifyObservedTranslationTrackSourceChange,
