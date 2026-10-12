@@ -6,6 +6,7 @@ import copy
 import json
 import unittest
 from dataclasses import replace
+from pathlib import Path
 from unittest.mock import patch
 
 import test_representation_target_consumer as consumer_fixture
@@ -45,6 +46,8 @@ ACTOR = "adapter:representation-target-selection"
 BINDING_ID = (
     "motion-target-binding:234a54dd65aedc815735519bce19d646f9af306c110f937fa8d1fe11cec8d776"
 )
+ROOT = Path(__file__).resolve().parents[1]
+GOLDEN = ROOT / "examples/046-representation-certification/target-selection-golden.json"
 
 
 class RepresentationTargetSelectionAdapterTest(unittest.TestCase):
@@ -169,6 +172,29 @@ class RepresentationTargetSelectionAdapterTest(unittest.TestCase):
         self.assertEqual(payload["counts"]["total"], len(document["temporal_identities"]))
         self.assertEqual(payload["counts"]["selected"], 1)
         self.assertEqual(payload["counts"]["selected_pairs"], 1)
+        measured = {
+            "schema_version": "svm-representation-target-selection-golden-0.1",
+            "base_revision_id": proposal.base_revision_id,
+            "proposal_id": proposal.proposal_id,
+            "transaction_id": proposal.transaction.transaction_id,
+            "selection_evidence_artifact_id": evidence.artifact_id,
+            "selection_evidence_content_hash": evidence.content_hash,
+            "selection_evidence_bytes": len(evidence.content),
+            "selection_evidence_reference": change.selection_evidence_reference,
+            "selected_pairs": [list(pair) for pair in change.selected_pairs],
+            "binding_ids": [bind.binding["id"] for bind in change.delegated_binds],
+            "required_artifact_count": len(proposal.required_artifact_ids),
+            "source_reference_count": len(change.source_references),
+            "witness_count": len(change.witnesses),
+            "identity_count": len(document["temporal_identities"]),
+            "group_count": len(document["groups"]),
+            "entity_count": len(document["entities"]),
+            "track_count": len(document.get("animation", {}).get("content", [])),
+            "keyframe_count": sum(
+                len(track.get("keyframes", []))
+                for track in document.get("animation", {}).get("content", [])
+            ),
+        }
         self.assertEqual(
             set(self.artifacts._blobs) - set(before_artifacts["_blobs"]), {evidence.artifact_id}
         )
@@ -189,6 +215,8 @@ class RepresentationTargetSelectionAdapterTest(unittest.TestCase):
         self.assertEqual(self.store, before)
         self.assertEqual(vars(self.artifacts), staged_artifacts)
         revision = ProposalAcceptor().accept(self.store, proposal, self.artifacts)
+        measured["result_revision_id"] = revision.revision_id
+        self.assertEqual(measured, json.loads(GOLDEN.read_bytes()))
         after = self.store.get_document(self.store.head)
         self.assertEqual(revision.parent_ids, (CERTIFICATION_REVISION,))
         self.assertEqual(len(self.store.revisions), len(before.revisions) + 1)
@@ -209,6 +237,17 @@ class RepresentationTargetSelectionAdapterTest(unittest.TestCase):
         history = dump_trusted_history(self.store)
         loaded = load_trusted_history(history, trusted_history_hash=history_digest(history))
         self.assertEqual(dump_trusted_history(loaded), history)
+
+        replay_store = copy.deepcopy(before)
+        replay_artifacts = copy.deepcopy(self.artifacts)
+        replay_proposal = propose_from_store(replay_store, replay_artifacts)
+        self.assertEqual(replay_proposal, proposal)
+        replay_revision = ProposalAcceptor().accept(replay_store, replay_proposal, replay_artifacts)
+        self.assertEqual(replay_revision.revision_id, revision.revision_id)
+        self.assertEqual(
+            replay_store.get_document(replay_store.head),
+            self.store.get_document(self.store.head),
+        )
         self.no_output(lambda: propose_from_store(self.store, self.artifacts), Reason.ZERO_SELECTED)
         # Pure orchestration can rebuild the immutable original base; submitting
         # it at the bound HEAD is still a stale ordinary Proposal.

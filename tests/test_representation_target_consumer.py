@@ -506,6 +506,38 @@ class RepresentationTargetConsumerTest(unittest.TestCase):
         self.assert_failure(result, Reason.UNREPLAYABLE_ASSOCIATION, Stage.S3)
         self.assertEqual(len(result.claim_audits), 2)
 
+    def test_authenticated_claim_set_classifies_duplicate_and_competing_claims(self):
+        """Exercise the multi-claim consumer boundary independently of Spec80's v0.1 cap."""
+        original = copy.deepcopy(self.store)
+        payload = json.loads(self.artifacts.resolve_reference(self.certificate).content)
+        for expected, mutation in (
+            (Reason.AMBIGUOUS_ASSOCIATION, lambda record: None),
+            (
+                Reason.COMPETING_ASSOCIATION,
+                lambda record: record["association"].update(group_id="group:" + "d" * 64),
+            ),
+        ):
+            with self.subTest(expected=expected):
+                self.store = copy.deepcopy(original)
+                candidate = copy.deepcopy(payload)
+                mutation(candidate)
+                second = self.install_counterfeit_claim(candidate)
+                second_birth = self.store.head
+                replayed = {
+                    self.certification_revision: (self.certificate,),
+                    second_birth: (second,),
+                }
+                with patch.object(
+                    certification,
+                    "admitted_associations",
+                    side_effect=lambda base, _witnesses, _artifacts, records=replayed: records[
+                        base
+                    ],
+                ):
+                    result = self.derive()
+                self.assert_failure(result, expected, Stage.S3)
+                self.assertEqual(sum(a.admitted is True for a in result.claim_audits), 2)
+
     def test_existing_legitimate_binding_preserves_authority_and_skips_current_replay(self):
         binding = self.bind()
         bound_head = self.store.head
@@ -599,6 +631,8 @@ class RepresentationTargetConsumerTest(unittest.TestCase):
             SetOperationParameterChange(
                 self.birth_change.fragment.operations[0]["id"], "d", "M 21 20 L 100 20 L 20 80 Z"
             ),
+            FixtureMutation(lambda d: d["presentation"]["styles"][0].update(fill="#010101")),
+            FixtureMutation(lambda d: d["presentation"]["render_stack"].reverse()),
             FixtureMutation(
                 lambda d: next(t for t in d["temporal_identities"] if t["id"] == WHOLE_IDENTITY)[
                     "bindings"
