@@ -451,9 +451,13 @@ It creates no motion binding or animation and does not implement P2D-B or close
 the broader Spec71 correspondence gates. The freeze covers only the bounded
 present-time certification v0.1 semantics; Spec71's original atomic
 construction-for-T mode stays a design contract.
-[Spec/81](spec/81-versioned-representation-target-consumer-contract.md) is a
-**DESIGN ONLY / NOT IMPLEMENTED** P2D-B0 consumer contract draft; P2D-B remains
-**BLOCKED** and is not ready.
+[Spec/81](spec/81-versioned-representation-target-consumer-contract.md) is
+**IMPLEMENTED / GOLDEN VERIFIED / FROZEN FOR ITS BOUNDED V0.1 PROFILE**. The
+freeze covers the single-target Spec80-certified representation consumer,
+independent verifier, production Proposal adapter, and atomic frozen Motion
+Target Binding delegation only. Multi-target and cross-Profile selection,
+numeric performance budgets, optional diagnostics, and new stable Reason codes
+remain open; no broader future P2D-B profile is frozen.
 
 ## Development
 

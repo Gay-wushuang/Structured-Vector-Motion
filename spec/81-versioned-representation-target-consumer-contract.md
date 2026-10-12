@@ -1,14 +1,14 @@
-# P2D-B0 — Versioned Representation-Target Consumer Contract (design only)
+# P2D-B0 — Versioned Representation-Target Consumer Contract
 
-Status: **DESIGN CONTRACT / NOT IMPLEMENTED / NOT FROZEN**.
+Status: **IMPLEMENTED / GOLDEN VERIFIED / FROZEN FOR THE BOUNDED V0.1 PROFILE**.
 
 Design baseline: `38abfde2a299a8d024cbff38b22698c48cc7f1ff`, where the bounded
 present-time representation certification (spec/80 v0.1) is frozen for its
-bounded profile. This document specifies a future consumer that turns
+bounded profile. This document specifies the implemented consumer that turns
 independently replayed Spec80 certifications into proposed frozen Motion Target
-Bindings. It does not implement P2D-B, register a Change, produce an Artifact,
-create a Golden, or reinterpret P2D-A. P2D-B remains **BLOCKED**; this document
-is not authorization.
+Bindings. Its bounded v0.1 profile registers one composite Change, produces one
+versioned evidence Artifact, and is verified by Golden 046. It does not
+reinterpret P2D-A or freeze any future P2D-B profile.
 
 Revision r2 (design-gate revision) resolved the five gaps identified by the
 P2D-B0 design gate: the historical witness contract (§7.1–§7.4), the bound-state
@@ -915,9 +915,9 @@ Caller-supplied `temporal_identity_id`, `group_id`, `entity_id`, thresholds,
 baselines, Camera or Track inputs are not part of this consumer's request
 authority (document scope, no options, no artifact-id selection).
 
-## 9. Golden and adversarial matrix (H — design only)
+## 9. Golden and adversarial matrix (H — verified)
 
-**Positive Golden (future, not implemented in this round).** Reuse the exact
+**Positive Golden (implemented and independently verified).** Reuses the exact
 Golden 046 chain — the admitted Spec76/77 ownership, accepted Spec79 whole
 identity `temporal-identity:f89cc670dc7d6d8f54dd519532d525346817425825949ded13a79daae45aacbf`,
 existing Spec78 Group `group:1f24284859439580faac31e69df1aa7bf6a1a28c450d8ddae2e3b42e48b656ac`
@@ -935,7 +935,12 @@ untouched; a post-acceptance rerun at the bound HEAD ends in `ALREADY_BOUND`
 with `ZERO_SELECTED` — no new binding Revision is produced or demanded and no
 revocation occurs (§7.6 case 4).
 
-**Adversarial matrix (required when implemented; no test is created now).**
+**Adversarial matrix (implemented and independently verified).** The executable
+mapping is recorded in
+`tests/contracts/spec81-section9-coverage-v0.1.md`; a matrix label alone is not
+test evidence. Cases 9 and 10 exercise the Consumer classification boundary
+with an isolated `admitted_associations` stub. They do not claim that frozen
+Spec80 v0.1 can admit two independent certification Claims end to end.
 
 | # | Case | Required outcome |
 | --- | --- | --- |
@@ -1026,7 +1031,7 @@ This contract does not cover and its future implementation SHALL NOT add:
 
 ## 12. Open decisions, implementation split and readiness
 
-Open decisions (not decided by this draft):
+Open decisions (not decided by this bounded v0.1 freeze):
 
 1. Whether a future P2D composite should ever combine certification-based pairs
    with P2D-A provenance-based pairs in one proposal, or support multi-target
@@ -1046,24 +1051,27 @@ Open decisions (not decided by this draft):
 6. Whether the consumer exposes a read-only diagnostic report for
    whole-proposal REJECT outcomes (never an accepted evidence artifact).
 
-Suggested Codex implementation split (future, each independently reviewable):
+Implemented split (each independently reviewed):
 
 - **B0-1** — read-only derivation: enumeration, acquisition via the staged
   pipeline (S0–S7), classification, versioned reason codes, proposal-level
   abstention; pure focused unit tests. No acceptance surface. **IMPLEMENTED.**
-- **B0-2 prerequisite gate — CLOSED (r4)**: the §7.7 Selection Evidence
+- **Evidence Contract v0.1 — CLOSED (r4)**: the §7.7 Selection Evidence
   Contract v0.1 fixes the payload, encoding, Artifact/Reference construction and
   composite identity, so the verifier no longer depends on undefined B0-3
-  interfaces. B0-2 may resume implementation against it.
+  interfaces.
 - **B0-2** — composite Change `ApplyRepresentationTargetSelectionChange` +
   `ChangeAuthority` registration + independent verifier (witness DAG
   authentication, complete closure re-derivation, Mode A/B replay integration,
   §7.7.5 evidence regeneration, apply guard, frozen delegation).
+  **IMPLEMENTED.**
 - **B0-3** — adapter + Proposal + evidence Artifact construction/publishing
   (one shared pure §7.7.1 projection helper with B0-2) + preview isolation +
-  policy intents (`bind_motion_target`, `attach_analysis`).
-- **B0-4** — Golden fixture (046 chain) + full adversarial matrix + regression +
-  freeze update of this document.
+  policy intents (`bind_motion_target`, `attach_analysis`). **IMPLEMENTED.**
+- **B0-4A** — Golden fixture (046 chain) + full adversarial matrix + regression.
+  **VERIFIED.**
+- **B0-4B** — final evidence gate and bounded v0.1 freeze record.
+  **COMPLETE.**
 
 The evidence schema itself is no longer a B0-3 deliverable: it is closed here
 and consumed by both B0-2 (regeneration/comparison) and B0-3 (construction and
@@ -1073,7 +1081,7 @@ Readiness verdict for this round:
 
 ```text
 P2S-F1B freeze:                      FROZEN (bounded v0.1 profile only)
-P2D-B0 contract draft:               PRESENT (this document)
+P2D-B0 bounded v0.1:                  FROZEN
 Design-gate revision r2 gaps:        ALL RESOLVED (design only)
   historical witness contract        §7.1–§7.4
   bound-state vs evidence ordering   §6
@@ -1083,23 +1091,27 @@ Design-gate revision r2 gaps:        ALL RESOLVED (design only)
 Design-gate revision r3 findings:    ALL RESOLVED (design only)
   Reference vs decoded record        §3.5 (returns applicable References)
   transport vs zero-claim ordering   §5.1, §5.1b, §7.3
-Evidence-contract revision r4:       CLOSED (design only)
+Evidence Contract v0.1:              CLOSED
   evidence payload/encoding/artifact §7.7.1–§7.7.3
   composite identity                 §7.7.4 (closes open item 2)
   verifier regeneration boundary     §7.7.5
-B0-2 prerequisite gate:              CLOSED — B0-2 implementation may resume
-B0-2 / B0-3 / B0-4:                  PLANNED — none started in this revision
-P2D-B (whole slice):                 NOT READY / NOT FROZEN
+B0-1 Read-only Consumer:             IMPLEMENTED
+B0-2 Composite + Verifier:           IMPLEMENTED
+B0-3 Production Adapter:             IMPLEMENTED
+B0-4A Golden + Coverage:             VERIFIED
+P2D-B0 bounded v0.1 profile:         FROZEN
+Future P2D-B profiles/extensions:    OPEN / NOT FROZEN
 ```
 
-Implementation-gate preconditions (design side, all satisfied above): the
+The bounded v0.1 implementation and final evidence gates are satisfied: the
 consumed authority (spec/80 v0.1) is frozen; every acquisition entry reuses the
 frozen `admitted_associations` contract with no new Core authority, no new
 ProposalAcceptor capability and no ChangeAuthority bypass; the composite
 transport and witness design reuse the proven spec/70 §10–§11 and spec/80
 patterns; the frozen Motion Target Binding (S1 slice) boundary is unchanged; the
 five design-gate gaps, the two r3 findings and the r4 evidence contract are
-resolved by these revisions. Closing the B0-2 prerequisite gate does **not**
-mark anything READY or FROZEN: the whole P2D-B slice remains NOT READY, B0-2
-may resume only against this closed contract, and B0-3/B0-4 remain separate
-planned steps.
+resolved by these revisions. This freeze is limited to the single-target,
+single-Profile behavior specified here. Multi-target or cross-Profile
+selection, a numeric performance budget, optional diagnostic/audit reporting,
+and new stable Reason codes remain open future decisions and are not implied by
+this freeze.
