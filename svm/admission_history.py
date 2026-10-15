@@ -7,7 +7,8 @@ import hashlib
 from dataclasses import asdict
 from typing import Any
 
-from .document import validate_document
+from .document import DocumentDialect, validate_document
+from .document_io import select_document_dialect
 from .evaluator import canonical_bytes
 from .revisions import (
     AdmissionEvent,
@@ -72,7 +73,10 @@ def _reject(media: str, detail: str) -> None:
 
 
 def apply_verified_transaction(
-    document: dict[str, Any], transaction: Transaction
+    document: dict[str, Any],
+    transaction: Transaction,
+    *,
+    dialect: DocumentDialect = DocumentDialect.BASELINE,
 ) -> dict[str, Any]:
     """After exact registry/verifier/policy checks, inspect each actual mutation."""
     if len(transaction.changes) != 1 and any(
@@ -115,7 +119,7 @@ def apply_verified_transaction(
         for aid, ref in additions.items():
             if allowed.get(aid) != ref:
                 _reject(ref["media_type"], "unauthorized actual addition")
-    validate_document(candidate)
+    validate_document(candidate, dialect)
     return candidate
 
 
@@ -214,6 +218,8 @@ def load_trusted_history(payload: dict[str, Any], *, trusted_history_hash: str) 
     The host supplies a previously trusted, separately retained snapshot digest.
     Deriving that argument from the input being loaded does NOT establish trust.
     No public history interchange or signature issuer is provided by this contract.
+    Reader capability is reconstructed from all authenticated snapshots, not
+    from caller metadata. An unused host opt-in must be explicitly reapplied.
     """
     if history_digest(payload) != trusted_history_hash:
         raise AdmissionError("Trusted history digest mismatch")
@@ -223,6 +229,7 @@ def load_trusted_history(payload: dict[str, Any], *, trusted_history_hash: str) 
     ):
         raise AdmissionError("Unknown trusted history format")
     store = RevisionStore()
+    required_dialect = DocumentDialect.BASELINE
     for item in payload["records"]:
         if set(item) != {"revision", "document"}:
             raise AdmissionError("Invalid history record")
@@ -237,7 +244,6 @@ def load_trusted_history(payload: dict[str, Any], *, trusted_history_hash: str) 
         else:
             raise AdmissionError("Unknown revision contract")
         document = copy.deepcopy(item["document"])
-        validate_document(document)
         expected = RevisionStore._make_revision(
             document,
             revision.parent_ids,
@@ -247,6 +253,10 @@ def load_trusted_history(payload: dict[str, Any], *, trusted_history_hash: str) 
         )
         if expected != revision or revision.revision_id in store.revisions:
             raise AdmissionError("History revision hash mismatch/duplicate")
+        dialect = select_document_dialect(document)
+        validate_document(document, dialect)
+        if dialect == DocumentDialect.AUTHORED_GROUP_ASSEMBLY:
+            required_dialect = dialect
         store.revisions[revision.revision_id] = revision
         store._documents[revision.revision_id] = document
     if payload["head"] not in store.revisions:
@@ -260,4 +270,5 @@ def load_trusted_history(payload: dict[str, Any], *, trusted_history_hash: str) 
             store._documents[revision.parent_ids[0]] if revision.parent_ids else None,
         )
     store.head = payload["head"]
+    store.document_dialect = required_dialect
     return store

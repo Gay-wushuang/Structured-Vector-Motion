@@ -26,7 +26,9 @@ from svm.evaluator import canonical_bytes
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "examples" / "005-empty-canvas.svm.json"
 SOURCE = ROOT / "examples" / "assets" / "007-contained-components-source.png"
-PROPOSALS_SHA256 = "0336d93e1151c49bc8f46a37960b01d323632ba4c17873904096336949985b97"
+# G1.5 review: only forward the trusted Store dialect to final validation;
+# exact authority, Artifact verification, policy and admission ordering are unchanged.
+PROPOSALS_SHA256 = "86080deb6cbe640d24bd5d0d7228246e3e28a6056cfd7ea2097097efe1f357bb"
 COMMIT = "21aef937a0371614adb4d961f52d02409cb8ecc7"
 
 

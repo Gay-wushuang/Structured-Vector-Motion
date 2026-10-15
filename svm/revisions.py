@@ -2460,6 +2460,21 @@ class RevisionStore:
         store.head = revision.revision_id
         return store
 
+    def upgrade_document_dialect(self, dialect: DocumentDialect) -> None:
+        """Trusted host reader opt-in only; grants no Change or mutation authority."""
+        if not isinstance(dialect, DocumentDialect) or not isinstance(
+            self.document_dialect, DocumentDialect
+        ):
+            raise DocumentError("Unsupported Document dialect")
+        if (
+            self.document_dialect == DocumentDialect.AUTHORED_GROUP_ASSEMBLY
+            and dialect == DocumentDialect.BASELINE
+        ):
+            raise DocumentError("Document dialect downgrade is not supported")
+        for document in self._documents.values():
+            validate_document(document, dialect)
+        self.document_dialect = dialect
+
     def commit(self, base_revision_id: str, transaction: Transaction) -> Revision:
         if base_revision_id not in self.revisions:
             raise KeyError(base_revision_id)

@@ -308,7 +308,9 @@ class ProposalAcceptor:
         except PolicyEnforcementError as exc:
             raise ProposalPolicyError(str(exc)) from exc
         try:
-            return apply_verified_transaction(document, proposal.transaction)
+            return apply_verified_transaction(
+                document, proposal.transaction, dialect=store.document_dialect
+            )
         except AdmissionError as exc:
             raise ProposalArtifactError(str(exc)) from exc
 
