@@ -42,7 +42,10 @@ svm-motion-editor = "svm.editor_server:main"
 include = ["svm*"]
 
 [tool.setuptools.data-files]
-"share/structured-vector-motion/schema" = ["schema/svm-document-v0.1.schema.json"]
+"share/structured-vector-motion/schema" = [
+  "schema/svm-document-v0.1.schema.json",
+  "schema/svm-document-v0.1-authored-group-assembly-v0.1.schema.json",
+]
 
 [tool.ruff]
 target-version = "py311"

@@ -1,0 +1,522 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structured-vector-motion.dev/schema/svm-document-v0.1-authored-group-assembly-v0.1.schema.json",
+  "title": "Structured Vector Motion Document v0.1 with Authored Group Assembly v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "semantics_version",
+    "document_id",
+    "references",
+    "entities",
+    "construction",
+    "presentation",
+    "constraints",
+    "evaluation_policies",
+    "edit_permissions",
+    "animation"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "semantics_version": {"const": "svm-core-0.1"},
+    "document_id": {"$ref": "#/$defs/documentId"},
+    "references": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/reference"}
+    },
+    "entities": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/entity"}
+    },
+    "groups": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/groupDefinition"}
+    },
+    "temporal_identities": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/temporalIdentity"}
+    },
+    "motion_target_bindings": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/motionTargetBinding"}
+    },
+    "construction": {"$ref": "#/$defs/construction"},
+    "presentation": {"$ref": "#/$defs/presentation"},
+    "constraints": {"type": "array", "items": {"$ref": "#/$defs/constraint"}},
+    "evaluation_policies": {"type": "array", "items": {"type": "object"}},
+    "edit_permissions": {"type": "array", "items": {"$ref": "#/$defs/editPermission"}},
+    "animation": {"$ref": "#/$defs/animation"},
+    "structural_relations": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/structuralRelation"}
+    }
+  },
+  "$defs": {
+    "documentId": {"type": "string", "pattern": "^document:.+"},
+    "entityId": {"type": "string", "pattern": "^entity:.+"},
+    "operationId": {"type": "string", "pattern": "^op:.+"},
+    "slotId": {"type": "string", "pattern": "^op:.+\\.[^.]+$"},
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "uri", "content_hash", "media_type", "import_metadata"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^artifact:.+"},
+        "uri": {"type": "string", "minLength": 1},
+        "content_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "media_type": {"type": "string", "minLength": 1},
+        "import_metadata": {"type": "object"}
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": {"$ref": "#/$defs/entityId"},
+        "name": {"type": "string", "minLength": 1},
+        "parent_id": {"$ref": "#/$defs/entityId"},
+        "semantic_tags": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "source_layer": {
+          "type": "object",
+          "additionalProperties": false,
+            "required": ["producer_family", "bundle_artifact_id", "run_identity", "layer_id", "layer_artifact_id", "order"],
+            "properties": {
+              "producer_family": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+              "bundle_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+              "run_identity": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+              "layer_id": {"type": "string", "pattern": "^layer:[a-z0-9][a-z0-9_-]*$"},
+              "layer_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+              "order": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["index", "semantics"],
+                "properties": {
+                  "index": {"type": "integer", "minimum": 0},
+                  "semantics": {"type": "string", "pattern": "^svm-order:[a-z0-9][a-z0-9_-]*@[0-9]+\\.[0-9]+$"}
+                }
+              }
+            }
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "artifact_id", "candidate_id", "component_digest"],
+          "properties": {
+            "type": {"const": "PromotedComponent"},
+            "artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+            "candidate_id": {"type": "string", "pattern": "^candidate:component-[0-9]{4,}$"},
+            "component_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+            "bounds": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "items": {"type": "integer", "minimum": 0}
+            }
+          }
+        }
+      }
+    },
+    "groupDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "members", "provenance"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^group:[0-9a-f]{64}$"},
+        "kind": {"const": "explicit-group"},
+        "members": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/entityId"}
+        },
+        "transform": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["translate", "rotation_degrees", "scale", "origin"],
+          "properties": {
+            "translate": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+            "rotation_degrees": {"type": "number"},
+            "scale": {"type": "number", "exclusiveMinimum": 0},
+            "origin": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}
+          }
+        },
+        "provenance": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["candidate_id", "inference_id", "inference_artifact_id"],
+              "properties": {
+                "candidate_id": {"type": "string", "pattern": "^candidate:group:[0-9a-f]{64}$"},
+                "inference_id": {"type": "string", "pattern": "^inference:group:[0-9a-f]{64}$"},
+                "inference_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "authority_identity", "profile_identity", "construction_artifact_id"],
+              "properties": {
+                "type": {"const": "construction-established-group@0.1"},
+                "authority_identity": {"const": "svm-construction-derived-group@0.1"},
+                "profile_identity": {
+                  "enum": [
+                    "svm-svg-two-part-group-construction@0.1",
+                    "svm-video-two-part-group-construction@0.1"
+                  ]
+                },
+                "construction_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "authority_identity", "source_revision_id", "source_document_hash", "membership_hash"],
+              "properties": {
+                "type": {"const": "authored-group-assembly@0.1"},
+                "authority_identity": {"const": "svm-explicit-authored-group-assembly@0.1"},
+                "source_revision_id": {"type": "string", "pattern": "^revision:[0-9a-f]{64}$"},
+                "source_document_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                "membership_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+              }
+            }
+          ]
+        }
+      }
+    },
+    "temporalIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "bindings", "provenance"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^temporal-identity:[0-9a-f]{64}$"},
+        "bindings": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tick", "observation_id"],
+            "properties": {
+              "tick": {"type": "integer", "minimum": 0},
+              "observation_id": {"type": "string", "pattern": "^observation:.+"}
+            }
+          }
+        },
+        "provenance": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["candidate_id", "inference_id", "evidence_artifact_id", "evidence_policy_identity", "promotion_policy_identity"],
+            "properties": {
+              "candidate_id": {"type": "string", "pattern": "^candidate:correspondence:[0-9a-f]{64}$"},
+              "inference_id": {"type": "string", "pattern": "^inference:correspondence:[0-9a-f]{64}$"},
+              "evidence_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+              "evidence_policy_identity": {"const": "svm-bounds-correspondence-policy@0.1"},
+              "promotion_policy_identity": {"const": "svm-explicit-temporal-identity-promotion@0.1"}
+            }
+          }
+        }
+      }
+    },
+    "motionTargetBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "temporal_identity_id", "target", "policy_identity", "provenance"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^motion-target-binding:[0-9a-f]{64}$"},
+        "temporal_identity_id": {"type": "string", "pattern": "^temporal-identity:[0-9a-f]{64}$"},
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "group_id"],
+          "properties": {
+            "kind": {"const": "group"},
+            "group_id": {"type": "string", "pattern": "^group:[0-9a-f]{64}$"}
+          }
+        },
+        "policy_identity": {"const": "svm-explicit-motion-target-binding@0.1"},
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_revision_id", "temporal_identity_snapshot_hash", "group_snapshot_hash"],
+          "properties": {
+            "source_revision_id": {"type": "string", "pattern": "^revision:[0-9a-f]{64}$"},
+            "temporal_identity_snapshot_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+            "group_snapshot_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+          }
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "inputs", "parameters"],
+      "properties": {
+        "id": {"$ref": "#/$defs/operationId"},
+        "type": {"type": "string", "minLength": 1},
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/slotId"}
+        },
+        "parameters": {"type": "object"},
+        "stage": {"type": "string"}
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity", "property", "slot"],
+      "properties": {
+        "entity": {"$ref": "#/$defs/entityId"},
+        "property": {"type": "string", "minLength": 1},
+        "slot": {"$ref": "#/$defs/slotId"}
+      }
+    },
+    "construction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operations", "output_bindings", "refinement_stages"],
+      "properties": {
+        "operations": {"type": "array", "items": {"$ref": "#/$defs/operation"}},
+        "output_bindings": {"type": "array", "items": {"$ref": "#/$defs/binding"}},
+        "refinement_stages": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["render_stack", "styles"],
+      "properties": {
+        "render_stack": {"type": "array", "items": {"$ref": "#/$defs/entityId"}},
+        "styles": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/style"}
+        },
+        "camera": {"$ref": "#/$defs/camera"}
+      }
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "rotation_degrees", "scale"],
+      "properties": {
+        "position": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+        "rotation_degrees": {"type": "number"},
+        "scale": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "style": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity", "fill", "stroke", "stroke_width", "opacity"],
+      "properties": {
+        "entity": {"$ref": "#/$defs/entityId"},
+        "fill": {"type": "string", "pattern": "^(none|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8})$"},
+        "stroke": {"type": "string", "pattern": "^(none|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8})$"},
+        "stroke_width": {"type": "number", "minimum": 0},
+        "opacity": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "operation", "parameter"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^constraint:.+"},
+        "type": {"const": "PreserveParameter"},
+        "operation": {"$ref": "#/$defs/operationId"},
+        "parameter": {"type": "string", "minLength": 1}
+      }
+    },
+    "editPermission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "actor", "effect", "actions", "targets"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^permission:.+"},
+        "actor": {"type": "string", "minLength": 1},
+        "effect": {"const": "deny"},
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "set_parameter",
+              "split_entity",
+              "import_scene",
+              "establish_group",
+              "promote_group",
+              "set_group_transform",
+              "reconcile_scene",
+              "attach_analysis",
+              "certify_representation",
+              "promote_components",
+                "set_keyframe_value",
+                "set_camera_transform",
+                "create_camera_transform_track",
+              "promote_temporal_identity",
+              "attach_observed_motion",
+              "bind_motion_target",
+              "author_observed_translation",
+              "attach_observed_similarity"
+            ]
+          }
+        },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+      "animation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["content", "construction_scheduling_hints"],
+        "properties": {
+          "semantics_version": {"enum": ["svm-motion@0.1", "svm-motion@0.2", "svm-motion@0.3", "svm-motion@0.4", "svm-motion@0.5", "svm-motion@0.6"]},
+          "timebase": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["ticks_per_second"],
+            "properties": {
+              "ticks_per_second": {"type": "integer", "minimum": 1, "maximum": 1000000000}
+            }
+          },
+          "content": {"type": "array", "items": {"$ref": "#/$defs/animationTrack"}},
+          "construction_scheduling_hints": {"type": "array", "items": {"type": "object"}}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"content": {"minItems": 1}}},
+            "then": {"required": ["semantics_version", "timebase"]}
+          }
+        ]
+      },
+      "animationTrack": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "target", "value_type", "keyframes"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^track:.+"},
+          "target": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["operation", "parameter"],
+                "properties": {
+                  "operation": {"$ref": "#/$defs/operationId"},
+                  "parameter": {"type": "string", "minLength": 1}
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["group", "property"],
+                "properties": {
+                  "group": {"type": "string", "pattern": "^group:[0-9a-f]{64}$"},
+                  "property": {"enum": ["translate.x", "translate.y", "rotation_degrees", "scale"]}
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["entity", "property"],
+                "properties": {
+                  "entity": {"$ref": "#/$defs/entityId"},
+                  "property": {"enum": ["opacity", "fill"]}
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["camera", "property"],
+                "properties": {
+                  "camera": {"const": "presentation"},
+                  "property": {"enum": ["position.x", "position.y", "rotation_degrees", "scale"]}
+                }
+              }
+            ]
+          },
+          "value_type": {"enum": ["number", "color"]},
+          "interpolation": {"enum": ["linear", "ease-in-out", "hold"]},
+          "provenance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "authoring_identity", "motion_target_binding_id", "evidence_artifact_id", "source_revision_id"],
+            "properties": {
+              "type": {"const": "ObservedTranslationTrack"},
+              "authoring_identity": {"enum": ["svm-verified-observed-translation-authoring@0.1", "svm-geometry-correct-translation-authoring@0.1"]},
+              "motion_target_binding_id": {"type": "string", "pattern": "^motion-target-binding:[0-9a-f]{64}$"},
+              "evidence_artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+              "source_revision_id": {"type": "string", "pattern": "^revision:[0-9a-f]{64}$"}
+            }
+          },
+          "keyframes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"$ref": "#/$defs/keyframe"}
+          }
+        }
+      },
+      "keyframe": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "tick", "value"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^keyframe:.+"},
+          "tick": {"type": "integer", "minimum": 0},
+          "value": {"oneOf": [{"type": "number"}, {"type": "string"}]}
+        }
+      },
+    "structuralRelation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "type", "subject", "artifact_id", "candidate_id", "component_digest"],
+          "properties": {
+            "id": {"type": "string", "pattern": "^relation:.+"},
+            "type": {"const": "derived-from"},
+            "subject": {"$ref": "#/$defs/entityId"},
+            "artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+            "candidate_id": {"type": "string", "pattern": "^candidate:component-[0-9]{4,}$"},
+            "component_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "type", "container", "contained", "evidence"],
+          "properties": {
+            "id": {"type": "string", "pattern": "^relation:.+"},
+            "type": {"const": "bounds-contains"},
+            "container": {"$ref": "#/$defs/entityId"},
+            "contained": {"$ref": "#/$defs/entityId"},
+            "evidence": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["artifact_id", "container_candidate_id", "contained_candidate_id", "basis"],
+              "properties": {
+                "artifact_id": {"type": "string", "pattern": "^artifact:[0-9a-f]{64}$"},
+                "container_candidate_id": {"type": "string", "pattern": "^candidate:component-[0-9]{4,}$"},
+                "contained_candidate_id": {"type": "string", "pattern": "^candidate:component-[0-9]{4,}$"},
+                "basis": {"const": "strict-half-open-bounds@0.1"}
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

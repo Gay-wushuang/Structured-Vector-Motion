@@ -19,6 +19,8 @@ from .artifacts import (
     ArtifactWriter,
 )
 from .backends import GeometryBackend, GeometryBackendError
+from .document import DocumentDialect, authored_group_identity, validate_document
+from .document_io import read_document, select_document_dialect, write_document
 from .evaluator import EvaluationState, Evaluator, Quality
 from .motion import (
     CAMERA_MOTION_SEMANTICS_IDENTITY,
@@ -122,6 +124,12 @@ from .scene import EvaluatedEntity, EvaluatedScene, EvaluatedStyle, build_evalua
 from .structural_relations import STRUCTURAL_RELATIONS_IDENTITY
 
 __all__ = [
+    "DocumentDialect",
+    "authored_group_identity",
+    "validate_document",
+    "read_document",
+    "select_document_dialect",
+    "write_document",
     "VerifyGeometryTranslationTrackSourceChange",
     "Evaluator",
     "ArtifactError",

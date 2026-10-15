@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 if TYPE_CHECKING:
     from .multipart_witness import RevisionSnapshotWitness
 
-from .document import validate_document
+from .document import DocumentDialect, validate_document
 from .evaluator import DocumentError, canonical_bytes
 from .structural_relations import (
     materialize_promoted_relations,
@@ -2400,11 +2400,16 @@ class Transaction:
     changes: tuple[Change, ...]
     message: str = ""
 
-    def apply(self, base_document: dict[str, Any]) -> dict[str, Any]:
+    def apply(
+        self,
+        base_document: dict[str, Any],
+        *,
+        dialect: DocumentDialect = DocumentDialect.BASELINE,
+    ) -> dict[str, Any]:
         candidate = copy.deepcopy(base_document)
         for change in self.changes:
             change.apply(candidate)
-        validate_document(candidate)
+        validate_document(candidate, dialect)
         return candidate
 
 
@@ -2437,11 +2442,18 @@ class RevisionStore:
     revisions: dict[str, Revision] = field(default_factory=dict)
     _documents: dict[str, dict[str, Any]] = field(default_factory=dict)
     head: str | None = None
+    document_dialect: DocumentDialect = DocumentDialect.BASELINE
 
     @classmethod
-    def create(cls, document: dict[str, Any], message: str = "Initial revision") -> RevisionStore:
-        validate_document(document)
-        store = cls()
+    def create(
+        cls,
+        document: dict[str, Any],
+        message: str = "Initial revision",
+        *,
+        dialect: DocumentDialect = DocumentDialect.BASELINE,
+    ) -> RevisionStore:
+        validate_document(document, dialect)
+        store = cls(document_dialect=dialect)
         revision = store._make_revision(document, (), None, message)
         store.revisions[revision.revision_id] = revision
         store._documents[revision.revision_id] = copy.deepcopy(document)
@@ -2451,7 +2463,9 @@ class RevisionStore:
     def commit(self, base_revision_id: str, transaction: Transaction) -> Revision:
         if base_revision_id not in self.revisions:
             raise KeyError(base_revision_id)
-        candidate = transaction.apply(self._documents[base_revision_id])
+        candidate = transaction.apply(
+            self._documents[base_revision_id], dialect=self.document_dialect
+        )
         return self._commit_verified(base_revision_id, transaction, candidate, ())
 
     def _commit_verified(

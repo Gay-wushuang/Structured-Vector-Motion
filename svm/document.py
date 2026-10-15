@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import math
 import re
+from enum import StrEnum
 from typing import Any
 
 from .evaluator import DocumentError, Evaluator, canonical_bytes
@@ -15,7 +16,25 @@ from .structural_relations import (
 )
 
 
-def validate_document(document: dict[str, Any]) -> None:
+class DocumentDialect(StrEnum):
+    BASELINE = "svm-document-v0.1"
+    AUTHORED_GROUP_ASSEMBLY = "svm-document-v0.1-authored-group-assembly-v0.1"
+
+
+AUTHORED_GROUP_TYPE = "authored-group-assembly@0.1"
+AUTHORED_GROUP_AUTHORITY = "svm-explicit-authored-group-assembly@0.1"
+
+
+def authored_group_identity(members: list[str]) -> tuple[str, str]:
+    digest = hashlib.sha256(
+        canonical_bytes({"authority_identity": AUTHORED_GROUP_AUTHORITY, "members": members})
+    ).hexdigest()
+    return "group:" + digest, "sha256:" + digest
+
+
+def validate_document(
+    document: dict[str, Any], dialect: DocumentDialect = DocumentDialect.BASELINE
+) -> None:
     """Validate cross-record semantics not expressible in JSON Schema alone."""
 
     evaluator = Evaluator(document)
@@ -49,7 +68,9 @@ def validate_document(document: dict[str, Any]) -> None:
         raise DocumentError("Entity IDs must be unique")
     known_entities = set(entity_ids)
 
-    _validate_groups(document.get("groups", []), known_entities, reference_ids)
+    if not isinstance(dialect, DocumentDialect):
+        raise DocumentError("Unsupported Document dialect")
+    _validate_groups(document.get("groups", []), known_entities, reference_ids, dialect)
     _validate_temporal_identities(document.get("temporal_identities", []), reference_ids)
     _validate_motion_target_bindings(document)
 
@@ -330,7 +351,12 @@ def _validate_temporal_identities(identities: Any, reference_ids: set[str]) -> N
         raise DocumentError("Temporal identities must be sorted by ID")
 
 
-def _validate_groups(groups: Any, known_entities: set[str], reference_ids: set[str]) -> None:
+def _validate_groups(
+    groups: Any,
+    known_entities: set[str],
+    reference_ids: set[str],
+    dialect: DocumentDialect,
+) -> None:
     if not isinstance(groups, list):
         raise DocumentError("Document groups must be an array")
     group_ids: set[str] = set()
@@ -360,7 +386,31 @@ def _validate_groups(groups: Any, known_entities: set[str], reference_ids: set[s
         ):
             raise DocumentError("Group Definition members must be sorted existing unique Entities")
         provenance = group.get("provenance")
-        if isinstance(provenance, dict) and "type" in provenance:
+        if (
+            isinstance(provenance, dict)
+            and provenance.get("type") == AUTHORED_GROUP_TYPE
+            and dialect == DocumentDialect.AUTHORED_GROUP_ASSEMBLY
+        ):
+            if set(provenance) != {
+                "type",
+                "authority_identity",
+                "source_revision_id",
+                "source_document_hash",
+                "membership_hash",
+            }:
+                raise DocumentError("Authored Group provenance fields are invalid")
+            group_id, membership_hash = authored_group_identity(members)
+            if (
+                provenance["authority_identity"] != AUTHORED_GROUP_AUTHORITY
+                or not isinstance(provenance["source_revision_id"], str)
+                or re.fullmatch(r"revision:[0-9a-f]{64}", provenance["source_revision_id"]) is None
+                or not isinstance(provenance["source_document_hash"], str)
+                or re.fullmatch(r"sha256:[0-9a-f]{64}", provenance["source_document_hash"]) is None
+                or provenance["membership_hash"] != membership_hash
+                or group["id"] != group_id
+            ):
+                raise DocumentError("Authored Group provenance or identity is invalid")
+        elif isinstance(provenance, dict) and "type" in provenance:
             if (
                 set(provenance)
                 != {"type", "authority_identity", "profile_identity", "construction_artifact_id"}
