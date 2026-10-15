@@ -212,6 +212,52 @@ documents retains the old meaning. Actual schema/validator changes, reader
 dispatch and compatibility tests are future implementation work, not changes
 authorized by this document's current docs-only task.
 
+### 5.1 Verified transaction and trusted-history dialect integration (G1.5)
+
+Reader capability is not Change authority. `RevisionStore.document_dialect` is
+trusted host configuration, not a Proposal field or part of Document/Revision
+meaning. Normal acceptance SHALL pass that selected dialect to the final
+`apply_verified_transaction` validation. Its new keyword-only `dialect` argument
+defaults to `DocumentDialect.BASELINE`; existing call sites retain baseline
+behavior. No candidate discriminator, Generator parameter or Change attribute
+may automatically upgrade the store. All exact Change, Artifact, source-Base,
+Policy and admission checks keep their existing order and semantics.
+
+An existing baseline store needs an explicit host capability upgrade before a
+future authorized Change can add the first authored Group. The bounded host
+method `RevisionStore.upgrade_document_dialect(dialect)` accepts only the known
+`DocumentDialect` enum and permits BASELINE -> AUTHORED_GROUP_ASSEMBLY or the
+already-selected dialect. Downgrades and unknown values fail closed. It validates
+all stored snapshots under the requested reader before changing configuration;
+failure leaves the store unchanged. It changes no Document, head, Revision ID,
+Document hash, admission or permission, and grants no Group creation operation.
+Adapters must not receive a mutable store or invoke this trusted host operation.
+
+`svm-trusted-history@0.1` remains exactly `history_contract`, `head`, `records`.
+There is no new dialect field, history format version or commitment formula.
+Restoration first checks the externally retained trusted history digest and
+each complete Revision commitment. It then selects the known dialect required
+by each authenticated Document and validates it. The restored store requires
+the extension if **any** valid stored snapshot requires it, including a non-HEAD
+branch or a snapshot after the checked-out Revision. Otherwise it is baseline.
+This is a closed two-dialect join, not a generic latest-version fallback. Unknown
+provenance versions still fail; all parent/admission checks remain required
+before returning the store. Injected dialect metadata is not trusted input and
+does not extend the closed history format.
+
+An extension opt-in over exclusively baseline content is deliberately not
+recoverable from this unchanged payload: both configurations have identical
+historical content. The host must explicitly opt in again after restoration
+if that capability is desired. Do not claim that history round-trip preserves
+unrecorded host preferences. No implicit downgrade of actual authored content
+is allowed, and no old hash or Revision ID is rewritten.
+
+G1.5 may test existing registered edits on trusted structural authored fixtures;
+this demonstrates final validation/rollback, not historical Group creation.
+It must register no Group assembly Change. Existing source-specific Group
+verifiers continue to reject authored provenance as a substitute for their
+own origin. The dedicated assembly authority remains a separate G2 gate.
+
 ## 6. Exact Change and Producer contract
 
 The exact new Change type, not subclasses or duck-typed replacements, has these
