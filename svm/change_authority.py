@@ -14,6 +14,7 @@ from .revisions import (
     ApplyRepresentationTargetSelectionChange,
     ApplySubjectIdentityBridgeChange,
     ApplyTemporalIdentitySelectionChange,
+    AssembleAuthoredGroupChange,
     AttachCameraCompensationEvidenceChange,
     AttachMultiAnchorCameraEvidenceChange,
     AttachMultipartSubjectEvidenceChange,
@@ -77,6 +78,28 @@ class ChangeAuthority:
 
 def _source_revision(change: Any) -> str:
     return change.source_revision_id
+
+
+def _authored_group_source_revision(change: Any) -> str:
+    # Source hooks run before the verifier. Never compare a caller's str subclass.
+    source = getattr(change, "source_revision_id", None)
+    return source if type(source) is str else ""
+
+
+def _verify_authored_group(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
+    from .authored_group_assembly import verify_change
+
+    verify_change(change, resolved)
+
+
+def _authored_group_intents(change: Any) -> tuple[Intent, ...]:
+    from .authored_group_assembly import verified_group
+
+    group = verified_group(change)
+    intents: tuple[Intent, ...] = (("establish_group", "document", None),)
+    if change.initial_transform is not None:
+        intents += (("set_group_transform", group["id"], "transform"),)
+    return intents
 
 
 def _verify_representation_target_selection(
@@ -618,6 +641,13 @@ CHANGE_AUTHORITIES = {
             _establish_svg_group,
             _verify_svg_group,
             _source_revision,
+        ),
+        ChangeAuthority(
+            AssembleAuthoredGroupChange,
+            frozenset({"establish_group", "set_group_transform"}),
+            _authored_group_intents,
+            _verify_authored_group,
+            _authored_group_source_revision,
         ),
         ChangeAuthority(
             EstablishVideoArtworkGroupChange,

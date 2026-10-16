@@ -2394,6 +2394,31 @@ class SplitEntityChange:
         render_stack[source_index : source_index + 1] = new_ids
 
 
+@dataclass(frozen=True, slots=True)
+class AssembleAuthoredGroupChange:
+    """Spec82 v0.1: append one authored Group, never delegate source authority."""
+
+    source_revision_id: str
+    authority_identity: str
+    base_document_snapshot: dict[str, Any]
+    base_revision: Revision
+    member_ids: tuple[str, ...]
+    initial_transform: dict[str, Any] | None
+    group: dict[str, Any]
+
+    @property
+    def references(self) -> tuple[dict[str, Any], ...]:
+        return ()
+
+    def apply(self, document: dict[str, Any]) -> None:
+        from .authored_group_assembly import verified_group
+
+        group = verified_group(self)
+        if canonical_bytes(document) != canonical_bytes(self.base_document_snapshot):
+            raise DocumentError("Authored assembly incoming Document differs from authenticated Base")
+        document.setdefault("groups", []).append(group)
+
+
 @dataclass(frozen=True)
 class Transaction:
     transaction_id: str

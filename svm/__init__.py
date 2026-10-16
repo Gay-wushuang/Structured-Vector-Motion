@@ -79,6 +79,7 @@ from .revisions import (
     AddKeyframeChange,
     AppendReferencesChange,
     AppendSceneFragmentChange,
+    AssembleAuthoredGroupChange,
     AttachCameraCompensationEvidenceChange,
     AttachObservedMotionEvidenceChange,
     AttachObservedSimilarityEvidenceChange,
@@ -124,6 +125,7 @@ from .scene import EvaluatedEntity, EvaluatedScene, EvaluatedStyle, build_evalua
 from .structural_relations import STRUCTURAL_RELATIONS_IDENTITY
 
 __all__ = [
+    "AssembleAuthoredGroupChange",
     "DocumentDialect",
     "authored_group_identity",
     "validate_document",
