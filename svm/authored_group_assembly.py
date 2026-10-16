@@ -202,4 +202,3 @@ def verified_group(change: Any) -> dict[str, Any]:
 def verify_change(change: Any, resolved: dict[str, ArtifactSnapshot]) -> None:
     """Acceptor verifier; sibling Artifacts confer no membership authority."""
     verified_group(change)
-

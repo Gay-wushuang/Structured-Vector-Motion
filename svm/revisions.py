@@ -2415,7 +2415,9 @@ class AssembleAuthoredGroupChange:
 
         group = verified_group(self)
         if canonical_bytes(document) != canonical_bytes(self.base_document_snapshot):
-            raise DocumentError("Authored assembly incoming Document differs from authenticated Base")
+            raise DocumentError(
+                "Authored assembly incoming Document differs from authenticated Base"
+            )
         document.setdefault("groups", []).append(group)
 
 

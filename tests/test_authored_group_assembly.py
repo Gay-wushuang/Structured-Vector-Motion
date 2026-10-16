@@ -347,7 +347,8 @@ class AuthoredGroupRenderedAcceptanceTest(unittest.TestCase):
             json.loads((ROOT / "examples/005-empty-canvas.svm.json").read_bytes())
         )
         source = artifacts.import_bytes(
-            b'<svg xmlns="http://www.w3.org/2000/svg"><rect id="a" x="0" y="0" width="2" height="3"/>'
+            b'<svg xmlns="http://www.w3.org/2000/svg">'
+            b'<rect id="a" x="0" y="0" width="2" height="3"/>'
             b'<ellipse id="b" cx="4" cy="1" rx="1" ry="2"/></svg>',
             media_type="image/svg+xml",
         )
