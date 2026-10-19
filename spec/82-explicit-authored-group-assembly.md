@@ -1,10 +1,14 @@
 # Explicit Authored Group Assembly Contract v0.1
 
-Status: **DESIGN ONLY / NOT IMPLEMENTED / NOT FROZEN**.
+Status: **IMPLEMENTATION IN PROGRESS / NOT FROZEN**.
 
 Design baseline: `afb624fbdce02a8532b8478ef7b9e80f73f9ff4d`.
-Design gate date: 2026-10-14. This document closes the bounded assembly design;
-it is not implementation authorization or executable conformance evidence.
+At that 2026-10-14 design baseline this document closed the bounded assembly
+design and was not implementation authorization or executable conformance
+evidence; that design record and the baseline findings below remain historical,
+not a current-status claim.
+Current implementation status (G1, G1.5, G2, G3, G4) is recorded in §15. The
+normative contract in §§1–14 is unchanged and this document is **NOT FROZEN**.
 P2D-A remains **BLOCKED / NOT READY / NOT FROZEN**. Frozen P2D-B0 v0.1, Spec80,
 and all existing selection and admission authorities remain unchanged.
 
@@ -610,6 +614,13 @@ performance budgets and optional audit UI. In particular, two-Pair automatic
 binding is not authorized by a successful assembly Golden. P2D-A stays
 **BLOCKED / NOT READY / NOT FROZEN**; no B0 freeze scope is expanded.
 
+**Status note (2026-10-19).** Everything in this section is the 2026-10-14
+design-baseline record and is preserved verbatim; it is a historical statement,
+not a current-status claim. The `may be separately authorized` permission
+boundary still holds. §15 records which parts have since been implemented
+(G1, G1.5, G2) and which remain outstanding (G3 production Producer, G4 Golden
+047 / freeze, and every separate decision listed above).
+
 ## 14. Evidence navigation
 
 Baseline implementation boundaries for independent review:
@@ -637,3 +648,39 @@ investigation artifacts, not normative repository inputs. The present explicit
 current-Base authoring decision resolves their assembly-authority design question;
 it does not retroactively turn their unsuccessful Group fixtures into accepted
 states or resolve the separate P2D-A implementation gate.
+
+## 15. Implementation progress record (as of 2026-10-19)
+
+This record tracks implementation of the §13 authorization boundary. It is
+status documentation, not a normative contract change, not executable
+conformance evidence and not a freeze. The normative semantics in §§1–14 are
+unchanged.
+
+| Step | Scope | Status | Evidence |
+| --- | --- | --- | --- |
+| G1 | Authored-group Document dialect and reader/schema support | **IMPLEMENTED / NOT FROZEN** | commit `46bf27b`; `svm/document.py` (`DocumentDialect.AUTHORED_GROUP_ASSEMBLY`, `AUTHORED_GROUP_TYPE`, `AUTHORED_GROUP_AUTHORITY`); `schema/svm-document-v0.1-authored-group-assembly-v0.1.schema.json` |
+| G1.5 | RevisionStore dialect upgrade, trusted-history restore and final-validation integration | **IMPLEMENTED / NOT FROZEN** | commit `9d3b8a4`; `svm/admission_history.py`, `svm/proposals.py`, `svm/revisions.py`; `tests/test_document_dialect_integration.py` |
+| G2 | `AssembleAuthoredGroupChange`, exact `ChangeAuthority` registration and the independent verifier | **IMPLEMENTED / NOT FROZEN** | commit `86a308e` (format/test follow-ups `ffbbc27`, `a93fb45`); `svm/authored_group_assembly.py`, `svm/revisions.py`, `svm/change_authority.py`; `tests/test_authored_group_assembly.py`, `tests/test_authored_group_authority.py` |
+| G3 | `AuthoredGroupAssemblyAdapter` production Producer (Proposal/preview packaging) | **NOT IMPLEMENTED** | no `svm/adapters/authored_group_assembly.py` and no `adapter:authored-group-assembly` registration is tracked in `git ls-files` |
+| G4 | Golden 047 and the final freeze record | **NOT DONE** | no `examples/047-*` path is tracked |
+
+Non-claims that this record does not change:
+
+- **G2 implementation is not G3 Producer completion.** G2 supplies a registered
+  Change, its independent verifier and tests; there is no production
+  Proposal-producing Producer, CLI entry or editor packaging.
+- **Author-chosen membership is not independent cross-frame identity
+  authentication.** The assembly asserts current structural author intent over
+  existing accepted Entities; it performs no cross-frame matching, no evidence
+  recognition, no automatic membership inference and no geometric assignment
+  (§1, §10).
+- **This document is NOT FROZEN.** No G4 freeze has occurred.
+- **P2D-A stays BLOCKED / NOT READY / NOT FROZEN**; a successful authored
+  assembly is not automatic Binding authority and does not authorize
+  two-Pair automatic binding (§13).
+- **Frozen P2D-B0 v0.1 and Spec80 are unchanged**; no B0 freeze scope expands.
+
+Verification position: the W1 repair (`a93fb454`) fixed the G2 no-op-predecessor
+test; local Ruff formatting, Ruff lint, Pyright and the focused
+`test_authored_group_authority.py` module pass. Full CI on the repaired revision
+is still pending and is **not** asserted as PASS here.
