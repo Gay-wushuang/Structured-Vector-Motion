@@ -73,8 +73,9 @@ Read these files before changing core behavior:
 41. `spec/42-pop-geometry-observations.md` — real POP geometry observation producer.
 42. `spec/43-verified-observed-scale-tracks.md` — verified similarity scale authoring.
 43. `spec/44-observed-scale-track-reauthoring.md` — explicit owned scale Track replacement.
-44. `examples/001-head-basic.svm.json` — current example Document.
-45. `tests/test_golden_a.py` — executable expectations.
+44. `spec/82-explicit-authored-group-assembly.md` — separate explicit author Group assembly authority (implementation in progress; not frozen).
+45. `examples/001-head-basic.svm.json` — current example Document.
+46. `tests/test_golden_a.py` — executable expectations.
 
 If code and an invariant disagree, preserve the invariant or explicitly update
 the specification and tests in the same change. Do not silently reinterpret an
