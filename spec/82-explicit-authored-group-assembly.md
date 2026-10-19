@@ -618,8 +618,8 @@ binding is not authorized by a successful assembly Golden. P2D-A stays
 design-baseline record and is preserved verbatim; it is a historical statement,
 not a current-status claim. The `may be separately authorized` permission
 boundary still holds. §15 records which parts have since been implemented
-(G1, G1.5, G2) and which remain outstanding (G3 production Producer, G4 Golden
-047 / freeze, and every separate decision listed above).
+(G1, G1.5, G2, G3) and which remain outstanding (G4 Golden 047 / freeze, and
+every separate decision listed above).
 
 ## 14. Evidence navigation
 
@@ -649,7 +649,7 @@ current-Base authoring decision resolves their assembly-authority design questio
 it does not retroactively turn their unsuccessful Group fixtures into accepted
 states or resolve the separate P2D-A implementation gate.
 
-## 15. Implementation progress record (as of 2026-10-19)
+## 15. Implementation progress record (as of 2026-10-20)
 
 This record tracks implementation of the §13 authorization boundary. It is
 status documentation, not a normative contract change, not executable
@@ -661,14 +661,16 @@ unchanged.
 | G1 | Authored-group Document dialect and reader/schema support | **IMPLEMENTED / NOT FROZEN** | commit `46bf27b`; `svm/document.py` (`DocumentDialect.AUTHORED_GROUP_ASSEMBLY`, `AUTHORED_GROUP_TYPE`, `AUTHORED_GROUP_AUTHORITY`); `schema/svm-document-v0.1-authored-group-assembly-v0.1.schema.json` |
 | G1.5 | RevisionStore dialect upgrade, trusted-history restore and final-validation integration | **IMPLEMENTED / NOT FROZEN** | commit `9d3b8a4`; `svm/admission_history.py`, `svm/proposals.py`, `svm/revisions.py`; `tests/test_document_dialect_integration.py` |
 | G2 | `AssembleAuthoredGroupChange`, exact `ChangeAuthority` registration and the independent verifier | **IMPLEMENTED / NOT FROZEN** | commit `86a308e` (format/test follow-ups `ffbbc27`, `a93fb45`); `svm/authored_group_assembly.py`, `svm/revisions.py`, `svm/change_authority.py`; `tests/test_authored_group_assembly.py`, `tests/test_authored_group_authority.py` |
-| G3 | `AuthoredGroupAssemblyAdapter` production Producer (Proposal/preview packaging) | **NOT IMPLEMENTED** | no `svm/adapters/authored_group_assembly.py` and no `adapter:authored-group-assembly` registration is tracked in `git ls-files` |
+| G3 | `AuthoredGroupAssemblyAdapter` production Producer (Proposal/preview packaging) | **IMPLEMENTED / ACCEPTANCE PENDING / NOT FROZEN** | commit `01170ed` (Fast CI test-coverage commit `e46bd5d`); `svm/adapters/authored_group_assembly.py` (`ADAPTER_ID = "adapter:authored-group-assembly"`); `tests/test_authored_group_assembly_adapter.py` |
 | G4 | Golden 047 and the final freeze record | **NOT DONE** | no `examples/047-*` path is tracked |
 
 Non-claims that this record does not change:
 
-- **G2 implementation is not G3 Producer completion.** G2 supplies a registered
-  Change, its independent verifier and tests; there is no production
-  Proposal-producing Producer, CLI entry or editor packaging.
+- **G3 Producer delivery is not G4 acceptance or freeze.** G3 supplies the
+  production Proposal-producing Producer (`AuthoredGroupAssemblyAdapter`); the
+  G4 Golden 047 and the freeze record remain outstanding, and G3 adds no
+  authority beyond the G2 Change, its verifier and existing deny-policy
+  evaluation.
 - **Author-chosen membership is not independent cross-frame identity
   authentication.** The assembly asserts current structural author intent over
   existing accepted Entities; it performs no cross-frame matching, no evidence
@@ -682,5 +684,8 @@ Non-claims that this record does not change:
 
 Verification position: the W1 repair (`a93fb454`) fixed the G2 no-op-predecessor
 test; local Ruff formatting, Ruff lint, Pyright and the focused
-`test_authored_group_authority.py` module pass. Full CI on the repaired revision
-is still pending and is **not** asserted as PASS here.
+`test_authored_group_authority.py` module pass. Fast CI (`fast-ci.yml`) run #5
+passed on `e46bd5d`; Full CI (`ci.yml`) run #177 completed successfully for the
+same `e46bd5d` revision. G3 is therefore **ACCEPTANCE PENDING / NOT FROZEN**: the
+G4 Golden 047 and the freeze record remain outstanding, and no freeze is asserted
+here.

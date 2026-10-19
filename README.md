@@ -465,9 +465,10 @@ authoring authority that assembles author-chosen existing Entities from the real
 accepted Base into one Group with an optional initial static Transform, under an
 exact registered Change, an independent verifier and existing deny-policy
 evaluation. The Document dialect and reader/schema support (G1), the RevisionStore
-dialect upgrade with trusted-history and final-validation integration (G1.5), and
-the registered Change with its independent verifier (G2) are implemented; the
-production Producer (G3) and Golden 047 with the freeze record (G4) are not.
+dialect upgrade with trusted-history and final-validation integration (G1.5), the
+registered Change with its independent verifier (G2), and the production Producer
+(`AuthoredGroupAssemblyAdapter`, G3) are implemented; Golden 047 with the freeze
+record (G4) remains outstanding, so this specification stays **NOT FROZEN**.
 Author-chosen membership asserts current structural author intent, not
 independent cross-frame identity authentication or automatic membership
 inference. P2D-A remains **BLOCKED / NOT READY / NOT FROZEN**, and an accepted
