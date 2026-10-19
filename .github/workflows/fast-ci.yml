@@ -1,0 +1,76 @@
+name: Fast CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: Fast CI / Static
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project and development tools
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,geometry,svg,trace,analysis]"
+
+      - name: Check formatting
+        run: python -m ruff format --check .
+
+      - name: Lint
+        run: python -m ruff check .
+
+      - name: Type check
+        run: python -m pyright
+
+  contracts:
+    name: Fast CI / Core contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project and development tools
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,geometry,svg,trace,analysis]"
+
+      - name: Run core contract tests
+        run: python tools/run_fast_ci_tests.py
+
+      - name: Smoke-test installed CLI
+        run: svm validate examples/001-head-basic.svm.json
+
+  gate:
+    name: Fast CI Gate
+    if: ${{ always() }}
+    needs: [static, contracts]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every Fast CI job to succeed
+        env:
+          STATIC_RESULT: ${{ needs.static.result }}
+          CONTRACTS_RESULT: ${{ needs.contracts.result }}
+        run: |
+          if [[ "$STATIC_RESULT" != "success" || "$CONTRACTS_RESULT" != "success" ]]; then
+            echo "Fast CI failed: static=$STATIC_RESULT contracts=$CONTRACTS_RESULT" >&2
+            exit 1
+          fi
