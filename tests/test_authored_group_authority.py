@@ -194,8 +194,19 @@ class AuthoredGroupAuthorityTest(unittest.TestCase):
 
     def test_no_op_predecessor_is_not_blanket_rejected(self):
         change = make_change(self.store)
-        accepted = self.accept((AppendReferencesChange(()), change))
+        # A real, already-accepted Reference is a genuine no-op predecessor:
+        # AppendReferencesChange only appends ids it does not already know, so
+        # this exercises the no-op case without relaxing the frozen Change's
+        # "at least one Artifact reference" contract.
+        before = self.store.get_document(self.store.head)
+        existing = copy.deepcopy(before["references"][0])
+        accepted = self.accept(
+            (AppendReferencesChange((existing,)), change), artifacts=self.artifacts
+        )
         self.assertEqual(accepted["groups"], [change.group])
+        # The no-op predecessor appended nothing and left Entity content untouched.
+        self.assertEqual(accepted["references"], before["references"])
+        self.assertEqual(accepted["entities"], before["entities"])
 
     def test_nonempty_sibling_artifact_map_grants_no_assembly_authority(self):
         change = make_change(self.store)
