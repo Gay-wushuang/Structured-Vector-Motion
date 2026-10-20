@@ -9,6 +9,13 @@ process exit code.  The only addition is a per-test timing report measured with
 
 It is implemented with the standard library only and uses one identical timing
 methodology on Python 3.11 and Python 3.12.
+
+Invoke it from the repository root as ``python -m tools.run_timed_unittest``
+(as Full CI does): like ``python -m unittest``, this places the repository
+root on ``sys.path`` so test modules importing the repository ``tests``
+namespace (``import tests...``) resolve exactly as they do under the plain
+unittest entry point. Running the file as a plain script puts ``tools/`` on
+``sys.path`` instead and breaks such imports.
 """
 
 from __future__ import annotations

@@ -186,3 +186,52 @@ class TimedUnittestRunnerTest(unittest.TestCase):
         proc = self._run_timed(self._fixture(TEARDOWNCLASS_SOURCE))
         self.assertNotEqual(proc.returncode, 0)
         self.assertGreaterEqual(int(_summary(proc.stdout)["errors"]), 1)
+
+
+class TimedRunnerCIInvocationContractTest(unittest.TestCase):
+    """Guard the Full CI invocation contract discovered by Full CI #178.
+
+    Full CI must invoke the timed runner as a module from the repository root
+    (``python -m tools.run_timed_unittest``), exactly like
+    ``python -m unittest discover -s tests``: ``python -m`` places the
+    repository root on ``sys.path`` so test modules importing the repository
+    ``tests`` namespace (for example ``import tests.test_pop_group_candidates``)
+    resolve. Invoking the runner as a plain script puts ``tools/`` on
+    ``sys.path`` instead and turns every such module into
+    ``ModuleNotFoundError`` (Full CI #178: six loader errors across four files).
+    """
+
+    def test_full_ci_invokes_timed_runner_as_module(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "python -m tools.run_timed_unittest",
+            workflow,
+            "Full CI must run the timed runner via 'python -m' from the repository root",
+        )
+        self.assertNotIn(
+            "python tools/run_timed_unittest.py",
+            workflow,
+            "script-form invocation breaks repository 'tests.*' imports (Full CI #178)",
+        )
+
+    def test_module_invocation_imports_real_tests_namespace(self) -> None:
+        proc = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tools.run_timed_unittest",
+                "--pattern",
+                "test_pop_group_candidates.py",
+                "--slowest",
+                "3",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=str(ROOT),
+            check=False,
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stdout + proc.stderr)
+        summary = _summary(proc.stdout)
+        self.assertEqual(summary["errors"], "0", msg=proc.stdout + proc.stderr)
+        self.assertEqual(summary["failures"], "0")
+        self.assertGreaterEqual(int(summary["tests_run"]), 3)
