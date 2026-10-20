@@ -1,0 +1,179 @@
+{
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "frames": [
+    {
+      "flow": null,
+      "frame_index": 0,
+      "points": [
+        [
+          170.0,
+          150.0
+        ],
+        [
+          300.0,
+          155.0
+        ],
+        [
+          325.0,
+          220.0
+        ],
+        [
+          230.0,
+          285.0
+        ],
+        [
+          160.0,
+          230.0
+        ]
+      ],
+      "primitive_id": "experimental-propagated-primitive:0",
+      "status": "SUPPORTED",
+      "tick": 0
+    },
+    {
+      "flow": {
+        "inlier_count": 42,
+        "median_affine_residual_px": 1.2631443708484755,
+        "median_lk_error": 5.3526763916015625,
+        "step_affine": [
+          [
+            1.0390985222808904,
+            -0.05523117046316031,
+            6.317127269898951
+          ],
+          [
+            0.05523117046316031,
+            1.0390985222808904,
+            -19.276491535193486
+          ]
+        ],
+        "valid_track_count": 64,
+        "valid_track_ratio": 1.0
+      },
+      "frame_index": 1,
+      "points": [
+        [
+          174.67920048817626,
+          145.97758578567732
+        ],
+        [
+          309.4858525323762,
+          158.35313055729262
+        ],
+        [
+          331.8732895092931,
+          227.2753137671295
+        ],
+        [
+          229.56890381250304,
+          289.56975652138715
+        ],
+        [
+          159.86972162831455,
+          228.55315586351696
+        ]
+      ],
+      "primitive_id": "experimental-propagated-primitive:0",
+      "status": "SUPPORTED",
+      "tick": 12
+    },
+    {
+      "flow": {
+        "inlier_count": 39,
+        "median_affine_residual_px": 1.294563540557571,
+        "median_lk_error": 5.104676246643066,
+        "step_affine": [
+          [
+            1.0391914823870991,
+            -0.06101457560959652,
+            6.822777687747004
+          ],
+          [
+            0.06101457560959652,
+            1.0391914823870991,
+            -20.70046274780582
+          ]
+        ],
+        "valid_track_count": 63,
+        "valid_track_ratio": 0.984375
+      },
+      "frame_index": 2,
+      "points": [
+        [
+          179.44115454002159,
+          141.65617830571182
+        ],
+        [
+          318.77599050129794,
+          162.74190968610205
+        ],
+        [
+          337.835566561553,
+          235.73121539142085
+        ],
+        [
+          227.72085134711676,
+          294.225011025406
+        ],
+        [
+          159.01295688624162,
+          226.564413316228
+        ]
+      ],
+      "primitive_id": "experimental-propagated-primitive:0",
+      "status": "SUPPORTED",
+      "tick": 24
+    },
+    {
+      "flow": {
+        "inlier_count": 44,
+        "median_affine_residual_px": 0.9410217129506108,
+        "median_lk_error": 5.029168605804443,
+        "step_affine": [
+          [
+            1.0362721562595425,
+            -0.06189189187962299,
+            7.148116189634591
+          ],
+          [
+            0.06189189187962299,
+            1.0362721562595425,
+            -20.554732169271418
+          ]
+        ],
+        "valid_track_count": 63,
+        "valid_track_ratio": 0.984375
+      },
+      "frame_index": 3,
+      "points": [
+        [
+          184.33061945474682,
+          137.34557370662054
+        ],
+        [
+          327.4143945516105,
+          167.81982663286732
+        ],
+        [
+          342.64785631588137,
+          244.63624506079776
+        ],
+        [
+          224.9187512697047,
+          298.43652874182516
+        ],
+        [
+          157.90631572260764,
+          224.06927368467683
+        ]
+      ],
+      "primitive_id": "experimental-propagated-primitive:0",
+      "status": "SUPPORTED",
+      "tick": 36
+    }
+  ],
+  "identity_metrics_applicability": "diagnostic-only",
+  "identity_metrics_reason": "A fixed experimental label is propagated by construction; this is not SVM TemporalIdentity evidence.",
+  "method": "B-first-frame-primitive-opencv-lk-propagation",
+  "schema_version": "temporal-geometry-ab-experiment-output-0.1"
+}

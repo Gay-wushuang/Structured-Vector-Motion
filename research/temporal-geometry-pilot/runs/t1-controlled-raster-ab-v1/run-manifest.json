@@ -1,0 +1,210 @@
+{
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "authority_statement": "These are offline experimental outputs, not accepted SVM Evidence; no Document, Revision, Entity, Group, Track, Keyframe, TemporalIdentity, ChangeAuthority, schema, or frozen spec was modified.",
+  "cost_measurements": {
+    "artifact_classification": "experimental-only-not-svm-evidence",
+    "method_a": {
+      "gpu_vram_bytes": null,
+      "memory_scope_note": "process peak includes the isolated Python/OpenCV worker; tracemalloc excludes native OpenCV allocations",
+      "method": "A-per-frame-independent-primitive",
+      "process_peak_working_set_bytes": 47644672,
+      "python_tracemalloc_peak_bytes": 2495224,
+      "wall_time_seconds": 0.041390900034457445,
+      "wall_time_seconds_per_frame": 0.010347725008614361
+    },
+    "method_b": {
+      "gpu_vram_bytes": null,
+      "memory_scope_note": "process peak includes the isolated Python/OpenCV worker; tracemalloc excludes native OpenCV allocations",
+      "method": "B-first-frame-primitive-opencv-lk-propagation",
+      "process_peak_working_set_bytes": 53235712,
+      "python_tracemalloc_peak_bytes": 1475824,
+      "wall_time_seconds": 0.06098289997316897,
+      "wall_time_seconds_per_frame": 0.015245724993292242
+    },
+    "schema_version": "temporal-geometry-ab-costs-0.1"
+  },
+  "decision": {
+    "checks": {
+      "DECLARED_OPENCV_REQUIREMENT": false,
+      "DOWNSTREAM_REPRODUCIBILITY": true,
+      "METHOD_B_ABSTENTION": true,
+      "METHOD_B_FINAL_GT_RMSE": true,
+      "METHOD_B_MEAN_GT_RMSE": true,
+      "METHOD_B_MEAN_IOU": true
+    },
+    "outcome": "CONDITIONAL",
+    "reasons": [
+      "DECLARED_OPENCV_REQUIREMENT"
+    ]
+  },
+  "environment": {
+    "external_models": [],
+    "gpu_used": false,
+    "numpy": "2.2.6",
+    "opencv": "4.10.0",
+    "opencv_declared_analysis_requirement": "opencv-python-headless==4.14.0.94",
+    "opencv_requirement_satisfied": false,
+    "platform": "Windows-10-10.0.19045-SP0",
+    "python": "3.12.5"
+  },
+  "experiment_id": "t1-controlled-raster-ab-v1",
+  "fixed_protocol": {
+    "common_budget": {
+      "canvas": [
+        512,
+        512
+      ],
+      "foreground_grayscale_max": 127,
+      "primitive_count": 1,
+      "random_seed": 0,
+      "vertices_per_primitive": 5
+    },
+    "config_path": "research/temporal-geometry-pilot/experiment.json",
+    "config_sha256": "sha256:e80c2896041397748317322b881c92bfbde131c06f023cab2d2054d146733606",
+    "decision_thresholds": {
+      "go": {
+        "declared_opencv_requirement_required": true,
+        "downstream_reproducible_required": true,
+        "method_b_abstention_rate_max": 0.0,
+        "method_b_final_gt_vertex_rmse_px_max": 4.0,
+        "method_b_mean_gt_vertex_rmse_px_max": 3.0,
+        "method_b_mean_iou_min": 0.98
+      },
+      "no_go": {
+        "downstream_reproducibility_failure": true,
+        "method_b_abstention_rate_above": 0.25,
+        "method_b_final_gt_vertex_rmse_px_above": 8.0,
+        "method_b_mean_iou_below": 0.9
+      }
+    },
+    "evaluation_window": {
+      "drift_reference_frame_index": 0,
+      "first_frame_index": 0,
+      "last_frame_index": 3
+    },
+    "method_a_budget": {
+      "candidate_epsilon_pixels": [
+        0.5,
+        0.625,
+        0.75,
+        0.875,
+        1.0,
+        1.125,
+        1.25,
+        1.375,
+        1.5,
+        1.625,
+        1.75,
+        1.875,
+        2.0,
+        2.125,
+        2.25,
+        2.375,
+        2.5,
+        2.625,
+        2.75,
+        2.875,
+        3.0,
+        3.125,
+        3.25,
+        3.375,
+        3.5,
+        3.625,
+        3.75,
+        3.875,
+        4.0
+      ],
+      "frame_zero_uses_frozen_geometry": true,
+      "independent_fit_frames": 3,
+      "max_candidate_evaluations_per_fitted_frame": 29
+    },
+    "method_b_budget": {
+      "affine_estimator": "LMEDS",
+      "affine_refine_iterations": 10,
+      "boundary_sample_spacing_pixels": 8.0,
+      "flow_transitions": 3,
+      "initial_primitive_fits": 0,
+      "lk_epsilon": 0.01,
+      "lk_max_iterations": 30,
+      "lk_min_eigen_threshold": 0.0001,
+      "lk_pyramid_max_level": 3,
+      "lk_window": [
+        31,
+        31
+      ],
+      "minimum_valid_track_count": 10,
+      "minimum_valid_track_ratio": 0.75
+    },
+    "runner_path": "research/temporal-geometry-pilot/run_experiment.py",
+    "runner_sha256": "sha256:518c27a7bc06c2391427aaa1a20f16104656cfe3ba11ef8a441569d5d380d1cc"
+  },
+  "inputs": [
+    {
+      "bytes": 1877,
+      "path": "examples/035-controlled-raster-recovery/tick_000.png",
+      "sha256": "sha256:73605a34d12a002ce481125023b4534d49d879a5a43821dba16cc2f1a253707d"
+    },
+    {
+      "bytes": 1912,
+      "path": "examples/035-controlled-raster-recovery/tick_012.png",
+      "sha256": "sha256:904bdd2fb7fea8cefc8a39790c8bd08509235300a78665e03d04e9cdb734a9eb"
+    },
+    {
+      "bytes": 1944,
+      "path": "examples/035-controlled-raster-recovery/tick_024.png",
+      "sha256": "sha256:5b235d481e3b71818e45f56b99da50ca96ffb6da5dee3f553feddf463c3497f2"
+    },
+    {
+      "bytes": 1972,
+      "path": "examples/035-controlled-raster-recovery/tick_036.png",
+      "sha256": "sha256:d56d8db1e5dd593bfead929c3e27e21fe1229a358372d75d2f90ee95dbcfb036"
+    },
+    {
+      "bytes": 4174,
+      "path": "examples/035-controlled-raster-recovery/ground-truth.json",
+      "sha256": "sha256:72a8d0c4e54fe4c4c1278e1162a87de9e90ca852d333179f5b34cffdec91b8f9"
+    }
+  ],
+  "outputs": [
+    {
+      "bytes": 2649,
+      "path": "raw/method-a.json",
+      "sha256": "sha256:0cd54a3c2834df0840ace00222d3fa27ed494aab2c74e28d7211e796b78a19aa"
+    },
+    {
+      "bytes": 4070,
+      "path": "raw/method-b.json",
+      "sha256": "sha256:93105979b1997c4ee7a5af009be2a9e0fb5d8c10a2c46d532e9670e2e3cafc31"
+    },
+    {
+      "bytes": 6219,
+      "path": "metrics.json",
+      "sha256": "sha256:8ecc31a586b05288942b19ca1704bc2a2cafca284e3ff15420582ad8188ba1bc"
+    },
+    {
+      "bytes": 993,
+      "path": "costs.json",
+      "sha256": "sha256:232ad61ca34dd2f1184b0ffe50c1033209631f2e9c6dbefef8b27be74308f35e"
+    },
+    {
+      "bytes": 796,
+      "path": "reproducibility.json",
+      "sha256": "sha256:e537dcca0bc091358ad418128ef9ea8e5d648899f0b54110cadf67d7de2c0382"
+    },
+    {
+      "bytes": 81224,
+      "path": "comparison.avi",
+      "sha256": "sha256:0bc87993980c18007adf8b0efddcd051a499a395da0324421bcc60b55dbdab87"
+    }
+  ],
+  "repository": {
+    "branch": "codex/ci-o1-o2",
+    "checked_out_head": "e46bd5de2d8bb7132b8a31ce1a1d5ef5a319c56d",
+    "remote": "https://github.com/Gay-wushuang/Structured-Vector-Motion.git",
+    "remote_branch_head": "e46bd5de2d8bb7132b8a31ce1a1d5ef5a319c56d",
+    "remote_default_head": "cf4815357909f4e462f26619d33e6bfcb1e16236",
+    "worktree_dirty": true
+  },
+  "runner_identity": "svm-research/temporal-geometry-ab@0.1",
+  "schema_version": "temporal-geometry-ab-run-manifest-0.1"
+}

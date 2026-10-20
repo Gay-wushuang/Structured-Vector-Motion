@@ -1,0 +1,62 @@
+{
+  "schema_version": "temporal-geometry-ab-experiment-config-0.1",
+  "experiment_id": "t1-controlled-raster-ab-v1",
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "fixture_root": "examples/035-controlled-raster-recovery",
+  "ground_truth": "ground-truth.json",
+  "frames": [
+    {"index": 0, "tick": 0, "path": "tick_000.png", "ground_truth_key": "tick_000"},
+    {"index": 1, "tick": 12, "path": "tick_012.png", "ground_truth_key": "tick_012"},
+    {"index": 2, "tick": 24, "path": "tick_024.png", "ground_truth_key": "tick_024"},
+    {"index": 3, "tick": 36, "path": "tick_036.png", "ground_truth_key": "tick_036"}
+  ],
+  "timebase": {"ticks_per_second": 12},
+  "evaluation_window": {"first_frame_index": 0, "last_frame_index": 3, "drift_reference_frame_index": 0},
+  "frozen_first_frame_geometry": {
+    "primitive_type": "polygon",
+    "points": [[170.0, 150.0], [300.0, 155.0], [325.0, 220.0], [230.0, 285.0], [160.0, 230.0]]
+  },
+  "common_budget": {
+    "primitive_count": 1,
+    "vertices_per_primitive": 5,
+    "canvas": [512, 512],
+    "foreground_grayscale_max": 127,
+    "random_seed": 0
+  },
+  "method_a_budget": {
+    "frame_zero_uses_frozen_geometry": true,
+    "independent_fit_frames": 3,
+    "candidate_epsilon_pixels": [0.5, 0.625, 0.75, 0.875, 1.0, 1.125, 1.25, 1.375, 1.5, 1.625, 1.75, 1.875, 2.0, 2.125, 2.25, 2.375, 2.5, 2.625, 2.75, 2.875, 3.0, 3.125, 3.25, 3.375, 3.5, 3.625, 3.75, 3.875, 4.0],
+    "max_candidate_evaluations_per_fitted_frame": 29
+  },
+  "method_b_budget": {
+    "initial_primitive_fits": 0,
+    "flow_transitions": 3,
+    "boundary_sample_spacing_pixels": 8.0,
+    "lk_window": [31, 31],
+    "lk_pyramid_max_level": 3,
+    "lk_max_iterations": 30,
+    "lk_epsilon": 0.01,
+    "lk_min_eigen_threshold": 0.0001,
+    "minimum_valid_track_count": 10,
+    "minimum_valid_track_ratio": 0.75,
+    "affine_estimator": "LMEDS",
+    "affine_refine_iterations": 10
+  },
+  "decision_thresholds": {
+    "go": {
+      "method_b_mean_iou_min": 0.98,
+      "method_b_mean_gt_vertex_rmse_px_max": 3.0,
+      "method_b_final_gt_vertex_rmse_px_max": 4.0,
+      "method_b_abstention_rate_max": 0.0,
+      "downstream_reproducible_required": true,
+      "declared_opencv_requirement_required": true
+    },
+    "no_go": {
+      "method_b_mean_iou_below": 0.9,
+      "method_b_final_gt_vertex_rmse_px_above": 8.0,
+      "method_b_abstention_rate_above": 0.25,
+      "downstream_reproducibility_failure": true
+    }
+  }
+}
