@@ -1,0 +1,97 @@
+{
+  "schema_version": "t11-canonical-snapshot-manifest-0.1",
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "authority_statement": "These are offline experimental outputs, not accepted SVM Evidence; no Document, Revision, Entity, Group, Track, Keyframe, TemporalIdentity, ChangeAuthority, schema, frozen spec, CI, or v1 snapshot was modified.",
+  "purpose": "Canonical T1 re-execution under the declared runtime, closing the DECLARED_OPENCV_REQUIREMENT condition recorded against the v1 snapshot.",
+  "source_commit": "f56cee1fc5baeb4523ec85d3334d5148a6a6ab23",
+  "source_scope": {
+    "experiment_files_clean_vs_source_commit": true,
+    "verified_clean_paths": [
+      "research",
+      "examples",
+      "schema",
+      "spec"
+    ],
+    "worktree_dirty": true,
+    "worktree_dirty_note": "Uncommitted changes exist only under svm/ (codex/primitive-toolchain work-in-progress); they are outside the experiment's read set."
+  },
+  "declared_environment": {
+    "python": "3.12.5",
+    "numpy": "2.5.4",
+    "numpy_provenance": "task-declared for T1.1; not pinned by the repository",
+    "opencv_python_headless": "4.14.0.94",
+    "opencv_provenance": "pyproject.toml analysis extra pin",
+    "numpy_wheel_sha256": "a7b1b6353e36a7e50de2973a38d705c88ee93adcf120673cee7f45a4a3fa223a",
+    "opencv_wheel_sha256": "cbed65415b8f6a9541c705afe3e64795840524d0ff3bc58f507826284a1dc64b",
+    "installation_note": "Wheels were downloaded directly from the configured index, sha256-verified against the index declarations, and unpacked with the Python stdlib zipfile into an isolated directory outside the repository selected via PYTHONPATH. No venv was created: anaconda ensurepip (pyexpat DLL access denied) and the repository venv's pip (broken internal import) were both unusable.",
+    "execution_location": "outside the repository"
+  },
+  "executions": [
+    {
+      "label": "declared-run1",
+      "decision_outcome": "GO",
+      "run_manifest_sha256": "sha256:05e2013ad997845e9724f931202d09e1deb602def6ce545a52f8aa9ae2f07eee"
+    },
+    {
+      "label": "declared-run2",
+      "decision_outcome": "GO",
+      "run_manifest_sha256": "sha256:f135a045458c80820cb0722516d9982c12ec94b6e0af5f693a3cb939b625fc65"
+    }
+  ],
+  "same_environment_determinism": {
+    "byte_identical_artifacts": [
+      "raw/method-a.json",
+      "raw/method-b.json",
+      "metrics.json",
+      "reproducibility.json",
+      "comparison.avi"
+    ],
+    "decoded_video_frames_identical": true,
+    "decoded_video_max_abs_pixel_diff": 0,
+    "nondeterministic_artifacts": [
+      "costs.json",
+      "run-manifest.json"
+    ],
+    "nondeterministic_cause": "wall-time and memory measurements only"
+  },
+  "cross_version_comparison_vs_v1": {
+    "v1_snapshot": "research/temporal-geometry-pilot/runs/t1-controlled-raster-ab-v1 (preserved, untouched; input/output hash integrity re-verified PASS)",
+    "v1_environment": {
+      "python": "3.12.5",
+      "numpy": "2.2.6",
+      "opencv": "4.10.0"
+    },
+    "method_a_raw_byte_identical": true,
+    "method_b_raw_numeric_max_abs_diff": 8.881784197001252e-15,
+    "method_b_raw_structural_diffs": [],
+    "metrics_numeric_max_abs_diff": 8.881784197001252e-16,
+    "metrics_structural_diffs": [
+      "decision.checks.DECLARED_OPENCV_REQUIREMENT: True vs False",
+      "decision.outcome: 'GO' vs 'CONDITIONAL'",
+      "decision.reasons[0]: 'ALL_PREDECLARED_GO_THRESHOLDS_PASSED' vs 'DECLARED_OPENCV_REQUIREMENT'"
+    ],
+    "metrics_structural_diffs_note": "Only the decision fields differ: CONDITIONAL -> GO, because the v1 run's sole reason was DECLARED_OPENCV_REQUIREMENT.",
+    "reproducibility_json_byte_identical": true,
+    "comparison_video_container_bytes_identical": false,
+    "comparison_video_decoded_frames_identical": true,
+    "comparison_video_max_abs_pixel_diff": 0
+  },
+  "canonical_snapshot_contents": {
+    "copied_from": "declared-run1 (outputs byte-identical to declared-run2 except timing)",
+    "files": {
+      "raw/method-a.json": "sha256:0cd54a3c2834df0840ace00222d3fa27ed494aab2c74e28d7211e796b78a19aa",
+      "raw/method-b.json": "sha256:72ee8bea46c9cf2cb7f08ec678ad4d886ee30d92dbd2056378608a7397194ba6",
+      "metrics.json": "sha256:2e51cf620e7e89ddf4d5c05b4a5f1243fd9e4e5840de00558daefca90601f0af",
+      "costs.json": "sha256:502e5bb62264064da6863efd8f802abd8786f957e6ba2681ab3f6136b8f4aa91",
+      "reproducibility.json": "sha256:e537dcca0bc091358ad418128ef9ea8e5d648899f0b54110cadf67d7de2c0382",
+      "comparison.avi": "sha256:9757c2a73999bae70cb8400e73249f9bedcd8cb124361f98a804be457e1567a1",
+      "run-manifest.json": "sha256:05e2013ad997845e9724f931202d09e1deb602def6ce545a52f8aa9ae2f07eee"
+    }
+  },
+  "t1_tests": {
+    "command": "python -m unittest discover -s research/temporal-geometry-pilot/tests -v",
+    "environment": "declared environment (Python 3.12.5 / NumPy 2.5.4 / OpenCV 4.14.0)",
+    "result": "Ran 5 tests in 0.641s OK"
+  },
+  "changes_made": "Only research/temporal-geometry-pilot/runs/t1-controlled-raster-ab-v1-canonical/ was added. No algorithm, Core, schema, spec, ChangeAuthority, Revision, CI, or existing v1 snapshot change."
+}

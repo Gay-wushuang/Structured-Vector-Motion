@@ -1,0 +1,16 @@
+{
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "comparison_frame_hashes": [
+    "sha256:82959efdf75f51fa1f72df2244c546f8fb1023cd73fa348276f5af35a8445c50",
+    "sha256:77fad96dd18cbf469dcf3758757139845bf27f7d2c096265028c8fb88c4a974d",
+    "sha256:fcac1f956195413d35a1ec687d3df98aff7cbb97d407a3b4d9bd0a7587ccfecf",
+    "sha256:1a394955d4897a0911f8ed6d66764ab5795bde642bdf4ddb3911fbcf7242652c"
+  ],
+  "comparison_frame_hashes_identical": true,
+  "comparison_video_container_bytes_identical": true,
+  "comparison_video_decoded_frames_identical": true,
+  "metrics_canonical_bytes_identical": true,
+  "passed": true,
+  "schema_version": "temporal-geometry-ab-reproducibility-0.1",
+  "scope": "frozen raw experimental outputs to deterministic metrics and comparison rendering"
+}

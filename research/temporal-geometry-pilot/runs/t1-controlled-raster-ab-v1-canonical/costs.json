@@ -1,0 +1,22 @@
+{
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "method_a": {
+    "gpu_vram_bytes": null,
+    "memory_scope_note": "process peak includes the isolated Python/OpenCV worker; tracemalloc excludes native OpenCV allocations",
+    "method": "A-per-frame-independent-primitive",
+    "process_peak_working_set_bytes": 44646400,
+    "python_tracemalloc_peak_bytes": 2378400,
+    "wall_time_seconds": 0.03931269980967045,
+    "wall_time_seconds_per_frame": 0.009828174952417612
+  },
+  "method_b": {
+    "gpu_vram_bytes": null,
+    "memory_scope_note": "process peak includes the isolated Python/OpenCV worker; tracemalloc excludes native OpenCV allocations",
+    "method": "B-first-frame-primitive-opencv-lk-propagation",
+    "process_peak_working_set_bytes": 47038464,
+    "python_tracemalloc_peak_bytes": 14297,
+    "wall_time_seconds": 0.015771699836477637,
+    "wall_time_seconds_per_frame": 0.003942924959119409
+  },
+  "schema_version": "temporal-geometry-ab-costs-0.1"
+}
