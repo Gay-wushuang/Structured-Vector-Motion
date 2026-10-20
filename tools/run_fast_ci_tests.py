@@ -22,6 +22,7 @@ TEST_TARGETS: tuple[tuple[str, int], ...] = (
     ("test_authored_group_assembly.AuthoredGroupRenderedAcceptanceTest", 1),
     ("test_authored_group_assembly_adapter", 10),
     ("test_document_dialect_integration.DocumentDialectIntegrationTest", 20),
+    ("test_timed_unittest_runner", 8),
 )
 
 
