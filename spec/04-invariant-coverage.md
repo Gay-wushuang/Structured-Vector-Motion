@@ -32,7 +32,7 @@ compare rerendered landmarks. It introduces no new runtime motion semantics.
 | INV-DOC-002 | specified | Separate schema and semantics fields are defined. |
 | INV-REF-001 | covered | Artifact Store and SVG Import tests verify byte-only SHA-256 identity, resolver verification, and accepted references. |
 | INV-REF-002 | covered | Artifact tests keep content identity separate from URI/provenance locators. |
-| INV-REF-003 | covered | Golden P snapshots a real stochastic POP continuation before acceptance; Golden Q consumes only its immutable accepted result. |
+| INV-REF-003 | covered | Golden P snapshots a real stochastic POP continuation before acceptance; Golden 047 freezes clock-seeded Primitive SVG before deterministic normalization and acceptance. |
 | INV-REL-001 | covered | Example Documents keep hierarchy, render stack, and stages separate. |
 | INV-REL-002 | covered | Golden Q v3 composes Group Transform outside unchanged member-local geometry. |
 | INV-TIME-001 | covered | Golden M samples content animation without interpreting DAG order as time. |
@@ -62,6 +62,13 @@ atomic parameter mutation.
 covers SVG-to-CreatePath evidence, deterministic intermediate/final polygon
 Values, tolerance-key invalidation, fill rules, self-intersection, explicit
 rejections, shared canonicalization, and byte-stable SVG rendering.
+
+`tests/test_fogleman_primitive_toolchain.py` implements Golden 047. It covers a
+real PNG and real upstream executable run, strict producer-SVG lowering through
+the existing SVG Import subset, one authority-checked Revision, independent
+editable shape construction, byte-identical post-snapshot replay, native/SVM
+raster parity, permission enforcement, tamper rejection, and fail-closed
+producer-vocabulary drift.
 
 `tests/test_component_promotion_adapter.py` implements Golden I. It verifies
 that an accepted Derived analysis Artifact can feed a later interpretation

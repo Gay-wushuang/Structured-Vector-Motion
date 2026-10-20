@@ -343,6 +343,39 @@ def command_import_svg(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def command_import_primitive(args: argparse.Namespace) -> dict[str, Any]:
+    from .external.fogleman_primitive import PrimitiveRunConfig
+    from .primitive_toolchain import run_primitive_toolchain, write_primitive_bundle
+
+    document = load_and_validate(args.document)
+    config = PrimitiveRunConfig(
+        shape_count=args.shapes,
+        mode=args.mode,
+        alpha=args.alpha,
+        input_size=args.input_size,
+        output_size=args.output_size,
+        workers=args.workers,
+        timeout_seconds=args.timeout,
+    )
+    bundle = run_primitive_toolchain(
+        document,
+        args.png,
+        args.primitive_executable,
+        args.engine_commit,
+        config,
+        args.namespace,
+    )
+    write_primitive_bundle(bundle, args.output_directory)
+    return {"written": str(args.output_directory), **bundle.summary}
+
+
+def command_replay_primitive(args: argparse.Namespace) -> dict[str, Any]:
+    from .primitive_toolchain import replay_primitive_bundle
+
+    document = load_and_validate(args.document)
+    return replay_primitive_bundle(document, args.bundle)
+
+
 def command_trace_bitmap(args: argparse.Namespace) -> dict[str, Any]:
     from .adapters import BitmapTraceAdapter
 
@@ -816,6 +849,51 @@ def build_parser() -> argparse.ArgumentParser:
     import_svg.add_argument("--output", type=Path, required=True)
     import_svg.add_argument("--namespace")
     import_svg.set_defaults(handler=command_import_svg)
+
+    import_primitive = subparsers.add_parser(
+        "import-primitive",
+        help="run fogleman/primitive, normalize its SVG, and accept it through SVG import",
+    )
+    import_primitive.add_argument("document", type=Path, help="base SVM Document")
+    import_primitive.add_argument("png", type=Path, help="source PNG")
+    import_primitive.add_argument(
+        "--primitive-executable", type=Path, required=True, help="fogleman/primitive executable"
+    )
+    import_primitive.add_argument(
+        "--engine-commit", required=True, help="exact lowercase 40-hex upstream Git commit"
+    )
+    import_primitive.add_argument("--output-directory", type=Path, required=True)
+    import_primitive.add_argument("--namespace", default="primitive")
+    import_primitive.add_argument("--shapes", type=int, default=50)
+    import_primitive.add_argument(
+        "--mode",
+        choices=(
+            "combo",
+            "triangle",
+            "rectangle",
+            "ellipse",
+            "circle",
+            "rotated-rectangle",
+            "quadratic",
+            "rotated-ellipse",
+            "polygon",
+        ),
+        default="combo",
+    )
+    import_primitive.add_argument("--alpha", type=int, default=128)
+    import_primitive.add_argument("--input-size", type=int, default=256)
+    import_primitive.add_argument("--output-size", type=int, default=1024)
+    import_primitive.add_argument("--workers", type=int, default=1)
+    import_primitive.add_argument("--timeout", type=float, default=300.0)
+    import_primitive.set_defaults(handler=command_import_primitive)
+
+    replay_primitive = subparsers.add_parser(
+        "replay-primitive",
+        help="verify and replay a snapshotted Primitive bundle without running Primitive",
+    )
+    replay_primitive.add_argument("document", type=Path, help="exact base SVM Document")
+    replay_primitive.add_argument("bundle", type=Path, help="Primitive output bundle")
+    replay_primitive.set_defaults(handler=command_replay_primitive)
 
     trace_bitmap = subparsers.add_parser(
         "trace-bitmap", help="trace a PNG through the deterministic Adapter boundary"

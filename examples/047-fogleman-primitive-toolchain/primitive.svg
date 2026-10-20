@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="256" height="256">
+<rect x="0" y="0" width="256" height="256" fill="#a8a85b" />
+<g transform="scale(2.000000) translate(0.5 0.5)">
+<g transform="translate(71.088834 73.671135) rotate(341.857858) scale(24.254666 18.814823)"><ellipse fill="#f9e5ff" fill-opacity="0.501961" cx="0" cy="0" rx="1" ry="1" /></g>
+<ellipse fill="#637504" fill-opacity="0.501961" cx="16" cy="90" rx="27" ry="42" />
+<g transform="translate(124.162692 127.000000) rotate(119.170060) scale(18.319665 26.186387)"><ellipse fill="#1a0005" fill-opacity="0.501961" cx="0" cy="0" rx="1" ry="1" /></g>
+<g transform="translate(0 15) rotate(116) scale(65 18)"><rect fill="#050000" fill-opacity="0.501961" x="-0.5" y="-0.5" width="1" height="1" /></g>
+<g transform="translate(82.408722 0.000000) rotate(28.096100) scale(122.349853 34.464790)"><ellipse fill="#e3f369" fill-opacity="0.501961" cx="0" cy="0" rx="1" ry="1" /></g>
+<g transform="translate(65.138043 127.000000) rotate(80.383644) scale(17.330755 36.433884)"><ellipse fill="#e7bbe3" fill-opacity="0.501961" cx="0" cy="0" rx="1" ry="1" /></g>
+<polygon fill="#000300" fill-opacity="0.501961" points="88.295080,52.545843,82.289167,56.733011,66.400945,49.668174,98.005794,39.010549" />
+<g transform="translate(41 58) rotate(111) scale(8 20)"><rect fill="#000100" fill-opacity="0.501961" x="-0.5" y="-0.5" width="1" height="1" /></g>
+<rect fill="#525f01" fill-opacity="0.501961" x="41" y="95" width="33" height="13" />
+<g transform="translate(30.238229 26.397957) rotate(3.122455) scale(24.799140 20.958028)"><ellipse fill="#cadd60" fill-opacity="0.501961" cx="0" cy="0" rx="1" ry="1" /></g>
+<g transform="translate(5 6) rotate(111) scale(60 13)"><rect fill="#4c0000" fill-opacity="0.501961" x="-0.5" y="-0.5" width="1" height="1" /></g>
+<ellipse fill="#e0e86d" fill-opacity="0.501961" cx="127" cy="44" rx="20" ry="48" />
+</g>
+</svg>

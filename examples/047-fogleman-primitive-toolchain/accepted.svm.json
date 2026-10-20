@@ -1,0 +1,464 @@
+{
+  "animation": {
+    "construction_scheduling_hints": [],
+    "content": []
+  },
+  "constraints": [],
+  "construction": {
+    "operations": [
+      {
+        "id": "op:svg-primitive-real-0000",
+        "inputs": {},
+        "parameters": {
+          "height": 256.0,
+          "width": 256.0,
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "CreateRectangle"
+      },
+      {
+        "id": "op:svg-primitive-real-0001",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            95.6141025887,
+            109.524068154,
+            190.741233411,
+            187.160471846
+          ],
+          "d": "M 189.27545397 133.237654159 A 48.509332 37.629646 341.857858 1 0 97.0798820296 163.446885841 A 48.509332 37.629646 341.857858 1 0 189.27545397 133.237654159 Z"
+        },
+        "type": "CreatePath"
+      },
+      {
+        "id": "op:svg-primitive-real-0002",
+        "inputs": {},
+        "parameters": {
+          "cx": 33.0,
+          "cy": 181.0,
+          "rx": 54.0,
+          "ry": 84.0
+        },
+        "type": "CreateEllipse"
+      },
+      {
+        "id": "op:svg-primitive-real-0003",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            200.231498846,
+            214.071545352,
+            298.419269154,
+            295.928454648
+          ],
+          "d": "M 231.467248308 286.992616218 A 36.63933 52.372774 119.17006 1 0 267.183519692 223.007383782 A 36.63933 52.372774 119.17006 1 0 231.467248308 286.992616218 Z"
+        },
+        "type": "CreatePath"
+      },
+      {
+        "id": "op:svg-primitive-real-0004",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            -43.6724173747,
+            -35.3122936516,
+            45.6724173747,
+            97.3122936516
+          ],
+          "d": "M 45.6724173747 -19.5309323672 L -11.3158317079 97.3122936516 L -43.6724173747 81.5309323672 L 13.3158317079 -35.3122936516 Z"
+        },
+        "type": "CreatePath"
+      },
+      {
+        "id": "op:svg-primitive-real-0005",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            -52.4738612427,
+            -129.300188683,
+            384.108749243,
+            131.300188683
+          ],
+          "d": "M 381.681473528 116.241775725 A 244.699706 68.92958 28.0961 1 0 -50.0465855281 -114.241775725 A 244.699706 68.92958 28.0961 1 0 381.681473528 116.241775725 Z"
+        },
+        "type": "CreatePath"
+      },
+      {
+        "id": "op:svg-primitive-real-0006",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            59.1992757798,
+            218.722385452,
+            203.35289622,
+            291.277614548
+          ],
+          "d": "M 137.066298466 289.174459982 A 34.66151 72.867768 80.383644 1 0 125.485873534 220.825540018 A 34.66151 72.867768 80.383644 1 0 137.066298466 289.174459982 Z"
+        },
+        "type": "CreatePath"
+      },
+      {
+        "id": "op:svg-primitive-real-0007",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            133.80189,
+            79.021098,
+            197.011588,
+            114.466022
+          ],
+          "d": "M 177.59016 106.091686 L 165.578334 114.466022 L 133.80189 100.336348 L 197.011588 79.021098 Z"
+        },
+        "type": "CreatePath"
+      },
+      {
+        "id": "op:svg-primitive-real-0008",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            61.4614478737,
+            102.363997597,
+            104.538552126,
+            131.636002403
+          ],
+          "d": "M 104.538552126 116.698715579 L 98.8046649336 131.636002403 L 61.4614478737 117.301284421 L 67.1953350664 102.363997597 Z"
+        },
+        "type": "CreatePath"
+      },
+      {
+        "id": "op:svg-primitive-real-0009",
+        "inputs": {},
+        "parameters": {
+          "height": 26.0,
+          "width": 66.0,
+          "x": 83.0,
+          "y": 191.0
+        },
+        "type": "CreateRectangle"
+      },
+      {
+        "id": "op:svg-primitive-real-0010",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            11.8992103936,
+            11.8549835221,
+            111.053705606,
+            95.7368444779
+          ],
+          "d": "M 111.001104364 56.4975397021 A 49.59828 41.916056 3.122455 1 0 11.9518116355 51.0942882979 A 49.59828 41.916056 3.122455 1 0 111.001104364 56.4975397021 Z"
+        },
+        "type": "CreatePath"
+      },
+      {
+        "id": "op:svg-primitive-real-0011",
+        "inputs": {},
+        "parameters": {
+          "bounds": [
+            -22.6386225172,
+            -47.6736089339,
+            44.6386225172,
+            73.6736089339
+          ],
+          "d": "M 44.6386225172 -38.3560422457 L 1.63446857175 73.6736089339 L -22.6386225172 64.3560422457 L 20.3655314283 -47.6736089339 Z"
+        },
+        "type": "CreatePath"
+      },
+      {
+        "id": "op:svg-primitive-real-0012",
+        "inputs": {},
+        "parameters": {
+          "cx": 255.0,
+          "cy": 89.0,
+          "rx": 40.0,
+          "ry": 96.0
+        },
+        "type": "CreateEllipse"
+      }
+    ],
+    "output_bindings": [
+      {
+        "entity": "entity:svg-primitive-real-0000",
+        "property": "geometry",
+        "slot": "op:svg-primitive-real-0000.geometry"
+      },
+      {
+        "entity": "entity:svg-primitive-real-0001",
+        "property": "geometry",
+        "slot": "op:svg-primitive-real-0001.geometry"
+      },
+      {
+        "entity": "entity:svg-primitive-real-0002",
+        "property": "geometry",
+        "slot": "op:svg-primitive-real-0002.geometry"
+      },
+      {
+        "entity": "entity:svg-primitive-real-0003",
+        "property": "geometry",
+        "slot": "op:svg-primitive-real-0003.geometry"
+      },
+      {
+        "entity": "entity:svg-primitive-real-0004",
+        "property": "geometry",
+        "slot": "op:svg-primitive-real-0004.geometry"
+      },
+      {
+        "entity": "entity:svg-primitive-real-0005",
+        "property": "geometry",
+        "slot": "op:svg-primitive-real-0005.geometry"
+      },
+      {
+        "entity": "entity:svg-primitive-real-0006",
+        "property": "geometry",
+        "slot": "op:svg-primitive-real-0006.geometry"
+      },
+      {
+        "entity": "entity:svg-primitive-real-0007",
+        "property": "geometry",
+        "slot": "op:svg-primitive-real-0007.geometry"
+      },
+      {
+        "entity": "entity:svg-primitive-real-0008",
+        "property": "geometry",
+        "slot": "op:svg-primitive-real-0008.geometry"
+      },
+      {
+        "entity": "entity:svg-primitive-real-0009",
+        "property": "geometry",
+        "slot": "op:svg-primitive-real-0009.geometry"
+      },
+      {
+        "entity": "entity:svg-primitive-real-0010",
+        "property": "geometry",
+        "slot": "op:svg-primitive-real-0010.geometry"
+      },
+      {
+        "entity": "entity:svg-primitive-real-0011",
+        "property": "geometry",
+        "slot": "op:svg-primitive-real-0011.geometry"
+      },
+      {
+        "entity": "entity:svg-primitive-real-0012",
+        "property": "geometry",
+        "slot": "op:svg-primitive-real-0012.geometry"
+      }
+    ],
+    "refinement_stages": [
+      "mass",
+      "contour",
+      "detail"
+    ]
+  },
+  "document_id": "document:svg-import-target",
+  "edit_permissions": [],
+  "entities": [
+    {
+      "id": "entity:svg-primitive-real-0000",
+      "name": "primitive-0000"
+    },
+    {
+      "id": "entity:svg-primitive-real-0001",
+      "name": "primitive-0001"
+    },
+    {
+      "id": "entity:svg-primitive-real-0002",
+      "name": "primitive-0002"
+    },
+    {
+      "id": "entity:svg-primitive-real-0003",
+      "name": "primitive-0003"
+    },
+    {
+      "id": "entity:svg-primitive-real-0004",
+      "name": "primitive-0004"
+    },
+    {
+      "id": "entity:svg-primitive-real-0005",
+      "name": "primitive-0005"
+    },
+    {
+      "id": "entity:svg-primitive-real-0006",
+      "name": "primitive-0006"
+    },
+    {
+      "id": "entity:svg-primitive-real-0007",
+      "name": "primitive-0007"
+    },
+    {
+      "id": "entity:svg-primitive-real-0008",
+      "name": "primitive-0008"
+    },
+    {
+      "id": "entity:svg-primitive-real-0009",
+      "name": "primitive-0009"
+    },
+    {
+      "id": "entity:svg-primitive-real-0010",
+      "name": "primitive-0010"
+    },
+    {
+      "id": "entity:svg-primitive-real-0011",
+      "name": "primitive-0011"
+    },
+    {
+      "id": "entity:svg-primitive-real-0012",
+      "name": "primitive-0012"
+    }
+  ],
+  "evaluation_policies": [],
+  "presentation": {
+    "render_stack": [
+      "entity:svg-primitive-real-0000",
+      "entity:svg-primitive-real-0001",
+      "entity:svg-primitive-real-0002",
+      "entity:svg-primitive-real-0003",
+      "entity:svg-primitive-real-0004",
+      "entity:svg-primitive-real-0005",
+      "entity:svg-primitive-real-0006",
+      "entity:svg-primitive-real-0007",
+      "entity:svg-primitive-real-0008",
+      "entity:svg-primitive-real-0009",
+      "entity:svg-primitive-real-0010",
+      "entity:svg-primitive-real-0011",
+      "entity:svg-primitive-real-0012"
+    ],
+    "styles": [
+      {
+        "entity": "entity:svg-primitive-real-0000",
+        "fill": "#A8A85B",
+        "opacity": 1.0,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:svg-primitive-real-0001",
+        "fill": "#F9E5FF",
+        "opacity": 0.501961,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:svg-primitive-real-0002",
+        "fill": "#637504",
+        "opacity": 0.501961,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:svg-primitive-real-0003",
+        "fill": "#1A0005",
+        "opacity": 0.501961,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:svg-primitive-real-0004",
+        "fill": "#050000",
+        "opacity": 0.501961,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:svg-primitive-real-0005",
+        "fill": "#E3F369",
+        "opacity": 0.501961,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:svg-primitive-real-0006",
+        "fill": "#E7BBE3",
+        "opacity": 0.501961,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:svg-primitive-real-0007",
+        "fill": "#000300",
+        "opacity": 0.501961,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:svg-primitive-real-0008",
+        "fill": "#000100",
+        "opacity": 0.501961,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:svg-primitive-real-0009",
+        "fill": "#525F01",
+        "opacity": 0.501961,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:svg-primitive-real-0010",
+        "fill": "#CADD60",
+        "opacity": 0.501961,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:svg-primitive-real-0011",
+        "fill": "#4C0000",
+        "opacity": 0.501961,
+        "stroke": "none",
+        "stroke_width": 1.0
+      },
+      {
+        "entity": "entity:svg-primitive-real-0012",
+        "fill": "#E0E86D",
+        "opacity": 0.501961,
+        "stroke": "none",
+        "stroke_width": 1.0
+      }
+    ]
+  },
+  "references": [
+    {
+      "content_hash": "sha256:863de1af7e26e6fa9be17b7d5cf792d0734d7fe815886b0c95d97cb41f08371a",
+      "id": "artifact:863de1af7e26e6fa9be17b7d5cf792d0734d7fe815886b0c95d97cb41f08371a",
+      "import_metadata": {
+        "artifact_kind": "ReferenceArtifact",
+        "provenance": {
+          "derived_type": "fogleman-primitive-normalized-svg",
+          "native_preview_artifact_id": "artifact:d41dcfc8e5f600f98cfecdfd399a565727ba9324d80e3756f8573f9e0303d9e7",
+          "normalization_identity": "svm-fogleman-primitive-svg-normalization@0.1",
+          "parameters": {
+            "alpha": 128,
+            "input_size": 128,
+            "mode": "combo",
+            "mode_id": 0,
+            "output_size": 256,
+            "shape_count": 12,
+            "workers": 1
+          },
+          "producer": {
+            "commit": "0373c216458be1c4b40655b796a3aefedf8b7d23",
+            "executable_sha256": "sha256:f3f627ca5dd924f91b22421dea660fc0d287bba0b35e6dde894abca2aa0ae2d2",
+            "randomness": "clock-seeded-no-upstream-seed-control",
+            "repository": "https://github.com/fogleman/primitive"
+          },
+          "raw_svg_artifact_id": "artifact:038cc93a6491cf821a0346f8c10d1c95cafbf1d90d335f40ddcfc2ab16ea2b3b",
+          "raw_svg_content_hash": "sha256:038cc93a6491cf821a0346f8c10d1c95cafbf1d90d335f40ddcfc2ab16ea2b3b",
+          "runner_identity": "svm-fogleman-primitive-runner@0.1",
+          "source_artifact_id": "artifact:f0fe6d0588977fcc955cc0e9eaca51f7d022dca327373afa8c78325f3aeec753",
+          "source_content_hash": "sha256:f0fe6d0588977fcc955cc0e9eaca51f7d022dca327373afa8c78325f3aeec753"
+        },
+        "svg_view_box": [
+          0.0,
+          0.0,
+          256.0,
+          256.0
+        ]
+      },
+      "media_type": "image/svg+xml",
+      "uri": "artifact:863de1af7e26e6fa9be17b7d5cf792d0734d7fe815886b0c95d97cb41f08371a"
+    }
+  ],
+  "schema_version": "0.1",
+  "semantics_version": "svm-core-0.1"
+}

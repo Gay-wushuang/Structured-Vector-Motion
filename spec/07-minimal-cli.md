@@ -124,3 +124,33 @@ The source SVG is first snapshotted as a content-addressed ReferenceArtifact.
 The deterministic SVG Import Adapter then produces a Proposal, and the Proposal
 Acceptor commits one atomic Scene Fragment Transaction. No Adapter writes the
 Document directly.
+
+## Import fogleman/primitive output
+
+```powershell
+python -m svm import-primitive examples/005-empty-canvas.svm.json source.png `
+  --primitive-executable C:\tools\primitive.exe `
+  --engine-commit 0373c216458be1c4b40655b796a3aefedf8b7d23 `
+  --output-directory primitive-run `
+  --namespace primitive-demo `
+  --shapes 50 --mode combo --workers 1
+```
+
+The command snapshots the source PNG, executes the external tool without shell
+interpretation, freezes its native SVG and PNG outputs, lowers only the pinned
+producer vocabulary into the existing strict SVG Import subset, accepts that
+SVG through `SVGImportAdapter` and `ProposalAcceptor`, and writes a complete
+evidence bundle. The output directory must not already exist.
+
+The upstream program is clock-seeded and has no seed flag. Its fitting run is
+therefore not claimed to be reproducible. Deterministic replay starts at the
+snapshotted `primitive.svg`:
+
+```powershell
+python -m svm replay-primitive examples/005-empty-canvas.svm.json primitive-run
+```
+
+Replay reruns normalization, Proposal construction, acceptance, FINAL
+evaluation, and SVG rendering without invoking the external executable. It
+requires exact file hashes and exact Proposal, Revision, Document, and render
+identities. See `83-fogleman-primitive-toolchain.md`.

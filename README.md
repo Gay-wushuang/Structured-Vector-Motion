@@ -81,6 +81,31 @@ Review the complete golden chain:
 
 See `spec/10-svg-import-adapter.md` for the supported subset and rejection rules.
 
+## fogleman/primitive toolchain
+
+SVM can run a pinned `fogleman/primitive` executable against a real PNG, freeze
+its native outputs, normalize only its known SVG vocabulary, and reuse the
+existing SVG Adapter, Change Authority, Revision, Evaluator, and Renderer path:
+
+```powershell
+svm import-primitive examples/005-empty-canvas.svm.json source.png `
+  --primitive-executable C:\tools\primitive.exe `
+  --engine-commit 0373c216458be1c4b40655b796a3aefedf8b7d23 `
+  --output-directory primitive-run `
+  --namespace primitive-demo `
+  --shapes 50 --mode combo --workers 1
+
+svm replay-primitive examples/005-empty-canvas.svm.json primitive-run
+```
+
+The upstream fitter seeds itself from the clock and exposes no seed option, so
+SVM does not claim that rerunning the fit reproduces identical shapes.
+Deterministic replay begins at the content-addressed raw SVG snapshot. Direct
+upstream SVG import remains rejected because it contains transforms, polygons,
+`fill-opacity`, and root attributes outside the Core SVG subset. See
+`spec/83-fogleman-primitive-toolchain.md` and the complete real-run bundle in
+`examples/047-fogleman-primitive-toolchain/`.
+
 ## Deterministic geometry backend
 
 The second external capability executes an accepted `BooleanGeometry` Operation
