@@ -8,6 +8,7 @@ non-zero exit code for failures, errors and import errors.
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
@@ -69,6 +70,24 @@ SKIP_SOURCE = """
             self.assertTrue(True)
 """
 
+EXPECTED_FAILURE_SOURCE = """
+    import unittest
+
+    class SampleExpectedFailure(unittest.TestCase):
+        @unittest.expectedFailure
+        def test_expected(self):
+            self.assertEqual(1, 2)
+"""
+
+UNEXPECTED_SUCCESS_SOURCE = """
+    import unittest
+
+    class SampleUnexpectedSuccess(unittest.TestCase):
+        @unittest.expectedFailure
+        def test_unexpected(self):
+            self.assertEqual(1, 1)
+"""
+
 SETUPCLASS_SOURCE = """
     import unittest
 
@@ -96,6 +115,36 @@ TEARDOWNCLASS_SOURCE = """
             self.assertTrue(True)
 """
 
+NOT_EXECUTED_SOURCE = """
+    import unittest
+
+    class SampleNotExecuted(unittest.TestCase):
+        @classmethod
+        def setUpClass(cls):
+            raise RuntimeError("collect-only must not run setUpClass")
+
+        def test_never(self):
+            raise RuntimeError("collect-only must not run test bodies")
+"""
+
+DUPLICATE_SOURCE = """
+    import unittest
+
+    class SampleDuplicate(unittest.TestCase):
+        def test_once(self):
+            self.assertTrue(True)
+
+    def load_tests(loader, tests, pattern):
+        suite = unittest.TestSuite()
+        case = SampleDuplicate("test_once")
+        suite.addTests((case, case))
+        return suite
+"""
+
+EMPTY_SOURCE = """
+    VALUE = 1
+"""
+
 
 def _summary(stdout: str) -> dict[str, str]:
     data: dict[str, str] = {}
@@ -121,6 +170,22 @@ class TimedUnittestRunnerTest(unittest.TestCase):
     def _run_timed(self, directory: Path, *extra: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, str(RUNNER), "--start-dir", str(directory), *extra],
+            capture_output=True,
+            text=True,
+            cwd=str(ROOT),
+            check=False,
+        )
+
+    def _run_metrics(
+        self, directory: Path, *extra: str
+    ) -> tuple[subprocess.CompletedProcess[str], Path]:
+        metrics = directory / "metrics.json"
+        proc = self._run_timed(directory, "--metrics-json", str(metrics), *extra)
+        return proc, metrics
+
+    def _run_timed_module(self, *args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, "-m", "tools.run_timed_unittest", *args],
             capture_output=True,
             text=True,
             cwd=str(ROOT),
@@ -186,6 +251,215 @@ class TimedUnittestRunnerTest(unittest.TestCase):
         proc = self._run_timed(self._fixture(TEARDOWNCLASS_SOURCE))
         self.assertNotEqual(proc.returncode, 0)
         self.assertGreaterEqual(int(_summary(proc.stdout)["errors"]), 1)
+
+    def test_metrics_json_schema_and_timings(self) -> None:
+        directory = self._fixture(PASS_SOURCE)
+        proc, metrics_path = self._run_metrics(directory)
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        data = json.loads(metrics_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(data["schema_version"], "svm-timed-unittest-metrics-0.1")
+        self.assertEqual(
+            set(data["runner"]),
+            {
+                "module",
+                "script",
+                "argv",
+                "cwd",
+                "start_dir",
+                "resolved_start_dir",
+                "pattern",
+            },
+        )
+        self.assertEqual(data["runner"]["start_dir"], str(directory))
+        self.assertEqual(data["runner"]["resolved_start_dir"], str(directory.resolve()))
+        self.assertEqual(data["runner"]["pattern"], "test*.py")
+        self.assertIn("--metrics-json", data["runner"]["argv"])
+        self.assertIsInstance(data["python"]["version"], str)
+        self.assertIsInstance(data["python"]["version_info"], list)
+        self.assertIsInstance(data["platform"]["system"], str)
+        self.assertTrue(data["platform"]["system"])
+
+        self.assertEqual(
+            set(data["counts"]),
+            {
+                "collected",
+                "tests_run",
+                "not_run",
+                "skipped",
+                "failures",
+                "errors",
+                "expected_failures",
+                "unexpected_successes",
+            },
+        )
+        self.assertEqual(data["counts"]["collected"], 2)
+        self.assertEqual(data["counts"]["tests_run"], 2)
+        self.assertEqual(data["counts"]["not_run"], 0)
+        self.assertEqual(data["counts"]["skipped"], 0)
+        self.assertEqual(data["counts"]["failures"], 0)
+        self.assertEqual(data["counts"]["errors"], 0)
+
+        timing = data["timing"]
+        self.assertEqual(
+            set(timing),
+            {
+                "total_wall_seconds",
+                "sum_test_seconds",
+                "unattributed_seconds",
+                "process_cpu_seconds",
+                "process_cpu_scope",
+            },
+        )
+        self.assertGreater(timing["total_wall_seconds"], 0)
+        self.assertGreater(timing["sum_test_seconds"], 0)
+        self.assertGreaterEqual(timing["unattributed_seconds"], 0)
+        self.assertGreaterEqual(timing["process_cpu_seconds"], 0)
+        self.assertEqual(timing["process_cpu_scope"], "discovery_and_run")
+
+        tests = data["tests"]
+        self.assertEqual(
+            set(tests[0]),
+            {"index", "id", "executed", "duration_seconds", "status"},
+        )
+        self.assertEqual(
+            [entry["id"] for entry in tests],
+            ["test_fixture.SampleOk.test_alpha", "test_fixture.SampleOk.test_beta"],
+        )
+        self.assertEqual([entry["index"] for entry in tests], [0, 1])
+        self.assertTrue(all(entry["executed"] is True for entry in tests))
+        self.assertTrue(all(isinstance(entry["duration_seconds"], float) for entry in tests))
+        self.assertTrue(all(entry["duration_seconds"] >= 0 for entry in tests))
+        self.assertEqual({entry["status"] for entry in tests}, {"passed"})
+        self.assertAlmostEqual(
+            timing["sum_test_seconds"],
+            sum(entry["duration_seconds"] for entry in tests),
+            places=6,
+        )
+        self.assertAlmostEqual(
+            timing["unattributed_seconds"],
+            timing["total_wall_seconds"] - timing["sum_test_seconds"],
+            places=6,
+        )
+
+    def test_metrics_json_statuses_follow_result_outcomes(self) -> None:
+        cases = (
+            ("pass", PASS_SOURCE, ["passed", "passed"], 0),
+            ("fail", FAIL_SOURCE, ["failed", "passed"], 1),
+            ("error", ERROR_SOURCE, ["error"], 1),
+            ("skip", SKIP_SOURCE, ["passed", "skipped"], 0),
+            ("expected_failure", EXPECTED_FAILURE_SOURCE, ["expected_failure"], 0),
+            ("unexpected_success", UNEXPECTED_SUCCESS_SOURCE, ["unexpected_success"], 1),
+        )
+        for label, source, expected_statuses, expected_exit in cases:
+            with self.subTest(case=label):
+                proc, metrics_path = self._run_metrics(self._fixture(source))
+                self.assertEqual(proc.returncode, expected_exit, msg=proc.stderr)
+                self.assertTrue(metrics_path.exists())
+                data = json.loads(metrics_path.read_text(encoding="utf-8"))
+                self.assertEqual(
+                    sorted(entry["status"] for entry in data["tests"]),
+                    sorted(expected_statuses),
+                )
+                self.assertEqual(data["counts"]["tests_run"], len(expected_statuses))
+                self.assertEqual(data["counts"]["failures"], expected_statuses.count("failed"))
+                self.assertEqual(data["counts"]["errors"], expected_statuses.count("error"))
+                self.assertEqual(data["counts"]["skipped"], expected_statuses.count("skipped"))
+                self.assertEqual(
+                    data["counts"]["expected_failures"],
+                    expected_statuses.count("expected_failure"),
+                )
+                self.assertEqual(
+                    data["counts"]["unexpected_successes"],
+                    expected_statuses.count("unexpected_success"),
+                )
+
+    def test_metrics_not_run_for_setupclass_failure(self) -> None:
+        proc, metrics_path = self._run_metrics(self._fixture(SETUPCLASS_SOURCE))
+        self.assertNotEqual(proc.returncode, 0)
+        data = json.loads(metrics_path.read_text(encoding="utf-8"))
+        self.assertEqual(data["counts"]["tests_run"], 0)
+        self.assertGreaterEqual(data["counts"]["errors"], 1)
+        self.assertEqual(data["counts"]["not_run"], 2)
+        self.assertEqual(len(data["tests"]), 2)
+        self.assertEqual(
+            [entry["id"] for entry in data["tests"]],
+            [
+                "test_fixture.SampleSetUpClass.test_one",
+                "test_fixture.SampleSetUpClass.test_two",
+            ],
+        )
+        for entry in data["tests"]:
+            self.assertIs(entry["executed"], False)
+            self.assertIsNone(entry["duration_seconds"])
+            self.assertEqual(entry["status"], "not_run")
+
+    def test_metrics_json_write_failure_is_reported(self) -> None:
+        directory = self._fixture(PASS_SOURCE)
+        missing = directory / "missing" / "metrics.json"
+        proc = self._run_timed(directory, "--metrics-json", str(missing))
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("metrics JSON", proc.stderr)
+        self.assertFalse(missing.exists())
+
+    def test_collect_only_does_not_execute_tests(self) -> None:
+        proc = self._run_timed(self._fixture(NOT_EXECUTED_SOURCE), "--collect-only")
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        self.assertEqual(proc.stderr, "")
+        self.assertEqual(proc.stdout.splitlines(), ["test_fixture.SampleNotExecuted.test_never"])
+
+    def test_collect_only_matches_standard_discovery_order(self) -> None:
+        directory = self._fixture(PASS_SOURCE)
+        proc = self._run_timed(directory, "--collect-only")
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        standard = subprocess.run(
+            [sys.executable, "-m", "unittest", "discover", "-s", str(directory), "-v"],
+            capture_output=True,
+            text=True,
+            cwd=str(ROOT),
+            check=False,
+        )
+        self.assertEqual(proc.stdout.splitlines(), _verbose_ids(standard.stderr))
+        self.assertEqual(
+            proc.stdout.splitlines(),
+            ["test_fixture.SampleOk.test_alpha", "test_fixture.SampleOk.test_beta"],
+        )
+
+    def test_collect_only_detects_import_error(self) -> None:
+        proc = self._run_timed(self._fixture(IMPORT_ERROR_SOURCE), "--collect-only")
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("discovery/import error", proc.stderr)
+
+    def test_collect_only_detects_duplicate_ids(self) -> None:
+        proc = self._run_timed(self._fixture(DUPLICATE_SOURCE), "--collect-only")
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("duplicate test id", proc.stderr)
+
+    def test_collect_only_detects_empty_suite(self) -> None:
+        proc = self._run_timed(self._fixture(EMPTY_SOURCE), "--collect-only")
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("empty", proc.stderr)
+
+    def test_collect_only_enforces_expected_count(self) -> None:
+        directory = self._fixture(PASS_SOURCE)
+        ok = self._run_timed(directory, "--collect-only", "--expected-count", "2")
+        self.assertEqual(ok.returncode, 0, msg=ok.stderr)
+        self.assertEqual(len(ok.stdout.splitlines()), 2)
+
+        bad = self._run_timed(directory, "--collect-only", "--expected-count", "3")
+        self.assertNotEqual(bad.returncode, 0)
+        self.assertIn("expected 3 tests", bad.stderr)
+
+    def test_module_invocation_writes_metrics_from_repository_root(self) -> None:
+        directory = self._fixture(PASS_SOURCE)
+        metrics_path = directory / "metrics.json"
+        proc = self._run_timed_module(
+            "--start-dir", str(directory), "--metrics-json", str(metrics_path)
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stdout + proc.stderr)
+        data = json.loads(metrics_path.read_text(encoding="utf-8"))
+        self.assertEqual(data["counts"]["tests_run"], 2)
+        self.assertEqual(data["counts"]["errors"], 0)
 
 
 class TimedRunnerCIInvocationContractTest(unittest.TestCase):
