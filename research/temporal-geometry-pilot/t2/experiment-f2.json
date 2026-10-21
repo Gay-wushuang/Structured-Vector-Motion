@@ -1,0 +1,371 @@
+{
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "decision_thresholds": {
+    "cost": {
+      "c_over_b_conditional_max": 1.5,
+      "c_over_b_go_max": 1.0
+    },
+    "environment": {
+      "opencv_version": "4.14.0",
+      "opencv_wheel": "opencv-python-headless==4.14.0.94"
+    },
+    "fail_closed": {
+      "f3-low-texture": {
+        "supported_group_iou_conditional_min": 0.9,
+        "supported_group_iou_pass_min": 0.95
+      },
+      "f4-occlusion": {
+        "accepted_reasons": [
+          "PRIMARY_ANCHOR_LOST",
+          "INSUFFICIENT_VALID_ANCHOR_TRACKS"
+        ],
+        "occluded_frame_index": 1
+      },
+      "f5-conflicting-anchors": {
+        "conflict_frame_index": 1,
+        "required_reason": "ANCHOR_CONFLICT"
+      }
+    },
+    "protocol": "t2-p0a",
+    "quality": {
+      "f1-translation": {
+        "b_abstention_required": 0,
+        "c_abstention_required": 0,
+        "c_final_group_drift_px_max": 0.3,
+        "c_final_group_drift_relative_band_b_min_px": 0.1,
+        "c_final_group_drift_relative_to_b_max": 0.5,
+        "c_group_iou_min": 0.99,
+        "c_group_step_jitter_absolute_max_when_b_below": 0.05,
+        "c_group_step_jitter_relative_band_b_min": 0.05,
+        "c_group_step_jitter_relative_to_b_max": 0.5,
+        "c_mean_member_iou_min": 0.985,
+        "c_mean_vertex_rmse_px_max": 0.75,
+        "c_mean_vertex_rmse_relative_band_b_min_px": 0.5,
+        "c_mean_vertex_rmse_relative_to_b_max": 0.75,
+        "c_rigidity_error_px_max": 0.1
+      },
+      "f2-rotation-scale": {
+        "b_abstention_required": 0,
+        "c_abstention_required": 0,
+        "c_final_group_drift_px_max": 0.75,
+        "c_final_group_drift_relative_band_b_min_px": 0.1,
+        "c_final_group_drift_relative_to_b_max": 0.5,
+        "c_group_iou_min": 0.975,
+        "c_group_step_jitter_absolute_max_when_b_below": 0.05,
+        "c_group_step_jitter_relative_band_b_min": 0.05,
+        "c_group_step_jitter_relative_to_b_max": 0.6,
+        "c_mean_member_iou_min": 0.97,
+        "c_mean_vertex_rmse_px_max": 1.5,
+        "c_mean_vertex_rmse_relative_band_b_min_px": 0.5,
+        "c_mean_vertex_rmse_relative_to_b_max": 0.75,
+        "c_rigidity_error_px_max": 0.2
+      }
+    },
+    "relative_miss_definition": "max over failed numeric quality gates of (required-observed)/|required| for lower bounds and (observed-required)/|required| for upper bounds; a missing observation counts as 1.0; a failed binary gate counts as 1.0",
+    "stop_band_relative_miss": {
+      "f1-translation": 0.1,
+      "f2-rotation-scale": 0.25
+    }
+  },
+  "evaluation_window": {
+    "drift_reference_frame_index": 0,
+    "first_frame_index": 0,
+    "last_frame_index": 3
+  },
+  "experiment_id": "t2-f2-rotation-scale-v1",
+  "fixture_root": "research/temporal-geometry-pilot/t2/fixtures/f2-rotation-scale",
+  "frames": [
+    {
+      "index": 0,
+      "path": "tick_000.png",
+      "tick": 0
+    },
+    {
+      "index": 1,
+      "path": "tick_012.png",
+      "tick": 12
+    },
+    {
+      "index": 2,
+      "path": "tick_024.png",
+      "tick": 24
+    },
+    {
+      "index": 3,
+      "path": "tick_036.png",
+      "tick": 36
+    }
+  ],
+  "group": {
+    "anchor_policy": "strict",
+    "anchors": [
+      {
+        "anchor_id": "anchor:body",
+        "frame_index": 0,
+        "member_id": "member:body",
+        "points": [
+          [
+            180.0,
+            190.0
+          ],
+          [
+            212.29441610784923,
+            192.30674400770351
+          ],
+          [
+            244.58883221569846,
+            194.61348801540703
+          ],
+          [
+            276.8832483235477,
+            196.92023202311054
+          ],
+          [
+            309.1776644313969,
+            199.22697603081406
+          ],
+          [
+            328.47981666458026,
+            219.78623888402063
+          ],
+          [
+            341.2336216525828,
+            249.54511718935987
+          ],
+          [
+            341.32007457255236,
+            275.2079552564686
+          ],
+          [
+            313.55728764493597,
+            291.8656274130384
+          ],
+          [
+            285.79450071731964,
+            308.52329956960824
+          ],
+          [
+            258.03171378970325,
+            325.1809717261781
+          ],
+          [
+            230.48739988933775,
+            317.8046249308361
+          ],
+          [
+            203.0320174329634,
+            300.6450108956021
+          ],
+          [
+            175.57663497658905,
+            283.48539686036816
+          ],
+          [
+            172.84918432193516,
+            254.35734110258363
+          ],
+          [
+            176.42459216096756,
+            222.17867055129187
+          ]
+        ]
+      },
+      {
+        "anchor_id": "anchor:sat-a",
+        "frame_index": 0,
+        "member_id": "member:sat-a",
+        "points": [
+          [
+            70.0,
+            140.0
+          ],
+          [
+            82.5,
+            138.75
+          ],
+          [
+            95.0,
+            137.5
+          ],
+          [
+            107.5,
+            136.25
+          ],
+          [
+            120.0,
+            135.0
+          ],
+          [
+            121.25,
+            147.5
+          ],
+          [
+            122.5,
+            160.0
+          ],
+          [
+            123.75,
+            172.5
+          ],
+          [
+            125.0,
+            185.0
+          ],
+          [
+            112.49999999999999,
+            186.25
+          ],
+          [
+            100.0,
+            187.5
+          ],
+          [
+            87.5,
+            188.75
+          ],
+          [
+            75.0,
+            190.0
+          ],
+          [
+            73.75,
+            177.5
+          ],
+          [
+            72.5,
+            165.0
+          ],
+          [
+            71.25,
+            152.5
+          ]
+        ]
+      }
+    ],
+    "group_label": "experimental-group:0",
+    "limits": {
+      "conflict_rms_px": 2.0,
+      "conflict_rotation_deg": 2.0,
+      "conflict_scale_ratio": 0.02,
+      "max_median_affine_residual_px": 2.0,
+      "max_median_lk_error_px": 8.0,
+      "max_scale": 2.0,
+      "max_step_rotation_deg": 15.0,
+      "max_step_translation_px": 64.0,
+      "min_anchor_planarity": 0.02,
+      "min_anchor_spread_px": 4.0,
+      "min_scale": 0.5,
+      "min_valid_anchor_points": 8,
+      "min_valid_anchor_ratio": 0.75
+    },
+    "members": [
+      {
+        "frame_zero_points": [
+          [
+            180.0,
+            190.0
+          ],
+          [
+            320.0,
+            200.0
+          ],
+          [
+            350.0,
+            270.0
+          ],
+          [
+            250.0,
+            330.0
+          ],
+          [
+            170.0,
+            280.0
+          ]
+        ],
+        "primitive_id": "member:body"
+      },
+      {
+        "frame_zero_points": [
+          [
+            70.0,
+            140.0
+          ],
+          [
+            120.0,
+            135.0
+          ],
+          [
+            125.0,
+            185.0
+          ],
+          [
+            75.0,
+            190.0
+          ]
+        ],
+        "primitive_id": "member:sat-a"
+      },
+      {
+        "frame_zero_points": [
+          [
+            390.0,
+            240.0
+          ],
+          [
+            440.0,
+            235.0
+          ],
+          [
+            445.0,
+            285.0
+          ],
+          [
+            395.0,
+            290.0
+          ]
+        ],
+        "primitive_id": "member:sat-b"
+      }
+    ],
+    "primary_anchor_id": "anchor:body",
+    "reanchor": null,
+    "transform_model": "similarity",
+    "witness_anchor_ids": [
+      "anchor:sat-a"
+    ]
+  },
+  "identity_claim": "none",
+  "method_b_budget": {
+    "affine_estimator": "LMEDS",
+    "affine_refine_iterations": 10,
+    "boundary_sample_spacing_px": 8.0,
+    "lk_epsilon": 0.01,
+    "lk_max_iterations": 30,
+    "lk_min_eigen_threshold": 0.0001,
+    "lk_pyramid_max_level": 3,
+    "lk_window": [
+      31,
+      31
+    ],
+    "max_median_lk_error_px": 8.0,
+    "max_member_median_residual_px": 2.0,
+    "min_valid_member_ratio": 0.75,
+    "min_valid_member_tracks": 10
+  },
+  "method_c_budget": {
+    "affine_estimator": "LMEDS",
+    "affine_refine_iterations": 10,
+    "lk_epsilon": 0.01,
+    "lk_max_iterations": 30,
+    "lk_min_eigen_threshold": 0.0001,
+    "lk_pyramid_max_level": 3,
+    "lk_window": [
+      31,
+      31
+    ]
+  },
+  "schema_version": "t2-group-anchor-experiment-config-0.1",
+  "timebase": {
+    "ticks_per_second": 12
+  }
+}

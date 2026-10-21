@@ -1,0 +1,203 @@
+{
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "evaluation_window": {
+    "drift_reference_frame_index": 0,
+    "first_frame_index": 0,
+    "last_frame_index": 3
+  },
+  "experiment_id": "t2-f4-occlusion-v1",
+  "fixture_evaluation": {
+    "b_abstention_rate": 0.75,
+    "b_safety": {
+      "abstained_frame_reasons": {
+        "MEMBER_LOST": 1,
+        "PREVIOUS_TRANSITION_ABSTAINED": 2
+      },
+      "supported_frames_below_0_90_group_iou": []
+    },
+    "c_abstention_rate": 0.75,
+    "fail_closed": {
+      "fixture_id": "f4-occlusion",
+      "observations": {
+        "accepted_reasons": [
+          "PRIMARY_ANCHOR_LOST",
+          "INSUFFICIENT_VALID_ANCHOR_TRACKS"
+        ],
+        "later_frames": [
+          {
+            "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+            "status": "ABSTAINED"
+          },
+          {
+            "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+            "status": "ABSTAINED"
+          }
+        ],
+        "occluded_frame_reason": "LK_QUALITY_TOO_LOW",
+        "occluded_frame_status": "ABSTAINED"
+      },
+      "status": "CONDITIONAL"
+    },
+    "fixture_id": "f4-occlusion"
+  },
+  "methods": {
+    "B": {
+      "method": "B-per-member-opencv-lk-propagation",
+      "per_frame": [
+        {
+          "frame_index": 0,
+          "group_centroid_error_px": 0.0,
+          "group_drift_px": 0.0,
+          "group_iou": 1.0,
+          "group_vertex_rmse_px": 0.0,
+          "members": [
+            {
+              "centroid_error_px": 0.0,
+              "iou": 1.0,
+              "primitive_id": "member:body",
+              "vertex_rmse_px": 0.0
+            },
+            {
+              "centroid_error_px": 0.0,
+              "iou": 1.0,
+              "primitive_id": "member:sat-a",
+              "vertex_rmse_px": 0.0
+            },
+            {
+              "centroid_error_px": 0.0,
+              "iou": 1.0,
+              "primitive_id": "member:sat-b",
+              "vertex_rmse_px": 0.0
+            }
+          ],
+          "status": "SUPPORTED",
+          "tick": 0
+        },
+        {
+          "frame_index": 1,
+          "reason": "MEMBER_LOST",
+          "status": "ABSTAINED",
+          "tick": 12
+        },
+        {
+          "frame_index": 2,
+          "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+          "status": "ABSTAINED",
+          "tick": 24
+        },
+        {
+          "frame_index": 3,
+          "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+          "status": "ABSTAINED",
+          "tick": 36
+        }
+      ],
+      "summary": {
+        "abstained_frame_count": 3,
+        "abstention_rate": 0.75,
+        "drift_slope_px_per_frame": null,
+        "evaluated_frame_count": 4,
+        "final_group_drift_px": null,
+        "final_group_vertex_rmse_px": null,
+        "group_step_jitter_mean": null,
+        "lk_point_count_mean": null,
+        "lk_point_counts": [],
+        "mean_group_centroid_error_px": 0.0,
+        "mean_group_iou": 1.0,
+        "mean_group_vertex_rmse_px": 0.0,
+        "mean_member_iou": 1.0,
+        "mean_member_vertex_rmse_px": 0.0,
+        "member_step_jitter_mean": null,
+        "reason_counts": {
+          "MEMBER_LOST": 1,
+          "PREVIOUS_TRANSITION_ABSTAINED": 2
+        },
+        "rigidity_error_px": null,
+        "supported_frame_count": 1,
+        "supported_frame_indices": [
+          0
+        ]
+      }
+    },
+    "C": {
+      "method": "C-author-anchored-group-similarity",
+      "per_frame": [
+        {
+          "frame_index": 0,
+          "group_centroid_error_px": 0.0,
+          "group_drift_px": 0.0,
+          "group_iou": 1.0,
+          "group_vertex_rmse_px": 0.0,
+          "members": [
+            {
+              "centroid_error_px": 0.0,
+              "iou": 1.0,
+              "primitive_id": "member:body",
+              "vertex_rmse_px": 0.0
+            },
+            {
+              "centroid_error_px": 0.0,
+              "iou": 1.0,
+              "primitive_id": "member:sat-a",
+              "vertex_rmse_px": 0.0
+            },
+            {
+              "centroid_error_px": 0.0,
+              "iou": 1.0,
+              "primitive_id": "member:sat-b",
+              "vertex_rmse_px": 0.0
+            }
+          ],
+          "status": "SUPPORTED",
+          "tick": 0
+        },
+        {
+          "frame_index": 1,
+          "reason": "LK_QUALITY_TOO_LOW",
+          "status": "ABSTAINED",
+          "tick": 12
+        },
+        {
+          "frame_index": 2,
+          "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+          "status": "ABSTAINED",
+          "tick": 24
+        },
+        {
+          "frame_index": 3,
+          "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+          "status": "ABSTAINED",
+          "tick": 36
+        }
+      ],
+      "summary": {
+        "abstained_frame_count": 3,
+        "abstention_rate": 0.75,
+        "drift_slope_px_per_frame": null,
+        "evaluated_frame_count": 4,
+        "final_group_drift_px": null,
+        "final_group_vertex_rmse_px": null,
+        "group_step_jitter_mean": null,
+        "lk_point_count_mean": null,
+        "lk_point_counts": [],
+        "mean_group_centroid_error_px": 0.0,
+        "mean_group_iou": 1.0,
+        "mean_group_vertex_rmse_px": 0.0,
+        "mean_member_iou": 1.0,
+        "mean_member_vertex_rmse_px": 0.0,
+        "member_step_jitter_mean": null,
+        "reason_counts": {
+          "LK_QUALITY_TOO_LOW": 1,
+          "PREVIOUS_TRANSITION_ABSTAINED": 2
+        },
+        "rigidity_error_px": null,
+        "supported_frame_count": 1,
+        "supported_frame_indices": [
+          0
+        ]
+      }
+    }
+  },
+  "protocol": "t2-p0a",
+  "schema_version": "t2-group-anchor-metrics-0.1"
+}

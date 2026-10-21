@@ -1,0 +1,27 @@
+{
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "cost_ratio_c_over_b": 0.7849321491507144,
+  "method_b": {
+    "gpu_vram_bytes": null,
+    "memory_scope_note": "process peak includes the isolated Python/OpenCV worker; tracemalloc excludes native OpenCV allocations",
+    "method": "B-per-member-opencv-lk-propagation",
+    "process_peak_working_set_bytes": 46690304,
+    "python_tracemalloc_peak_bytes": 14134,
+    "wall_time_seconds": 0.013671500142663717,
+    "wall_time_seconds_per_frame": 0.0034178750356659293
+  },
+  "method_c": {
+    "gpu_vram_bytes": null,
+    "memory_scope_note": "process peak includes the isolated Python/OpenCV worker; tracemalloc excludes native OpenCV allocations",
+    "method": "C-author-anchored-group-similarity",
+    "process_peak_working_set_bytes": 45723648,
+    "python_tracemalloc_peak_bytes": 10774,
+    "wall_time_seconds": 0.01073119998909533,
+    "wall_time_seconds_per_frame": 0.0026827999972738326
+  },
+  "schema_version": "t2-group-anchor-costs-0.1",
+  "second_run_sanity": {
+    "method_b_wall_time_seconds": 0.013717499794438481,
+    "method_c_wall_time_seconds": 0.011075100162997842
+  }
+}

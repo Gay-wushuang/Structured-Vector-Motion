@@ -1,0 +1,33 @@
+{
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "downstream": {
+    "artifact_classification": "experimental-only-not-svm-evidence",
+    "comparison_frame_hashes": [
+      "sha256:1ea49a9b60cb4139c33451374e133549c1cca94f26064b5923ed02f0e8ebcfa1",
+      "sha256:ee3f7d45ce9f3dd47374ce42e57f65f528f2f0be7925f27d37fd77b0a3a4ef1b",
+      "sha256:df572d88817cfc58e7872f94f7f07de0cfd5e9c1af636c5ec15e62ed8ce28a0b",
+      "sha256:532987e7d91e260aaffad7af3fa3d16d8f66c8c033dec9fb89a393c6ac23360d"
+    ],
+    "comparison_frame_hashes_identical": true,
+    "comparison_video_container_bytes_identical": true,
+    "comparison_video_decoded_frames_identical": true,
+    "metrics_canonical_bytes_identical": true,
+    "passed": true,
+    "schema_version": "t2-group-anchor-reproducibility-0.1",
+    "scope": "frozen raw experimental outputs to deterministic metrics and comparison rendering"
+  },
+  "full_run": {
+    "byte_identical": true,
+    "metrics_byte_identical": true,
+    "metrics_sha256_run1": "sha256:8910728b3ffb366942e5b3075999ae6a9871652541a8dfbbd96631091323ea93",
+    "raw_method_b_byte_identical": true,
+    "raw_method_b_sha256_run1": "sha256:f6264481fef567c5a3f96f873969ecc74a93780eb1739dd55ce00f8007b1fff2",
+    "raw_method_b_sha256_run2": "sha256:f6264481fef567c5a3f96f873969ecc74a93780eb1739dd55ce00f8007b1fff2",
+    "raw_method_c_byte_identical": true,
+    "raw_method_c_sha256_run1": "sha256:f5a52f766127b7e5d1246bdf29ce8b6659cdc1247f3c472d028c754d2197f410",
+    "raw_method_c_sha256_run2": "sha256:f5a52f766127b7e5d1246bdf29ce8b6659cdc1247f3c472d028c754d2197f410"
+  },
+  "passed": true,
+  "schema_version": "t2-group-anchor-reproducibility-0.1",
+  "scope": "full isolated B/C runs plus deterministic downstream metrics and comparison rendering"
+}

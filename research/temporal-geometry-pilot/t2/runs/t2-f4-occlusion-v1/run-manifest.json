@@ -1,0 +1,360 @@
+{
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "authority_statement": "These are offline experimental outputs, not accepted SVM Evidence; no Document, Revision, Entity, Group, Track, Keyframe, TemporalIdentity, MotionTargetBinding, ChangeAuthority, schema, or frozen spec was modified.",
+  "cost_measurements": {
+    "method_b": {
+      "gpu_vram_bytes": null,
+      "memory_scope_note": "process peak includes the isolated Python/OpenCV worker; tracemalloc excludes native OpenCV allocations",
+      "method": "B-per-member-opencv-lk-propagation",
+      "process_peak_working_set_bytes": 46796800,
+      "python_tracemalloc_peak_bytes": 14966,
+      "wall_time_seconds": 0.014361399924382567,
+      "wall_time_seconds_per_frame": 0.003590349981095642
+    },
+    "method_c": {
+      "gpu_vram_bytes": null,
+      "memory_scope_note": "process peak includes the isolated Python/OpenCV worker; tracemalloc excludes native OpenCV allocations",
+      "method": "C-author-anchored-group-similarity",
+      "process_peak_working_set_bytes": 45875200,
+      "python_tracemalloc_peak_bytes": 13331,
+      "wall_time_seconds": 0.01181000005453825,
+      "wall_time_seconds_per_frame": 0.0029525000136345625
+    }
+  },
+  "decision": {
+    "compensating_quality_gain": false,
+    "conditional_reasons": [
+      "F4-OCCLUSION_CONDITIONAL"
+    ],
+    "cost_ratio_c_over_b": 0.7543074569042967,
+    "environment_ok": true,
+    "fixture_statuses": {
+      "f1-translation": {
+        "fail_closed": null,
+        "quality": "PASS"
+      },
+      "f2-rotation-scale": {
+        "fail_closed": null,
+        "quality": "STOP"
+      },
+      "f3-low-texture": {
+        "fail_closed": "INCONCLUSIVE",
+        "quality": null
+      },
+      "f4-occlusion": {
+        "fail_closed": "CONDITIONAL",
+        "quality": null
+      },
+      "f5-conflicting-anchors": {
+        "fail_closed": "PASS",
+        "quality": null
+      }
+    },
+    "full_run_byte_identical": true,
+    "go_gates": {
+      "B_CONTROL": false,
+      "COST": true,
+      "ENVIRONMENT": true,
+      "F1_QUALITY": true,
+      "F2_QUALITY": false,
+      "F3_FAIL_CLOSED": true,
+      "F4_FAIL_CLOSED": false,
+      "F5_FAIL_CLOSED": true,
+      "FULL_DETERMINISM": true
+    },
+    "outcome": "STOP",
+    "protocol": "t2-p0a",
+    "stop_reasons": [
+      "F2-ROTATION-SCALE_B_CONTROL_ABSTAINED",
+      "F2-ROTATION-SCALE_QUALITY_STOP"
+    ],
+    "unresolved_limits": [
+      "F3_INCONCLUSIVE",
+      "F4_ABSTENTION_REASON_DIFFERS"
+    ]
+  },
+  "determinism": {
+    "downstream_passed": true,
+    "full_run_byte_identical": true,
+    "metrics_byte_identical": true,
+    "raw_method_b_byte_identical": true,
+    "raw_method_c_byte_identical": true
+  },
+  "environment": {
+    "external_models": [],
+    "gpu_used": false,
+    "numpy": "2.5.4",
+    "opencv": "4.14.0",
+    "opencv_declared_analysis_requirement": "opencv-python-headless==4.14.0.94",
+    "opencv_requirement_satisfied": true,
+    "platform": "Windows-10-10.0.19045-SP0",
+    "python": "3.12.5",
+    "runner_identity": "svm-research/t2-group-anchor@0.1",
+    "wheel_provenance": {
+      "numpy_wheel_sha256": "a7b1b6353e36a7e50de2973a38d705c88ee93adcf120673cee7f45a4a3fa223a",
+      "opencv_wheel_sha256": "cbed65415b8f6a9541c705afe3e64795840524d0ff3bc58f507826284a1dc64b",
+      "provenance": "T1.1 canonical manifest; both wheels were re-downloaded from the configured index, sha256-verified, and unpacked outside the repository for T2-P1"
+    }
+  },
+  "experiment_id": "t2-f4-occlusion-v1",
+  "fixed_protocol": {
+    "config_path": "research/temporal-geometry-pilot/t2/experiment-f4.json",
+    "config_sha256": "sha256:88a1f68ffee4e759f0e90ff54e44b790fa31bb109fea9e4361a6f38676b6c8f7",
+    "decision_thresholds": {
+      "cost": {
+        "c_over_b_conditional_max": 1.5,
+        "c_over_b_go_max": 1.0
+      },
+      "environment": {
+        "opencv_version": "4.14.0",
+        "opencv_wheel": "opencv-python-headless==4.14.0.94"
+      },
+      "fail_closed": {
+        "f3-low-texture": {
+          "supported_group_iou_conditional_min": 0.9,
+          "supported_group_iou_pass_min": 0.95
+        },
+        "f4-occlusion": {
+          "accepted_reasons": [
+            "PRIMARY_ANCHOR_LOST",
+            "INSUFFICIENT_VALID_ANCHOR_TRACKS"
+          ],
+          "occluded_frame_index": 1
+        },
+        "f5-conflicting-anchors": {
+          "conflict_frame_index": 1,
+          "required_reason": "ANCHOR_CONFLICT"
+        }
+      },
+      "protocol": "t2-p0a",
+      "quality": {
+        "f1-translation": {
+          "b_abstention_required": 0,
+          "c_abstention_required": 0,
+          "c_final_group_drift_px_max": 0.3,
+          "c_final_group_drift_relative_band_b_min_px": 0.1,
+          "c_final_group_drift_relative_to_b_max": 0.5,
+          "c_group_iou_min": 0.99,
+          "c_group_step_jitter_absolute_max_when_b_below": 0.05,
+          "c_group_step_jitter_relative_band_b_min": 0.05,
+          "c_group_step_jitter_relative_to_b_max": 0.5,
+          "c_mean_member_iou_min": 0.985,
+          "c_mean_vertex_rmse_px_max": 0.75,
+          "c_mean_vertex_rmse_relative_band_b_min_px": 0.5,
+          "c_mean_vertex_rmse_relative_to_b_max": 0.75,
+          "c_rigidity_error_px_max": 0.1
+        },
+        "f2-rotation-scale": {
+          "b_abstention_required": 0,
+          "c_abstention_required": 0,
+          "c_final_group_drift_px_max": 0.75,
+          "c_final_group_drift_relative_band_b_min_px": 0.1,
+          "c_final_group_drift_relative_to_b_max": 0.5,
+          "c_group_iou_min": 0.975,
+          "c_group_step_jitter_absolute_max_when_b_below": 0.05,
+          "c_group_step_jitter_relative_band_b_min": 0.05,
+          "c_group_step_jitter_relative_to_b_max": 0.6,
+          "c_mean_member_iou_min": 0.97,
+          "c_mean_vertex_rmse_px_max": 1.5,
+          "c_mean_vertex_rmse_relative_band_b_min_px": 0.5,
+          "c_mean_vertex_rmse_relative_to_b_max": 0.75,
+          "c_rigidity_error_px_max": 0.2
+        }
+      },
+      "relative_miss_definition": "max over failed numeric quality gates of (required-observed)/|required| for lower bounds and (observed-required)/|required| for upper bounds; a missing observation counts as 1.0; a failed binary gate counts as 1.0",
+      "stop_band_relative_miss": {
+        "f1-translation": 0.1,
+        "f2-rotation-scale": 0.25
+      }
+    },
+    "gt_eval_path": "research/temporal-geometry-pilot/t2/gt_eval.py",
+    "gt_eval_sha256": "sha256:3dbd926e09c1c109ae5231ead807898c90f3e1bc64d941292426c5d2df76be9b",
+    "limits_sha256": "sha256:b2327828ce462d7f93108ba3115e04924f860ccef693e0cf86302e282f928c43",
+    "method_b_budget": {
+      "affine_estimator": "LMEDS",
+      "affine_refine_iterations": 10,
+      "boundary_sample_spacing_px": 8.0,
+      "lk_epsilon": 0.01,
+      "lk_max_iterations": 30,
+      "lk_min_eigen_threshold": 0.0001,
+      "lk_pyramid_max_level": 3,
+      "lk_window": [
+        31,
+        31
+      ],
+      "max_median_lk_error_px": 8.0,
+      "max_member_median_residual_px": 2.0,
+      "min_valid_member_ratio": 0.75,
+      "min_valid_member_tracks": 10
+    },
+    "method_c_budget": {
+      "affine_estimator": "LMEDS",
+      "affine_refine_iterations": 10,
+      "lk_epsilon": 0.01,
+      "lk_max_iterations": 30,
+      "lk_min_eigen_threshold": 0.0001,
+      "lk_pyramid_max_level": 3,
+      "lk_window": [
+        31,
+        31
+      ]
+    },
+    "runner_path": "research/temporal-geometry-pilot/t2/run_t2.py",
+    "runner_sha256": "sha256:adbaf8ad129bd4dfbf50ebee4e537ba30620f02f88b393facb60e959238b2dc3",
+    "runtime_path": "research/temporal-geometry-pilot/t2/runtime.py",
+    "runtime_sha256": "sha256:6b78f3a84f0dfa993b79d14204d6c9458541def487c1bb550a0ab9ea68d886f7",
+    "t1_config_sha256": "sha256:e80c2896041397748317322b881c92bfbde131c06f023cab2d2054d146733606",
+    "t1_runner_sha256": "sha256:518c27a7bc06c2391427aaa1a20f16104656cfe3ba11ef8a441569d5d380d1cc",
+    "thresholds_sha256": "sha256:d10d0ae7f5e77f1fb7d8a6df3a3dde13006e70f33d9622910fe849d3b2e9a448"
+  },
+  "fixture_evaluation": {
+    "b_abstention_rate": 0.75,
+    "b_safety": {
+      "abstained_frame_reasons": {
+        "MEMBER_LOST": 1,
+        "PREVIOUS_TRANSITION_ABSTAINED": 2
+      },
+      "supported_frames_below_0_90_group_iou": []
+    },
+    "c_abstention_rate": 0.75,
+    "fail_closed": {
+      "fixture_id": "f4-occlusion",
+      "observations": {
+        "accepted_reasons": [
+          "PRIMARY_ANCHOR_LOST",
+          "INSUFFICIENT_VALID_ANCHOR_TRACKS"
+        ],
+        "later_frames": [
+          {
+            "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+            "status": "ABSTAINED"
+          },
+          {
+            "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+            "status": "ABSTAINED"
+          }
+        ],
+        "occluded_frame_reason": "LK_QUALITY_TOO_LOW",
+        "occluded_frame_status": "ABSTAINED"
+      },
+      "status": "CONDITIONAL"
+    },
+    "fixture_id": "f4-occlusion"
+  },
+  "inputs": [
+    {
+      "bytes": 1473,
+      "path": "research/temporal-geometry-pilot/t2/fixtures/f4-occlusion/tick_000.png",
+      "role": "frame:0",
+      "sha256": "sha256:6af696ac1f6483c92e8e355a45bc8bf7b15d95bbfa54ddb46e9c03c8e9a1593e"
+    },
+    {
+      "bytes": 1198,
+      "path": "research/temporal-geometry-pilot/t2/fixtures/f4-occlusion/tick_012.png",
+      "role": "frame:1",
+      "sha256": "sha256:4836558584dbf2c1737bc34bbd606f702c52df6703c11cb2ad8b559c5d45089b"
+    },
+    {
+      "bytes": 1465,
+      "path": "research/temporal-geometry-pilot/t2/fixtures/f4-occlusion/tick_024.png",
+      "role": "frame:2",
+      "sha256": "sha256:f9795970d747893da4ccaa3f2942a71d794d37594723d77588d2b3ed82dc48e3"
+    },
+    {
+      "bytes": 1468,
+      "path": "research/temporal-geometry-pilot/t2/fixtures/f4-occlusion/tick_036.png",
+      "role": "frame:3",
+      "sha256": "sha256:738cd53c9c1c859144ac6df7a427d644917c2cf913d95b6d9e65dc03f494f710"
+    },
+    {
+      "bytes": 8481,
+      "path": "research/temporal-geometry-pilot/t2/fixtures/f4-occlusion/ground-truth.json",
+      "role": "ground_truth",
+      "sha256": "sha256:22ac75cd1bb6c4b816d3c15ecfde284a343114f9480b2e8d3621575d6f3f5ac4"
+    }
+  ],
+  "outputs": [
+    {
+      "bytes": 4631,
+      "path": "raw/method-b.json",
+      "sha256": "sha256:f6264481fef567c5a3f96f873969ecc74a93780eb1739dd55ce00f8007b1fff2"
+    },
+    {
+      "bytes": 5498,
+      "path": "raw/method-c.json",
+      "sha256": "sha256:f5a52f766127b7e5d1246bdf29ce8b6659cdc1247f3c472d028c754d2197f410"
+    },
+    {
+      "bytes": 5663,
+      "path": "metrics.json",
+      "sha256": "sha256:8910728b3ffb366942e5b3075999ae6a9871652541a8dfbbd96631091323ea93"
+    },
+    {
+      "bytes": 1160,
+      "path": "costs.json",
+      "sha256": "sha256:473354bdf12a118efc56950d9e49b7f7dccbacae993a1d67ba40111d5816febb"
+    },
+    {
+      "bytes": 1781,
+      "path": "reproducibility.json",
+      "sha256": "sha256:62692c1f6ebf60937a0cc5c12557fe5003c72de70728920bf8235ac6b8c2db90"
+    },
+    {
+      "bytes": 129472,
+      "path": "comparison.avi",
+      "sha256": "sha256:018e79ded9216381a26be39c46ba44df0bed6f289b766cb7296776876d8bd823"
+    }
+  ],
+  "repository": {
+    "branch": "research/temporal-geometry-pilot",
+    "checked_out_head": "111ac6b8e6c9c4554fc2c8a780afc76dee1af4f5",
+    "worktree_dirty": true,
+    "worktree_dirty_note": "T2-P1 artifacts are new during the run; T1 canonical hashes are verified separately and no T1 path is written."
+  },
+  "runner_identity": "svm-research/t2-group-anchor@0.1",
+  "schema_version": "t2-group-anchor-run-manifest-0.1",
+  "t1_snapshot": {
+    "canonical_manifest": "research/temporal-geometry-pilot/runs/t1-controlled-raster-ab-v1-canonical/canonical-manifest.json",
+    "canonical_manifest_sha256": "sha256:51fbf3d4b0925f754f5a874130f123b745c08569199d55e141e334b503afabde",
+    "files": [
+      {
+        "actual": "sha256:0cd54a3c2834df0840ace00222d3fa27ed494aab2c74e28d7211e796b78a19aa",
+        "expected": "sha256:0cd54a3c2834df0840ace00222d3fa27ed494aab2c74e28d7211e796b78a19aa",
+        "path": "raw/method-a.json"
+      },
+      {
+        "actual": "sha256:72ee8bea46c9cf2cb7f08ec678ad4d886ee30d92dbd2056378608a7397194ba6",
+        "expected": "sha256:72ee8bea46c9cf2cb7f08ec678ad4d886ee30d92dbd2056378608a7397194ba6",
+        "path": "raw/method-b.json"
+      },
+      {
+        "actual": "sha256:2e51cf620e7e89ddf4d5c05b4a5f1243fd9e4e5840de00558daefca90601f0af",
+        "expected": "sha256:2e51cf620e7e89ddf4d5c05b4a5f1243fd9e4e5840de00558daefca90601f0af",
+        "path": "metrics.json"
+      },
+      {
+        "actual": "sha256:502e5bb62264064da6863efd8f802abd8786f957e6ba2681ab3f6136b8f4aa91",
+        "expected": "sha256:502e5bb62264064da6863efd8f802abd8786f957e6ba2681ab3f6136b8f4aa91",
+        "path": "costs.json"
+      },
+      {
+        "actual": "sha256:e537dcca0bc091358ad418128ef9ea8e5d648899f0b54110cadf67d7de2c0382",
+        "expected": "sha256:e537dcca0bc091358ad418128ef9ea8e5d648899f0b54110cadf67d7de2c0382",
+        "path": "reproducibility.json"
+      },
+      {
+        "actual": "sha256:9757c2a73999bae70cb8400e73249f9bedcd8cb124361f98a804be457e1567a1",
+        "expected": "sha256:9757c2a73999bae70cb8400e73249f9bedcd8cb124361f98a804be457e1567a1",
+        "path": "comparison.avi"
+      },
+      {
+        "actual": "sha256:05e2013ad997845e9724f931202d09e1deb602def6ce545a52f8aa9ae2f07eee",
+        "expected": "sha256:05e2013ad997845e9724f931202d09e1deb602def6ce545a52f8aa9ae2f07eee",
+        "path": "run-manifest.json"
+      }
+    ],
+    "mismatches": [],
+    "passed": true,
+    "status": "UNCHANGED"
+  }
+}

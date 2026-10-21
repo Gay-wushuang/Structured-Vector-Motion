@@ -1,0 +1,264 @@
+{
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "frames": [
+    {
+      "anchor": {
+        "conflict_rms_px": null,
+        "conflict_rotation_deg": null,
+        "conflict_scale_ratio": null,
+        "sets": [
+          {
+            "anchor_id": "anchor:body",
+            "decomposed": null,
+            "median_affine_residual_px": null,
+            "median_lk_error": null,
+            "member_id": "member:body",
+            "planarity": 0.6223422606228203,
+            "reason": null,
+            "role": "primary",
+            "spread_px": 47.70906904950849,
+            "status": "VALID",
+            "step_affine": null,
+            "valid_count": 16,
+            "valid_ratio": 1.0
+          },
+          {
+            "anchor_id": "anchor:decoy",
+            "decomposed": null,
+            "median_affine_residual_px": null,
+            "median_lk_error": null,
+            "member_id": "member:decoy",
+            "planarity": 0.849811000487441,
+            "reason": null,
+            "role": "witness",
+            "spread_px": 18.839485764389426,
+            "status": "VALID",
+            "step_affine": null,
+            "valid_count": 16,
+            "valid_ratio": 1.0
+          }
+        ]
+      },
+      "frame_index": 0,
+      "group_transform": {
+        "cumulative_affine": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ]
+        ],
+        "decomposed": {
+          "rotation_degrees": 0.0,
+          "scale": 1.0,
+          "translation": [
+            0.0,
+            0.0
+          ]
+        },
+        "step_affine": null
+      },
+      "members": [
+        {
+          "points": [
+            [
+              180.0,
+              190.0
+            ],
+            [
+              320.0,
+              200.0
+            ],
+            [
+              350.0,
+              270.0
+            ],
+            [
+              250.0,
+              330.0
+            ],
+            [
+              170.0,
+              280.0
+            ]
+          ],
+          "primitive_id": "member:body"
+        },
+        {
+          "points": [
+            [
+              70.0,
+              140.0
+            ],
+            [
+              120.0,
+              135.0
+            ],
+            [
+              125.0,
+              185.0
+            ],
+            [
+              75.0,
+              190.0
+            ]
+          ],
+          "primitive_id": "member:sat-a"
+        },
+        {
+          "points": [
+            [
+              390.0,
+              240.0
+            ],
+            [
+              440.0,
+              235.0
+            ],
+            [
+              445.0,
+              285.0
+            ],
+            [
+              395.0,
+              290.0
+            ]
+          ],
+          "primitive_id": "member:sat-b"
+        },
+        {
+          "points": [
+            [
+              400.0,
+              360.0
+            ],
+            [
+              450.0,
+              355.0
+            ],
+            [
+              455.0,
+              400.0
+            ],
+            [
+              405.0,
+              405.0
+            ]
+          ],
+          "primitive_id": "member:decoy"
+        }
+      ],
+      "reason": null,
+      "status": "SUPPORTED",
+      "tick": 0
+    },
+    {
+      "anchor": {
+        "conflict_rms_px": 26.076219594697214,
+        "conflict_rotation_deg": 0.00012463529466056556,
+        "conflict_scale_ratio": 1.0703624420127511e-07,
+        "sets": [
+          {
+            "anchor_id": "anchor:body",
+            "decomposed": {
+              "rotation_degrees": 0.0003072774071278422,
+              "scale": 1.0000021363516818,
+              "translation": [
+                12.00068951193567,
+                -6.002002309532789
+              ]
+            },
+            "median_affine_residual_px": 0.0007463828431741708,
+            "median_lk_error": 0.002910379786044359,
+            "member_id": "member:body",
+            "planarity": 0.6205912467091789,
+            "reason": null,
+            "role": "primary",
+            "spread_px": 47.68456421050088,
+            "status": "VALID",
+            "step_affine": [
+              [
+                1.0000021363373008,
+                -5.363013928605579e-06,
+                12.00068951193567
+              ],
+              [
+                5.363013928605579e-06,
+                1.0000021363373008,
+                -6.002002309532789
+              ]
+            ],
+            "valid_count": 16,
+            "valid_ratio": 1.0
+          },
+          {
+            "anchor_id": "anchor:decoy",
+            "decomposed": {
+              "rotation_degrees": 0.00018264211246727663,
+              "scale": 1.0000022433881661,
+              "translation": [
+                -9.999761066630102,
+                7.997759971431098
+              ]
+            },
+            "median_affine_residual_px": 0.0002695126920339881,
+            "median_lk_error": 0.0016909469850361347,
+            "member_id": "member:decoy",
+            "planarity": 0.849808980474512,
+            "reason": null,
+            "role": "witness",
+            "spread_px": 18.83951705193657,
+            "status": "VALID",
+            "step_affine": [
+              [
+                1.0000022433830853,
+                -3.187713366608763e-06,
+                -9.999761066630102
+              ],
+              [
+                3.187713366608763e-06,
+                1.0000022433830853,
+                7.997759971431098
+              ]
+            ],
+            "valid_count": 16,
+            "valid_ratio": 1.0
+          }
+        ]
+      },
+      "frame_index": 1,
+      "group_transform": null,
+      "members": [],
+      "reason": "ANCHOR_CONFLICT",
+      "status": "ABSTAINED",
+      "tick": 12
+    },
+    {
+      "anchor": null,
+      "frame_index": 2,
+      "group_transform": null,
+      "members": [],
+      "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+      "status": "ABSTAINED",
+      "tick": 24
+    },
+    {
+      "anchor": null,
+      "frame_index": 3,
+      "group_transform": null,
+      "members": [],
+      "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+      "status": "ABSTAINED",
+      "tick": 36
+    }
+  ],
+  "group_label": "experimental-group:0",
+  "identity_claim": "none",
+  "method": "C-author-anchored-group-similarity",
+  "schema_version": "t2-group-anchor-experiment-output-0.1"
+}

@@ -1,0 +1,203 @@
+{
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "frames": [
+    {
+      "anchor": {
+        "conflict_rms_px": null,
+        "conflict_rotation_deg": null,
+        "conflict_scale_ratio": null,
+        "sets": [
+          {
+            "anchor_id": "anchor:body-bottom",
+            "decomposed": null,
+            "median_affine_residual_px": null,
+            "median_lk_error": null,
+            "member_id": "member:body",
+            "planarity": 0.0,
+            "reason": null,
+            "role": "primary",
+            "spread_px": 0.0,
+            "status": "VALID",
+            "step_affine": null,
+            "valid_count": 16,
+            "valid_ratio": 1.0
+          },
+          {
+            "anchor_id": "anchor:sat-a-bottom",
+            "decomposed": null,
+            "median_affine_residual_px": null,
+            "median_lk_error": null,
+            "member_id": "member:sat-a",
+            "planarity": 0.0,
+            "reason": null,
+            "role": "witness",
+            "spread_px": 0.0,
+            "status": "VALID",
+            "step_affine": null,
+            "valid_count": 16,
+            "valid_ratio": 1.0
+          }
+        ]
+      },
+      "frame_index": 0,
+      "group_transform": {
+        "cumulative_affine": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ]
+        ],
+        "decomposed": {
+          "rotation_degrees": 0.0,
+          "scale": 1.0,
+          "translation": [
+            0.0,
+            0.0
+          ]
+        },
+        "step_affine": null
+      },
+      "members": [
+        {
+          "points": [
+            [
+              190.0,
+              210.0
+            ],
+            [
+              310.0,
+              210.0
+            ],
+            [
+              310.0,
+              290.0
+            ],
+            [
+              190.0,
+              290.0
+            ]
+          ],
+          "primitive_id": "member:body"
+        },
+        {
+          "points": [
+            [
+              100.0,
+              150.0
+            ],
+            [
+              145.0,
+              150.0
+            ],
+            [
+              145.0,
+              195.0
+            ],
+            [
+              100.0,
+              195.0
+            ]
+          ],
+          "primitive_id": "member:sat-a"
+        },
+        {
+          "points": [
+            [
+              365.0,
+              240.0
+            ],
+            [
+              410.0,
+              240.0
+            ],
+            [
+              410.0,
+              285.0
+            ],
+            [
+              365.0,
+              285.0
+            ]
+          ],
+          "primitive_id": "member:sat-b"
+        }
+      ],
+      "reason": null,
+      "status": "SUPPORTED",
+      "tick": 0
+    },
+    {
+      "anchor": {
+        "conflict_rms_px": null,
+        "conflict_rotation_deg": null,
+        "conflict_scale_ratio": null,
+        "sets": [
+          {
+            "anchor_id": "anchor:body-bottom",
+            "decomposed": null,
+            "median_affine_residual_px": null,
+            "median_lk_error": null,
+            "member_id": "member:body",
+            "planarity": null,
+            "reason": "INSUFFICIENT_VALID_ANCHOR_TRACKS",
+            "role": "primary",
+            "spread_px": null,
+            "status": "INVALID",
+            "step_affine": null,
+            "valid_count": 4,
+            "valid_ratio": 0.25
+          },
+          {
+            "anchor_id": "anchor:sat-a-bottom",
+            "decomposed": null,
+            "median_affine_residual_px": null,
+            "median_lk_error": null,
+            "member_id": "member:sat-a",
+            "planarity": 6.5529584887063015e-12,
+            "reason": "ANCHOR_DEGENERATE",
+            "role": "witness",
+            "spread_px": 4.057619139525382e-05,
+            "status": "INVALID",
+            "step_affine": null,
+            "valid_count": 12,
+            "valid_ratio": 0.75
+          }
+        ]
+      },
+      "frame_index": 1,
+      "group_transform": null,
+      "members": [],
+      "reason": "PRIMARY_ANCHOR_LOST",
+      "status": "ABSTAINED",
+      "tick": 12
+    },
+    {
+      "anchor": null,
+      "frame_index": 2,
+      "group_transform": null,
+      "members": [],
+      "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+      "status": "ABSTAINED",
+      "tick": 24
+    },
+    {
+      "anchor": null,
+      "frame_index": 3,
+      "group_transform": null,
+      "members": [],
+      "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+      "status": "ABSTAINED",
+      "tick": 36
+    }
+  ],
+  "group_label": "experimental-group:0",
+  "identity_claim": "none",
+  "method": "C-author-anchored-group-similarity",
+  "schema_version": "t2-group-anchor-experiment-output-0.1"
+}

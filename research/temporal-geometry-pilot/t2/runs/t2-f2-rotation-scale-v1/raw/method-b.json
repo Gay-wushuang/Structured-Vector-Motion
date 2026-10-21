@@ -1,0 +1,176 @@
+{
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "frames": [
+    {
+      "anchor": null,
+      "frame_index": 0,
+      "group_transform": null,
+      "member_flow": [
+        {
+          "median_affine_residual_px": null,
+          "median_lk_error": null,
+          "primitive_id": "member:body",
+          "status": "SUPPORTED",
+          "step_affine": null,
+          "valid_count": null,
+          "valid_ratio": null
+        },
+        {
+          "median_affine_residual_px": null,
+          "median_lk_error": null,
+          "primitive_id": "member:sat-a",
+          "status": "SUPPORTED",
+          "step_affine": null,
+          "valid_count": null,
+          "valid_ratio": null
+        },
+        {
+          "median_affine_residual_px": null,
+          "median_lk_error": null,
+          "primitive_id": "member:sat-b",
+          "status": "SUPPORTED",
+          "step_affine": null,
+          "valid_count": null,
+          "valid_ratio": null
+        }
+      ],
+      "members": [
+        {
+          "points": [
+            [
+              180.0,
+              190.0
+            ],
+            [
+              320.0,
+              200.0
+            ],
+            [
+              350.0,
+              270.0
+            ],
+            [
+              250.0,
+              330.0
+            ],
+            [
+              170.0,
+              280.0
+            ]
+          ],
+          "primitive_id": "member:body"
+        },
+        {
+          "points": [
+            [
+              70.0,
+              140.0
+            ],
+            [
+              120.0,
+              135.0
+            ],
+            [
+              125.0,
+              185.0
+            ],
+            [
+              75.0,
+              190.0
+            ]
+          ],
+          "primitive_id": "member:sat-a"
+        },
+        {
+          "points": [
+            [
+              390.0,
+              240.0
+            ],
+            [
+              440.0,
+              235.0
+            ],
+            [
+              445.0,
+              285.0
+            ],
+            [
+              395.0,
+              290.0
+            ]
+          ],
+          "primitive_id": "member:sat-b"
+        }
+      ],
+      "reason": null,
+      "status": "SUPPORTED",
+      "tick": 0
+    },
+    {
+      "anchor": null,
+      "frame_index": 1,
+      "group_transform": null,
+      "member_flow": [
+        {
+          "median_affine_residual_px": null,
+          "median_lk_error": 9.655144691467285,
+          "primitive_id": "member:body",
+          "reason": "LK_QUALITY_TOO_LOW",
+          "status": "ABSTAINED",
+          "step_affine": null,
+          "valid_count": 67,
+          "valid_ratio": 1.0
+        },
+        {
+          "median_affine_residual_px": null,
+          "median_lk_error": 10.398983001708984,
+          "primitive_id": "member:sat-a",
+          "reason": "LK_QUALITY_TOO_LOW",
+          "status": "ABSTAINED",
+          "step_affine": null,
+          "valid_count": 28,
+          "valid_ratio": 1.0
+        },
+        {
+          "median_affine_residual_px": null,
+          "median_lk_error": 10.593944549560547,
+          "primitive_id": "member:sat-b",
+          "reason": "LK_QUALITY_TOO_LOW",
+          "status": "ABSTAINED",
+          "step_affine": null,
+          "valid_count": 28,
+          "valid_ratio": 1.0
+        }
+      ],
+      "members": [],
+      "reason": "MEMBER_LOST",
+      "status": "ABSTAINED",
+      "tick": 12
+    },
+    {
+      "anchor": null,
+      "frame_index": 2,
+      "group_transform": null,
+      "member_flow": [],
+      "members": [],
+      "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+      "status": "ABSTAINED",
+      "tick": 24
+    },
+    {
+      "anchor": null,
+      "frame_index": 3,
+      "group_transform": null,
+      "member_flow": [],
+      "members": [],
+      "reason": "PREVIOUS_TRANSITION_ABSTAINED",
+      "status": "ABSTAINED",
+      "tick": 36
+    }
+  ],
+  "group_label": "experimental-group:0",
+  "identity_claim": "none",
+  "method": "B-per-member-opencv-lk-propagation",
+  "schema_version": "t2-group-anchor-experiment-output-0.1"
+}

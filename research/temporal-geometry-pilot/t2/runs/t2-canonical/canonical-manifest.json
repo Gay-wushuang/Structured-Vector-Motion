@@ -1,0 +1,360 @@
+{
+  "aggregate_decision": {
+    "compensating_quality_gain": false,
+    "conditional_reasons": [
+      "F4-OCCLUSION_CONDITIONAL"
+    ],
+    "cost_ratio_c_over_b": 0.7543074569042967,
+    "environment_ok": true,
+    "fixture_statuses": {
+      "f1-translation": {
+        "fail_closed": null,
+        "quality": "PASS"
+      },
+      "f2-rotation-scale": {
+        "fail_closed": null,
+        "quality": "STOP"
+      },
+      "f3-low-texture": {
+        "fail_closed": "INCONCLUSIVE",
+        "quality": null
+      },
+      "f4-occlusion": {
+        "fail_closed": "CONDITIONAL",
+        "quality": null
+      },
+      "f5-conflicting-anchors": {
+        "fail_closed": "PASS",
+        "quality": null
+      }
+    },
+    "full_run_byte_identical": true,
+    "go_gates": {
+      "B_CONTROL": false,
+      "COST": true,
+      "ENVIRONMENT": true,
+      "F1_QUALITY": true,
+      "F2_QUALITY": false,
+      "F3_FAIL_CLOSED": true,
+      "F4_FAIL_CLOSED": false,
+      "F5_FAIL_CLOSED": true,
+      "FULL_DETERMINISM": true
+    },
+    "outcome": "STOP",
+    "protocol": "t2-p0a",
+    "stop_reasons": [
+      "F2-ROTATION-SCALE_B_CONTROL_ABSTAINED",
+      "F2-ROTATION-SCALE_QUALITY_STOP"
+    ],
+    "unresolved_limits": [
+      "F3_INCONCLUSIVE",
+      "F4_ABSTENTION_REASON_DIFFERS"
+    ]
+  },
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "authority_statement": "These are offline experimental outputs, not accepted SVM Evidence; no Document, Revision, Entity, Group, Track, Keyframe, TemporalIdentity, MotionTargetBinding, ChangeAuthority, schema, or frozen spec was modified.",
+  "declared_environment": {
+    "external_models": [],
+    "gpu_used": false,
+    "numpy": "2.5.4",
+    "numpy_wheel_sha256": "a7b1b6353e36a7e50de2973a38d705c88ee93adcf120673cee7f45a4a3fa223a",
+    "opencv": "4.14.0",
+    "opencv_declared_analysis_requirement": "opencv-python-headless==4.14.0.94",
+    "opencv_requirement_satisfied": true,
+    "opencv_wheel_sha256": "cbed65415b8f6a9541c705afe3e64795840524d0ff3bc58f507826284a1dc64b",
+    "platform": "Windows-10-10.0.19045-SP0",
+    "provenance": "T1.1 canonical manifest; both wheels were re-downloaded from the configured index, sha256-verified, and unpacked outside the repository for T2-P1",
+    "python": "3.12.5",
+    "runner_identity": "svm-research/t2-group-anchor@0.1"
+  },
+  "fixtures": {
+    "f1-translation": {
+      "decision": {
+        "fail_closed": null,
+        "quality": "PASS"
+      },
+      "determinism": {
+        "downstream_passed": true,
+        "full_run_byte_identical": true,
+        "metrics_byte_identical": true,
+        "raw_method_b_byte_identical": true,
+        "raw_method_c_byte_identical": true
+      },
+      "files": {
+        "comparison.avi": {
+          "bytes": 107966,
+          "sha256": "sha256:e4f7261186c790cdb90f5dacc7fbf83d34e60874f915288a575e53eee924c8b8"
+        },
+        "costs.json": {
+          "bytes": 1160,
+          "sha256": "sha256:5676bd1fa174d3972a999ae0856b7f851d698029a22df4095f660b68e2bf7c2e"
+        },
+        "metrics.json": {
+          "bytes": 12271,
+          "sha256": "sha256:f47dc071dcad2215730b08f34332916ae9387cd1a28b4cc83309ded6abf83f43"
+        },
+        "raw/method-b.json": {
+          "bytes": 12865,
+          "sha256": "sha256:526183e78f002959b5b52aabf29b079da022126eef8ce2c849b24531bfc7bc58"
+        },
+        "raw/method-c.json": {
+          "bytes": 17602,
+          "sha256": "sha256:6aa9868bd48f6fcc010fcef965d372289c37cec47f80e3f4a97365d0623f0244"
+        },
+        "reproducibility.json": {
+          "bytes": 1781,
+          "sha256": "sha256:0a91da92ae511c1cbb86b21fb873fce27cc243f23ae56919d2283793bdf10739"
+        },
+        "run-manifest.json": {
+          "bytes": 14620,
+          "sha256": "sha256:83e0a817d3af035a0ba6a21e9dfb347ebb007e0c568d76202a48ad5a3d792574"
+        }
+      },
+      "run_dir": "runs/t2-canonical/t2-f1-translation-v1"
+    },
+    "f2-rotation-scale": {
+      "decision": {
+        "fail_closed": null,
+        "quality": "STOP"
+      },
+      "determinism": {
+        "downstream_passed": true,
+        "full_run_byte_identical": true,
+        "metrics_byte_identical": true,
+        "raw_method_b_byte_identical": true,
+        "raw_method_c_byte_identical": true
+      },
+      "files": {
+        "comparison.avi": {
+          "bytes": 139918,
+          "sha256": "sha256:971d8d45aa5cc7d1856b8b62ca42a44fe827e3da27d2f37d3abe0c510ae2869c"
+        },
+        "costs.json": {
+          "bytes": 1162,
+          "sha256": "sha256:1d4b41ae6a6dc479267db8a3ce4afafb862dbc4a2ee21156218aee3d9ae113f4"
+        },
+        "metrics.json": {
+          "bytes": 6877,
+          "sha256": "sha256:ec84d9314bef2feffc261b0b54f7e976c48fb746585cadb361907b2988a3fede"
+        },
+        "raw/method-b.json": {
+          "bytes": 4123,
+          "sha256": "sha256:44d4241324fd06715c0a15dad929c3d0c18c5acda4410e5c7624c8b87db071e9"
+        },
+        "raw/method-c.json": {
+          "bytes": 4962,
+          "sha256": "sha256:a51720e454185a6532a2cdbc5ffa2fbc2703256b2a30622bebe9a920574aae2d"
+        },
+        "reproducibility.json": {
+          "bytes": 1781,
+          "sha256": "sha256:018c23c97d86a96ad1e6cf421df2ad6b22640536d0cc6f855674afee4f6a1189"
+        },
+        "run-manifest.json": {
+          "bytes": 14828,
+          "sha256": "sha256:6d9c5cacc9fa6212e1670cd3896f4ba42d7b3f1c4f2d1abdd0fdb96d104d277c"
+        }
+      },
+      "run_dir": "runs/t2-canonical/t2-f2-rotation-scale-v1"
+    },
+    "f3-low-texture": {
+      "decision": {
+        "fail_closed": "INCONCLUSIVE",
+        "quality": null
+      },
+      "determinism": {
+        "downstream_passed": true,
+        "full_run_byte_identical": true,
+        "metrics_byte_identical": true,
+        "raw_method_b_byte_identical": true,
+        "raw_method_c_byte_identical": true
+      },
+      "files": {
+        "comparison.avi": {
+          "bytes": 86450,
+          "sha256": "sha256:85c727cb7da4aec6322b728d7bb17a978bf9f82111c8bd607a9a442e8ac2d913"
+        },
+        "costs.json": {
+          "bytes": 1162,
+          "sha256": "sha256:6dfeaf218fc5b2239061f125822a276ea926992ec549131d0aadaa75f36e4ac3"
+        },
+        "metrics.json": {
+          "bytes": 5508,
+          "sha256": "sha256:7171c4c436e09bbba287046330e7476ce96add1c743c19d2f154eab5aba219ea"
+        },
+        "raw/method-b.json": {
+          "bytes": 4563,
+          "sha256": "sha256:b97d299a9261f12efae3d1556696a461295dbe064a56f6d691ee0a70266607e5"
+        },
+        "raw/method-c.json": {
+          "bytes": 4846,
+          "sha256": "sha256:573e6d1afa9ece0fb898f0ef2e3980c483d70732517694774d1501792fbfec77"
+        },
+        "reproducibility.json": {
+          "bytes": 1781,
+          "sha256": "sha256:ca813a92d23c3902d6388226f676635612c37eca576f7ad9c8404fd91187168d"
+        },
+        "run-manifest.json": {
+          "bytes": 13437,
+          "sha256": "sha256:d0ffa8c1276d77ec276fe1f7b1e14385d3850157ea3c48c00d4271e0db75dd55"
+        }
+      },
+      "run_dir": "runs/t2-canonical/t2-f3-low-texture-v1"
+    },
+    "f4-occlusion": {
+      "decision": {
+        "fail_closed": "CONDITIONAL",
+        "quality": null
+      },
+      "determinism": {
+        "downstream_passed": true,
+        "full_run_byte_identical": true,
+        "metrics_byte_identical": true,
+        "raw_method_b_byte_identical": true,
+        "raw_method_c_byte_identical": true
+      },
+      "files": {
+        "comparison.avi": {
+          "bytes": 129472,
+          "sha256": "sha256:018e79ded9216381a26be39c46ba44df0bed6f289b766cb7296776876d8bd823"
+        },
+        "costs.json": {
+          "bytes": 1160,
+          "sha256": "sha256:473354bdf12a118efc56950d9e49b7f7dccbacae993a1d67ba40111d5816febb"
+        },
+        "metrics.json": {
+          "bytes": 5663,
+          "sha256": "sha256:8910728b3ffb366942e5b3075999ae6a9871652541a8dfbbd96631091323ea93"
+        },
+        "raw/method-b.json": {
+          "bytes": 4631,
+          "sha256": "sha256:f6264481fef567c5a3f96f873969ecc74a93780eb1739dd55ce00f8007b1fff2"
+        },
+        "raw/method-c.json": {
+          "bytes": 5498,
+          "sha256": "sha256:f5a52f766127b7e5d1246bdf29ce8b6659cdc1247f3c472d028c754d2197f410"
+        },
+        "reproducibility.json": {
+          "bytes": 1781,
+          "sha256": "sha256:62692c1f6ebf60937a0cc5c12557fe5003c72de70728920bf8235ac6b8c2db90"
+        },
+        "run-manifest.json": {
+          "bytes": 13588,
+          "sha256": "sha256:97cd48ff2922196879982d796d2b669f8b9a3d65596c0136489803f5d6823140"
+        }
+      },
+      "run_dir": "runs/t2-canonical/t2-f4-occlusion-v1"
+    },
+    "f5-conflicting-anchors": {
+      "decision": {
+        "fail_closed": "PASS",
+        "quality": null
+      },
+      "determinism": {
+        "downstream_passed": true,
+        "full_run_byte_identical": true,
+        "metrics_byte_identical": true,
+        "raw_method_b_byte_identical": true,
+        "raw_method_c_byte_identical": true
+      },
+      "files": {
+        "comparison.avi": {
+          "bytes": 129982,
+          "sha256": "sha256:a86ab684c1d4126cd2e51ac7b0058f0a7216bb1735663e8d93620cd7aab15ca2"
+        },
+        "costs.json": {
+          "bytes": 1162,
+          "sha256": "sha256:5cfa4b9be1a0f231dacb5e829d187c693641239de40918504cd08d6f4a00cc3b"
+        },
+        "metrics.json": {
+          "bytes": 9305,
+          "sha256": "sha256:5463a296a3a38696ab910c70918bfeaa3b9d2fbf04af2b402d1a3379ecdfd160"
+        },
+        "raw/method-b.json": {
+          "bytes": 16634,
+          "sha256": "sha256:20e88140c7657aa8e41f4783862f52e50a52006524a9bf9228c98dc0ad50be1d"
+        },
+        "raw/method-c.json": {
+          "bytes": 6450,
+          "sha256": "sha256:cf9774cc844a455f2d649fcc5924fa23016711dd62e5c6da5391d3b68499672f"
+        },
+        "reproducibility.json": {
+          "bytes": 1781,
+          "sha256": "sha256:4f5a1e340974bfe166220ab0a619ad8df10a672a2dbcf839e81cc690147e05a6"
+        },
+        "run-manifest.json": {
+          "bytes": 13512,
+          "sha256": "sha256:e595de2b6cb46c48a20dcb6cc7c7bc58a3e4fb389530ab656c9715979b22b142"
+        }
+      },
+      "run_dir": "runs/t2-canonical/t2-f5-conflicting-anchors-v1"
+    }
+  },
+  "limitations": [
+    "F2 B control abstained under the frozen median-LK-error gate; the aggregate is STOP and no C quality claim is made on F2.",
+    "F3 is INCONCLUSIVE because both B and C abstained on the hard frame; this is reported as an unresolved limit, not as a C success.",
+    "F4 C abstained fail-closed but with a reason other than the two accepted F4 reasons; the frozen protocol classifies it CONDITIONAL.",
+    "T2-B is a new multi-member run; T1-B is a different single-primitive fixture and was not substituted.",
+    "Method A was not re-run by T2-P0A; the T1-A numbers are historical context for a different fixture and are not an A/B/C comparison.",
+    "No SVM Evidence, Group, Track, Keyframe, TemporalIdentity, MotionTargetBinding, or ChangeAuthority object is created or claimed."
+  ],
+  "protocol_documents": {
+    "t2_p0": {
+      "path": "research/temporal-geometry-pilot/T2-GROUP-ANCHOR-EXPERIMENT.md",
+      "sha256": "sha256:bfa71a7347057930772a18ad49ed667b30da722419e28365e5f6f37029d523d2"
+    },
+    "t2_p0a": {
+      "path": "research/temporal-geometry-pilot/T2-P0A-PROTOCOL-FREEZE.md",
+      "sha256": "sha256:aa9944c4db453411858a56124e113a9e39a7ce00ae2c441b49301f0508e90ce6"
+    }
+  },
+  "purpose": "T2-P1 Method C (author-anchored group similarity) versus Method B on five controlled multi-member fixtures under the T2-P0A frozen protocol.",
+  "schema_version": "t2-canonical-snapshot-manifest-0.1",
+  "source_commit": "111ac6b8e6c9c4554fc2c8a780afc76dee1af4f5",
+  "source_scope": {
+    "t1_snapshot": {
+      "canonical_manifest": "research/temporal-geometry-pilot/runs/t1-controlled-raster-ab-v1-canonical/canonical-manifest.json",
+      "canonical_manifest_sha256": "sha256:51fbf3d4b0925f754f5a874130f123b745c08569199d55e141e334b503afabde",
+      "files": [
+        {
+          "actual": "sha256:0cd54a3c2834df0840ace00222d3fa27ed494aab2c74e28d7211e796b78a19aa",
+          "expected": "sha256:0cd54a3c2834df0840ace00222d3fa27ed494aab2c74e28d7211e796b78a19aa",
+          "path": "raw/method-a.json"
+        },
+        {
+          "actual": "sha256:72ee8bea46c9cf2cb7f08ec678ad4d886ee30d92dbd2056378608a7397194ba6",
+          "expected": "sha256:72ee8bea46c9cf2cb7f08ec678ad4d886ee30d92dbd2056378608a7397194ba6",
+          "path": "raw/method-b.json"
+        },
+        {
+          "actual": "sha256:2e51cf620e7e89ddf4d5c05b4a5f1243fd9e4e5840de00558daefca90601f0af",
+          "expected": "sha256:2e51cf620e7e89ddf4d5c05b4a5f1243fd9e4e5840de00558daefca90601f0af",
+          "path": "metrics.json"
+        },
+        {
+          "actual": "sha256:502e5bb62264064da6863efd8f802abd8786f957e6ba2681ab3f6136b8f4aa91",
+          "expected": "sha256:502e5bb62264064da6863efd8f802abd8786f957e6ba2681ab3f6136b8f4aa91",
+          "path": "costs.json"
+        },
+        {
+          "actual": "sha256:e537dcca0bc091358ad418128ef9ea8e5d648899f0b54110cadf67d7de2c0382",
+          "expected": "sha256:e537dcca0bc091358ad418128ef9ea8e5d648899f0b54110cadf67d7de2c0382",
+          "path": "reproducibility.json"
+        },
+        {
+          "actual": "sha256:9757c2a73999bae70cb8400e73249f9bedcd8cb124361f98a804be457e1567a1",
+          "expected": "sha256:9757c2a73999bae70cb8400e73249f9bedcd8cb124361f98a804be457e1567a1",
+          "path": "comparison.avi"
+        },
+        {
+          "actual": "sha256:05e2013ad997845e9724f931202d09e1deb602def6ce545a52f8aa9ae2f07eee",
+          "expected": "sha256:05e2013ad997845e9724f931202d09e1deb602def6ce545a52f8aa9ae2f07eee",
+          "path": "run-manifest.json"
+        }
+      ],
+      "mismatches": [],
+      "passed": true,
+      "status": "UNCHANGED"
+    },
+    "worktree_dirty": true
+  }
+}

@@ -1,0 +1,532 @@
+{
+  "artifact_classification": "experimental-only-not-svm-evidence",
+  "frames": [
+    {
+      "anchor": null,
+      "frame_index": 0,
+      "group_transform": null,
+      "member_flow": [
+        {
+          "median_affine_residual_px": null,
+          "median_lk_error": null,
+          "primitive_id": "member:body",
+          "status": "SUPPORTED",
+          "step_affine": null,
+          "valid_count": null,
+          "valid_ratio": null
+        },
+        {
+          "median_affine_residual_px": null,
+          "median_lk_error": null,
+          "primitive_id": "member:sat-a",
+          "status": "SUPPORTED",
+          "step_affine": null,
+          "valid_count": null,
+          "valid_ratio": null
+        },
+        {
+          "median_affine_residual_px": null,
+          "median_lk_error": null,
+          "primitive_id": "member:sat-b",
+          "status": "SUPPORTED",
+          "step_affine": null,
+          "valid_count": null,
+          "valid_ratio": null
+        }
+      ],
+      "members": [
+        {
+          "points": [
+            [
+              180.0,
+              190.0
+            ],
+            [
+              320.0,
+              200.0
+            ],
+            [
+              350.0,
+              270.0
+            ],
+            [
+              250.0,
+              330.0
+            ],
+            [
+              170.0,
+              280.0
+            ]
+          ],
+          "primitive_id": "member:body"
+        },
+        {
+          "points": [
+            [
+              70.0,
+              140.0
+            ],
+            [
+              120.0,
+              135.0
+            ],
+            [
+              125.0,
+              185.0
+            ],
+            [
+              75.0,
+              190.0
+            ]
+          ],
+          "primitive_id": "member:sat-a"
+        },
+        {
+          "points": [
+            [
+              390.0,
+              240.0
+            ],
+            [
+              440.0,
+              235.0
+            ],
+            [
+              445.0,
+              285.0
+            ],
+            [
+              395.0,
+              290.0
+            ]
+          ],
+          "primitive_id": "member:sat-b"
+        }
+      ],
+      "reason": null,
+      "status": "SUPPORTED",
+      "tick": 0
+    },
+    {
+      "anchor": null,
+      "frame_index": 1,
+      "group_transform": null,
+      "member_flow": [
+        {
+          "median_affine_residual_px": 0.0005467289238880106,
+          "median_lk_error": 0.0018860561540350318,
+          "primitive_id": "member:body",
+          "status": "SUPPORTED",
+          "step_affine": [
+            [
+              1.0000002159886097,
+              5.8362379772415e-07,
+              11.999847200072516
+            ],
+            [
+              -5.8362379772415e-07,
+              1.0000002159886097,
+              -5.999829497710709
+            ]
+          ],
+          "valid_count": 67,
+          "valid_ratio": 1.0
+        },
+        {
+          "median_affine_residual_px": 0.00022693792052936153,
+          "median_lk_error": 0.001121878158301115,
+          "primitive_id": "member:sat-a",
+          "status": "SUPPORTED",
+          "step_affine": [
+            [
+              1.0000023600800174,
+              -4.804490990094246e-07,
+              11.99986329112061
+            ],
+            [
+              4.804490990094246e-07,
+              1.0000023600800174,
+              -6.000394045142605
+            ]
+          ],
+          "valid_count": 28,
+          "valid_ratio": 1.0
+        },
+        {
+          "median_affine_residual_px": 0.00020500870930643768,
+          "median_lk_error": 0.0006828823825344443,
+          "primitive_id": "member:sat-b",
+          "status": "SUPPORTED",
+          "step_affine": [
+            [
+              1.000002434901309,
+              9.289922703553488e-08,
+              11.998969514017837
+            ],
+            [
+              -9.289922703553488e-08,
+              1.000002434901309,
+              -6.000549984291202
+            ]
+          ],
+          "valid_count": 28,
+          "valid_ratio": 1.0
+        }
+      ],
+      "members": [
+        {
+          "points": [
+            [
+              191.99999696654382,
+              184.00010648784152
+            ],
+            [
+              332.0000330411872,
+              194.00002694039594
+            ],
+            [
+              362.0000803745113,
+              264.0000245508847
+            ],
+            [
+              262.0000937930782,
+              324.000095872581
+            ],
+            [
+              182.00004733279954,
+              274.00013176305436
+            ]
+          ],
+          "primitive_id": "member:body"
+        },
+        {
+          "points": [
+            [
+              81.99996123384797,
+              133.99996999749678
+            ],
+            [
+              132.00008164009432,
+              128.99998221955164
+            ],
+            [
+              137.00006941803946,
+              179.000102625798
+            ],
+            [
+              86.9999490117931,
+              184.00009040374314
+            ]
+          ],
+          "primitive_id": "member:sat-a"
+        },
+        {
+          "points": [
+            [
+              401.99994142134284,
+              233.9999981613244
+            ],
+            [
+              452.00006270191216,
+              228.9999813418565
+            ],
+            [
+              457.0000795213801,
+              279.00010262242586
+            ],
+            [
+              406.99995824081077,
+              284.00011944189373
+            ]
+          ],
+          "primitive_id": "member:sat-b"
+        }
+      ],
+      "reason": null,
+      "status": "SUPPORTED",
+      "tick": 12
+    },
+    {
+      "anchor": null,
+      "frame_index": 2,
+      "group_transform": null,
+      "member_flow": [
+        {
+          "median_affine_residual_px": 0.00047198755919700456,
+          "median_lk_error": 0.002016128972172737,
+          "primitive_id": "member:body",
+          "status": "SUPPORTED",
+          "step_affine": [
+            [
+              0.9999995549276205,
+              -1.7852046096616432e-06,
+              12.000561386528986
+            ],
+            [
+              1.7852046096616432e-06,
+              0.9999995549276205,
+              -6.000537944372955
+            ]
+          ],
+          "valid_count": 67,
+          "valid_ratio": 1.0
+        },
+        {
+          "median_affine_residual_px": 0.00022319969166836753,
+          "median_lk_error": 0.0008779916679486632,
+          "primitive_id": "member:sat-a",
+          "status": "SUPPORTED",
+          "step_affine": [
+            [
+              0.9999974631695849,
+              4.553127506734889e-07,
+              12.000202711771637
+            ],
+            [
+              -4.553127506734889e-07,
+              0.9999974631695849,
+              -5.9996012527350215
+            ]
+          ],
+          "valid_count": 28,
+          "valid_ratio": 1.0
+        },
+        {
+          "median_affine_residual_px": 0.0003592849455652336,
+          "median_lk_error": 0.0009105098433792591,
+          "primitive_id": "member:sat-b",
+          "status": "SUPPORTED",
+          "step_affine": [
+            [
+              0.9999978740193547,
+              -1.1676221593899677e-06,
+              12.001211514158419
+            ],
+            [
+              1.1676221593899677e-06,
+              0.9999978740193547,
+              -6.000018849330801
+            ]
+          ],
+          "valid_count": 28,
+          "valid_ratio": 1.0
+        }
+      ],
+      "members": [
+        {
+          "points": [
+            [
+              204.00014442133903,
+              177.99982940938298
+            ],
+            [
+              344.00010033392914,
+              187.99999533995876
+            ],
+            [
+              374.00000935074235,
+              258.00001535160476
+            ],
+            [
+              273.9999601641373,
+              317.9998814484896
+            ],
+            [
+              194.00003856983614,
+              267.9997967761142
+            ]
+          ],
+          "primitive_id": "member:body"
+        },
+        {
+          "points": [
+            [
+              94.00001693751884,
+              127.99999147393434
+            ],
+            [
+              144.0000082253808,
+              122.99999361441793
+            ],
+            [
+              149.00000608489722,
+              172.9999849022799
+            ],
+            [
+              99.00001479703528,
+              177.9999827617963
+            ]
+          ],
+          "primitive_id": "member:sat-a"
+        },
+        {
+          "points": [
+            [
+              414.0000250678232,
+              227.9999512165662
+            ],
+            [
+              464.00004588723283,
+              223.00000340828686
+            ],
+            [
+              468.9999936955122,
+              273.00002422769654
+            ],
+            [
+              418.99997287610256,
+              277.9999720359759
+            ]
+          ],
+          "primitive_id": "member:sat-b"
+        }
+      ],
+      "reason": null,
+      "status": "SUPPORTED",
+      "tick": 24
+    },
+    {
+      "anchor": null,
+      "frame_index": 3,
+      "group_transform": null,
+      "member_flow": [
+        {
+          "median_affine_residual_px": 0.000428140715250986,
+          "median_lk_error": 0.002016128972172737,
+          "primitive_id": "member:body",
+          "status": "SUPPORTED",
+          "step_affine": [
+            [
+              1.0000005914959489,
+              1.0460283560396748e-06,
+              11.999613251616735
+            ],
+            [
+              -1.0460283560396748e-06,
+              1.0000005914959489,
+              -5.999758306018158
+            ]
+          ],
+          "valid_count": 67,
+          "valid_ratio": 1.0
+        },
+        {
+          "median_affine_residual_px": 0.0002271129044763389,
+          "median_lk_error": 0.001316987443715334,
+          "primitive_id": "member:sat-a",
+          "status": "SUPPORTED",
+          "step_affine": [
+            [
+              1.0000029444197034,
+              6.518394211644309e-07,
+              11.999573528441635
+            ],
+            [
+              -6.518394211644309e-07,
+              1.0000029444197034,
+              -6.000348588571382
+            ]
+          ],
+          "valid_count": 28,
+          "valid_ratio": 1.0
+        },
+        {
+          "median_affine_residual_px": 0.00022041932864314147,
+          "median_lk_error": 0.0009918054565787315,
+          "primitive_id": "member:sat-b",
+          "status": "SUPPORTED",
+          "step_affine": [
+            [
+              1.0000022993237063,
+              1.3992171618629571e-07,
+              11.998947349058827
+            ],
+            [
+              -1.3992171618629571e-07,
+              1.0000022993237063,
+              -6.000453210972267
+            ]
+          ],
+          "valid_count": 28,
+          "valid_ratio": 1.0
+        }
+      ],
+      "members": [
+        {
+          "points": [
+            [
+              216.0000645310837,
+              171.99996299960713
+            ],
+            [
+              356.00011371353764,
+              181.9999884013168
+            ],
+            [
+              386.0001136971814,
+              252.00001843693556
+            ],
+            [
+              286.00006812251365,
+              312.00002462638514
+            ],
+            [
+              206.00004690707658,
+              261.9999940613487
+            ]
+          ],
+          "primitive_id": "member:body"
+        },
+        {
+          "points": [
+            [
+              105.9999506769028,
+              121.99995849814327
+            ],
+            [
+              156.00008592652858,
+              116.99991332456925
+            ],
+            [
+              161.00013110010258,
+              167.00004857419503
+            ],
+            [
+              110.99999585047684,
+              172.00009374776903
+            ]
+          ],
+          "primitive_id": "member:sat-a"
+        },
+        {
+          "points": [
+            [
+              425.99995623909854,
+              221.99996432369278
+            ],
+            [
+              476.0000913251401,
+              216.99999802282622
+            ],
+            [
+              481.0000576260067,
+              267.00013310886783
+            ],
+            [
+              430.99992253996516,
+              272.0000994097344
+            ]
+          ],
+          "primitive_id": "member:sat-b"
+        }
+      ],
+      "reason": null,
+      "status": "SUPPORTED",
+      "tick": 36
+    }
+  ],
+  "group_label": "experimental-group:0",
+  "identity_claim": "none",
+  "method": "B-per-member-opencv-lk-propagation",
+  "schema_version": "t2-group-anchor-experiment-output-0.1"
+}
