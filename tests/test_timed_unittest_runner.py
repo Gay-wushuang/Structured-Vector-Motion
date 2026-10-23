@@ -9,7 +9,9 @@ non-zero exit code for failures, errors and import errors.
 from __future__ import annotations
 
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -473,6 +475,16 @@ class TimedRunnerCIInvocationContractTest(unittest.TestCase):
     resolve. Invoking the runner as a plain script puts ``tools/`` on
     ``sys.path`` instead and turns every such module into
     ``ModuleNotFoundError`` (Full CI #178: six loader errors across four files).
+
+    The contract is proven without re-executing real repository tests, which
+    would violate strict execute-once semantics during a full regression run:
+
+    - a synthetic repository fixture runs the real runner file under both the
+      module and the script invocation forms, so exactly one synthetic probe
+      test executes and the known-broken script form is proven to still fail;
+    - a ``--collect-only`` pass over the real repository (a module that itself
+      performs ``import tests...``) proves the real namespace resolves while
+      executing no real test body or fixture.
     """
 
     def test_full_ci_invokes_timed_runner_as_module(self) -> None:
@@ -488,24 +500,87 @@ class TimedRunnerCIInvocationContractTest(unittest.TestCase):
             "script-form invocation breaks repository 'tests.*' imports (Full CI #178)",
         )
 
-    def test_module_invocation_imports_real_tests_namespace(self) -> None:
+    def test_module_invocation_imports_synthetic_tests_namespace(self) -> None:
+        # A polluted ambient PYTHONPATH (for example one containing ".") would
+        # hand the synthetic repository root to every invocation form and make
+        # both assertions vacuous, so the subprocesses run without it.
+        clean_env = {key: value for key, value in os.environ.items() if key != "PYTHONPATH"}
+        with TemporaryDirectory() as name:
+            repo = Path(name)
+            tools = repo / "tools"
+            tests = repo / "tests"
+            tools.mkdir()
+            tests.mkdir()
+            shutil.copyfile(RUNNER, tools / "run_timed_unittest.py")
+            (tests / "test_probe_support.py").write_text(
+                'PROBE_SUPPORT_MARKER = "synthetic-tests-namespace"\n',
+                encoding="utf-8",
+            )
+            (tests / "test_probe.py").write_text(
+                textwrap.dedent(
+                    """
+                    import unittest
+
+                    import tests.test_probe_support
+
+
+                    class NamespaceProbe(unittest.TestCase):
+                        def test_repository_root_is_on_sys_path(self) -> None:
+                            self.assertEqual(
+                                tests.test_probe_support.PROBE_SUPPORT_MARKER,
+                                "synthetic-tests-namespace",
+                            )
+                    """
+                ),
+                encoding="utf-8",
+            )
+            module = subprocess.run(
+                [sys.executable, "-m", "tools.run_timed_unittest", "--start-dir", str(tests)],
+                capture_output=True,
+                text=True,
+                cwd=str(repo),
+                env=clean_env,
+                check=False,
+            )
+            self.assertEqual(module.returncode, 0, msg=module.stdout + module.stderr)
+            summary = _summary(module.stdout)
+            self.assertEqual(summary["tests_run"], "1")
+            self.assertEqual(summary["errors"], "0")
+            self.assertEqual(summary["failures"], "0")
+
+            # The known-broken script form must keep failing: this proves the
+            # positive assertion above really discriminates the Full CI #178
+            # regression instead of passing unconditionally.
+            script = subprocess.run(
+                [sys.executable, str(tools / "run_timed_unittest.py"), "--start-dir", str(tests)],
+                capture_output=True,
+                text=True,
+                cwd=str(repo),
+                env=clean_env,
+                check=False,
+            )
+            self.assertNotEqual(script.returncode, 0)
+            self.assertEqual(_summary(script.stdout)["errors"], "1")
+            self.assertIn("ModuleNotFoundError", script.stdout + script.stderr)
+
+    def test_module_invocation_collects_real_tests_namespace_without_execution(self) -> None:
         proc = subprocess.run(
             [
                 sys.executable,
                 "-m",
                 "tools.run_timed_unittest",
+                "--collect-only",
                 "--pattern",
-                "test_pop_group_candidates.py",
-                "--slowest",
-                "3",
+                "test_pop_group_promotion.py",
             ],
             capture_output=True,
             text=True,
             cwd=str(ROOT),
+            env={key: value for key, value in os.environ.items() if key != "PYTHONPATH"},
             check=False,
         )
         self.assertEqual(proc.returncode, 0, msg=proc.stdout + proc.stderr)
-        summary = _summary(proc.stdout)
-        self.assertEqual(summary["errors"], "0", msg=proc.stdout + proc.stderr)
-        self.assertEqual(summary["failures"], "0")
-        self.assertGreaterEqual(int(summary["tests_run"]), 3)
+        self.assertEqual(proc.stderr, "")
+        ids = proc.stdout.splitlines()
+        self.assertGreaterEqual(len(ids), 1)
+        self.assertTrue(all(test_id.startswith("test_pop_group_promotion.") for test_id in ids))
