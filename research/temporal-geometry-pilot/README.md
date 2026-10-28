@@ -2,6 +2,27 @@
 
 Status: **T1 A/B IMPLEMENTED / RESEARCH-ONLY / NOT SVM EVIDENCE / NOT FROZEN**.
 
+## Research status navigation (2026-10-29)
+
+These are independent research gates, not Accepted SVM Evidence:
+
+- The original T1 execution remains **CONDITIONAL** because its recorded OpenCV
+  runtime did not match the declared environment. Preserve that historical
+  decision; do not reinterpret it from later runs.
+- The separate T1.1 declared-runtime rerun is **GO within its own research
+  protocol**. See the
+  [canonical manifest](runs/t1-controlled-raster-ab-v1-canonical/canonical-manifest.json).
+  It closes that rerun's environment gate only and does not admit an SVM
+  capability.
+- T2-P0A froze a later protocol independently. T2-P1 then reached an overall
+  **STOP** because the F2 control was invalid; see the
+  [T2-P1 report](t2/README.md).
+- The repository-wide interpretation is recorded in the non-normative
+  [Technical Roadmap](../../docs/technical-roadmap.md).
+
+A later experiment must freeze and pass its own gate. T1.1 does not change the
+original T1 result, and neither T1 nor T1.1 overrides T2-P1.
+
 T0 began as a docs-only planning artifact. T1 now implements the authorized
 offline A/B experiment entirely inside this directory. It deliberately changes no
 Core code, frozen specification, `ChangeAuthority` registration, schema, Golden

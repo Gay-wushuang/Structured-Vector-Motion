@@ -6,6 +6,15 @@ compatibility contract. Until the first public format freeze, its schema may
 change while `schema_version` remains `0.1`; every such change must update the
 schema, specification, fixtures, and tests atomically.
 
+## Architecture and technical roadmap
+
+The normative architecture starts with the
+[Core Model](spec/00-svm-core-model.md) and
+[System Boundaries](spec/05-system-boundaries.md). The
+[Technical Roadmap](docs/technical-roadmap.md) is the single non-normative
+overview of verified capability, research gates, external-tool status, and
+M0-M4 product sequencing. It does not replace a Spec or admit a capability.
+
 The current v0.1 draft baseline contains:
 
 - the core model, invariants, and Document Format specification;
