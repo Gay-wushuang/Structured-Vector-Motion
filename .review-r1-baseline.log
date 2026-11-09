@@ -1,0 +1,1706 @@
+test_anchored_regeneration (unittest.loader._FailedTest.test_anchored_regeneration) ... ERROR
+test_bitmap_trace_adapter (unittest.loader._FailedTest.test_bitmap_trace_adapter) ... ERROR
+test_camera_consensus (unittest.loader._FailedTest.test_camera_consensus) ... ERROR
+test_camera_motion (unittest.loader._FailedTest.test_camera_motion) ... ERROR
+test_evaluate_reports_materialized_value_ids (test_cli.MinimalCliTest.test_evaluate_reports_materialized_value_ids) ... FAIL
+test_invalid_mutation_fails_without_output (test_cli.MinimalCliTest.test_invalid_mutation_fails_without_output) ... FAIL
+test_mutate_writes_valid_document_without_overwriting_source (test_cli.MinimalCliTest.test_mutate_writes_valid_document_without_overwriting_source) ... FAIL
+test_reevaluate_reports_precise_invalidation_and_changed_values (test_cli.MinimalCliTest.test_reevaluate_reports_precise_invalidation_and_changed_values) ... FAIL
+test_validate_and_inspect (test_cli.MinimalCliTest.test_validate_and_inspect) ... FAIL
+test_component_promotion_adapter (unittest.loader._FailedTest.test_component_promotion_adapter) ... ERROR
+test_demo_002_integrated_animation (unittest.loader._FailedTest.test_demo_002_integrated_animation) ... ERROR
+test_easing_motion (unittest.loader._FailedTest.test_easing_motion) ... ERROR
+test_editor_motion (unittest.loader._FailedTest.test_editor_motion) ... ERROR
+test_editor_server (unittest.loader._FailedTest.test_editor_server) ... ERROR
+test_entity_reconciliation (unittest.loader._FailedTest.test_entity_reconciliation) ... ERROR
+test_geometry_backend (unittest.loader._FailedTest.test_geometry_backend) ... ERROR
+test_geometry_correct_translation (unittest.loader._FailedTest.test_geometry_correct_translation) ... ERROR
+test_golden_a (unittest.loader._FailedTest.test_golden_a) ... ERROR
+test_golden_b (unittest.loader._FailedTest.test_golden_b) ... ERROR
+test_group_transform (unittest.loader._FailedTest.test_group_transform) ... ERROR
+test_group_transform_motion (unittest.loader._FailedTest.test_group_transform_motion) ... ERROR
+test_layerd_output_adapter (unittest.loader._FailedTest.test_layerd_output_adapter) ... ERROR
+test_layerpeeler_output_adapter (unittest.loader._FailedTest.test_layerpeeler_output_adapter) ... ERROR
+test_motion (unittest.loader._FailedTest.test_motion) ... ERROR
+test_motion_authoring (unittest.loader._FailedTest.test_motion_authoring) ... ERROR
+test_motion_revision (unittest.loader._FailedTest.test_motion_revision) ... ERROR
+test_multi_object_raster_recovery (unittest.loader._FailedTest.test_multi_object_raster_recovery) ... ERROR
+test_observed_camera_tracks (unittest.loader._FailedTest.test_observed_camera_tracks) ... ERROR
+test_observed_rotation_tracks (unittest.loader._FailedTest.test_observed_rotation_tracks) ... ERROR
+test_observed_scale_tracks (unittest.loader._FailedTest.test_observed_scale_tracks) ... ERROR
+test_observed_similarity_motion (unittest.loader._FailedTest.test_observed_similarity_motion) ... ERROR
+test_observed_translation_motion (unittest.loader._FailedTest.test_observed_translation_motion) ... ERROR
+test_observed_translation_tracks (unittest.loader._FailedTest.test_observed_translation_tracks) ... ERROR
+test_opencv_analysis_adapter (unittest.loader._FailedTest.test_opencv_analysis_adapter) ... ERROR
+test_operations (unittest.loader._FailedTest.test_operations) ... ERROR
+test_path_to_polygon_contract (unittest.loader._FailedTest.test_path_to_polygon_contract) ... ERROR
+test_pop_geometry_observations (unittest.loader._FailedTest.test_pop_geometry_observations) ... ERROR
+test_pop_group_candidates (unittest.loader._FailedTest.test_pop_group_candidates) ... ERROR
+test_pop_group_promotion (unittest.loader._FailedTest.test_pop_group_promotion) ... ERROR
+test_pop_output_adapter (unittest.loader._FailedTest.test_pop_output_adapter) ... ERROR
+test_pop_real_runner_evidence (unittest.loader._FailedTest.test_pop_real_runner_evidence) ... ERROR
+test_pop_structure_adapter (unittest.loader._FailedTest.test_pop_structure_adapter) ... ERROR
+test_proposals (unittest.loader._FailedTest.test_proposals) ... ERROR
+test_raster_camera_recovery (unittest.loader._FailedTest.test_raster_camera_recovery) ... ERROR
+test_raster_geometry_observations (unittest.loader._FailedTest.test_raster_geometry_observations) ... ERROR
+test_raster_recovery_acceptance (unittest.loader._FailedTest.test_raster_recovery_acceptance) ... ERROR
+test_repeated_frame_occurrences (unittest.loader._FailedTest.test_repeated_frame_occurrences) ... ERROR
+test_shared_camera_multi_object_recovery (unittest.loader._FailedTest.test_shared_camera_multi_object_recovery) ... ERROR
+test_sparse_observation_recovery (unittest.loader._FailedTest.test_sparse_observation_recovery) ... ERROR
+test_structural_relations (unittest.loader._FailedTest.test_structural_relations) ... ERROR
+test_structured_trace_components (unittest.loader._FailedTest.test_structured_trace_components) ... ERROR
+test_style_motion (unittest.loader._FailedTest.test_style_motion) ... ERROR
+test_svg_geometry_observations (unittest.loader._FailedTest.test_svg_geometry_observations) ... ERROR
+test_svg_import_adapter (unittest.loader._FailedTest.test_svg_import_adapter) ... ERROR
+test_svg_renderer (unittest.loader._FailedTest.test_svg_renderer) ... ERROR
+test_synthetic_camera_compensation (unittest.loader._FailedTest.test_synthetic_camera_compensation) ... ERROR
+test_synthetic_motion_recovery (unittest.loader._FailedTest.test_synthetic_motion_recovery) ... ERROR
+test_temporal_correspondence (unittest.loader._FailedTest.test_temporal_correspondence) ... ERROR
+test_temporal_identity_promotion (unittest.loader._FailedTest.test_temporal_identity_promotion) ... ERROR
+test_temporal_motion_target_binding (unittest.loader._FailedTest.test_temporal_motion_target_binding) ... ERROR
+
+======================================================================
+ERROR: test_anchored_regeneration (unittest.loader._FailedTest.test_anchored_regeneration)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_anchored_regeneration
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_anchored_regeneration.py", line 8, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_bitmap_trace_adapter (unittest.loader._FailedTest.test_bitmap_trace_adapter)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_bitmap_trace_adapter
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_bitmap_trace_adapter.py", line 13, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_camera_consensus (unittest.loader._FailedTest.test_camera_consensus)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_camera_consensus
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_camera_consensus.py", line 9, in <module>
+    from test_repeated_frame_occurrences import ANCHOR, GROUP, TARGET, TICKS, sequence_documents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_repeated_frame_occurrences.py", line 10, in <module>
+    from test_shared_camera_multi_object_recovery import observe_lineage, request
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_shared_camera_multi_object_recovery.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_camera_motion (unittest.loader._FailedTest.test_camera_motion)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_camera_motion
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_camera_motion.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_component_promotion_adapter (unittest.loader._FailedTest.test_component_promotion_adapter)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_component_promotion_adapter
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_component_promotion_adapter.py", line 12, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_demo_002_integrated_animation (unittest.loader._FailedTest.test_demo_002_integrated_animation)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_demo_002_integrated_animation
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_demo_002_integrated_animation.py", line 8, in <module>
+    import jsonschema
+ModuleNotFoundError: No module named 'jsonschema'
+
+
+======================================================================
+ERROR: test_easing_motion (unittest.loader._FailedTest.test_easing_motion)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_easing_motion
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_easing_motion.py", line 8, in <module>
+    import jsonschema
+ModuleNotFoundError: No module named 'jsonschema'
+
+
+======================================================================
+ERROR: test_editor_motion (unittest.loader._FailedTest.test_editor_motion)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_editor_motion
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_editor_motion.py", line 6, in <module>
+    from svm import DeterministicProposalProvider, ProposalCandidate
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_editor_server (unittest.loader._FailedTest.test_editor_server)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_editor_server
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_editor_server.py", line 6, in <module>
+    from svm.editor_server import create_server
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_entity_reconciliation (unittest.loader._FailedTest.test_entity_reconciliation)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_entity_reconciliation
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_entity_reconciliation.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_geometry_backend (unittest.loader._FailedTest.test_geometry_backend)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_geometry_backend
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_geometry_backend.py", line 9, in <module>
+    from svm import EvaluationState, Evaluator, Quality, build_evaluated_scene
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_geometry_correct_translation (unittest.loader._FailedTest.test_geometry_correct_translation)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_geometry_correct_translation
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_geometry_correct_translation.py", line 9, in <module>
+    from test_shared_camera_multi_object_recovery import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_shared_camera_multi_object_recovery.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_golden_a (unittest.loader._FailedTest.test_golden_a)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_golden_a
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_golden_a.py", line 5, in <module>
+    from svm import EvaluationState, Evaluator, Quality
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_golden_b (unittest.loader._FailedTest.test_golden_b)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_golden_b
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_golden_b.py", line 6, in <module>
+    from svm import Evaluator, RevisionStore, SplitEntityChange, SplitPart, Transaction
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_group_transform (unittest.loader._FailedTest.test_group_transform)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_group_transform
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_group_transform.py", line 10, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_group_transform_motion (unittest.loader._FailedTest.test_group_transform_motion)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_group_transform_motion
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_group_transform_motion.py", line 7, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_layerd_output_adapter (unittest.loader._FailedTest.test_layerd_output_adapter)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_layerd_output_adapter
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_layerd_output_adapter.py", line 11, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_layerpeeler_output_adapter (unittest.loader._FailedTest.test_layerpeeler_output_adapter)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_layerpeeler_output_adapter
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_layerpeeler_output_adapter.py", line 7, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_motion (unittest.loader._FailedTest.test_motion)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_motion
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_motion.py", line 7, in <module>
+    from svm import MotionEvaluator
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_motion_authoring (unittest.loader._FailedTest.test_motion_authoring)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_motion_authoring
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_motion_authoring.py", line 5, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_motion_revision (unittest.loader._FailedTest.test_motion_revision)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_motion_revision
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_motion_revision.py", line 5, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_multi_object_raster_recovery (unittest.loader._FailedTest.test_multi_object_raster_recovery)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_multi_object_raster_recovery
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_multi_object_raster_recovery.py", line 13, in <module>
+    from test_raster_camera_recovery import ANCHORS, TICKS, consensus_proposal, lineage
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_raster_camera_recovery.py", line 10, in <module>
+    from test_raster_recovery_acceptance import accept, analyze, observation_request, payload, request
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_raster_recovery_acceptance.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_observed_camera_tracks (unittest.loader._FailedTest.test_observed_camera_tracks)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_observed_camera_tracks
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_observed_camera_tracks.py", line 11, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_observed_rotation_tracks (unittest.loader._FailedTest.test_observed_rotation_tracks)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_observed_rotation_tracks
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_observed_rotation_tracks.py", line 8, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_observed_scale_tracks (unittest.loader._FailedTest.test_observed_scale_tracks)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_observed_scale_tracks
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_observed_scale_tracks.py", line 10, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_observed_similarity_motion (unittest.loader._FailedTest.test_observed_similarity_motion)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_observed_similarity_motion
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_observed_similarity_motion.py", line 10, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_observed_translation_motion (unittest.loader._FailedTest.test_observed_translation_motion)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_observed_translation_motion
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_observed_translation_motion.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_observed_translation_tracks (unittest.loader._FailedTest.test_observed_translation_tracks)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_observed_translation_tracks
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_observed_translation_tracks.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_opencv_analysis_adapter (unittest.loader._FailedTest.test_opencv_analysis_adapter)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_opencv_analysis_adapter
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_opencv_analysis_adapter.py", line 10, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_operations (unittest.loader._FailedTest.test_operations)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_operations
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_operations.py", line 6, in <module>
+    from test_golden_b import split_transaction
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_golden_b.py", line 6, in <module>
+    from svm import Evaluator, RevisionStore, SplitEntityChange, SplitPart, Transaction
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_path_to_polygon_contract (unittest.loader._FailedTest.test_path_to_polygon_contract)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_path_to_polygon_contract
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_path_to_polygon_contract.py", line 6, in <module>
+    import jsonschema
+ModuleNotFoundError: No module named 'jsonschema'
+
+
+======================================================================
+ERROR: test_pop_geometry_observations (unittest.loader._FailedTest.test_pop_geometry_observations)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_pop_geometry_observations
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_pop_geometry_observations.py", line 10, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_pop_group_candidates (unittest.loader._FailedTest.test_pop_group_candidates)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_pop_group_candidates
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_pop_group_candidates.py", line 9, in <module>
+    from svm import AdapterRequest, ArtifactStore, ProposalAcceptor, RevisionStore
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_pop_group_promotion (unittest.loader._FailedTest.test_pop_group_promotion)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_pop_group_promotion
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_pop_group_promotion.py", line 7, in <module>
+    import tests.test_pop_group_candidates as qv1
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_pop_group_candidates.py", line 9, in <module>
+    from svm import AdapterRequest, ArtifactStore, ProposalAcceptor, RevisionStore
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_pop_output_adapter (unittest.loader._FailedTest.test_pop_output_adapter)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_pop_output_adapter
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_pop_output_adapter.py", line 7, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_pop_real_runner_evidence (unittest.loader._FailedTest.test_pop_real_runner_evidence)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_pop_real_runner_evidence
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_pop_real_runner_evidence.py", line 10, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_pop_structure_adapter (unittest.loader._FailedTest.test_pop_structure_adapter)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_pop_structure_adapter
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_pop_structure_adapter.py", line 10, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_proposals (unittest.loader._FailedTest.test_proposals)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_proposals
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_proposals.py", line 5, in <module>
+    from test_golden_b import split_transaction
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_golden_b.py", line 6, in <module>
+    from svm import Evaluator, RevisionStore, SplitEntityChange, SplitPart, Transaction
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_raster_camera_recovery (unittest.loader._FailedTest.test_raster_camera_recovery)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_raster_camera_recovery
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_raster_camera_recovery.py", line 10, in <module>
+    from test_raster_recovery_acceptance import accept, analyze, observation_request, payload, request
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_raster_recovery_acceptance.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_raster_geometry_observations (unittest.loader._FailedTest.test_raster_geometry_observations)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_raster_geometry_observations
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_raster_geometry_observations.py", line 4, in <module>
+    from svm.adapters.observed_similarity_motion import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_raster_recovery_acceptance (unittest.loader._FailedTest.test_raster_recovery_acceptance)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_raster_recovery_acceptance
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_raster_recovery_acceptance.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_repeated_frame_occurrences (unittest.loader._FailedTest.test_repeated_frame_occurrences)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_repeated_frame_occurrences
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_repeated_frame_occurrences.py", line 10, in <module>
+    from test_shared_camera_multi_object_recovery import observe_lineage, request
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_shared_camera_multi_object_recovery.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_shared_camera_multi_object_recovery (unittest.loader._FailedTest.test_shared_camera_multi_object_recovery)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_shared_camera_multi_object_recovery
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_shared_camera_multi_object_recovery.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_sparse_observation_recovery (unittest.loader._FailedTest.test_sparse_observation_recovery)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_sparse_observation_recovery
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_sparse_observation_recovery.py", line 10, in <module>
+    from test_camera_consensus import ANCHORS, propose_consensus
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_camera_consensus.py", line 9, in <module>
+    from test_repeated_frame_occurrences import ANCHOR, GROUP, TARGET, TICKS, sequence_documents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_repeated_frame_occurrences.py", line 10, in <module>
+    from test_shared_camera_multi_object_recovery import observe_lineage, request
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_shared_camera_multi_object_recovery.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_structural_relations (unittest.loader._FailedTest.test_structural_relations)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_structural_relations
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_structural_relations.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_structured_trace_components (unittest.loader._FailedTest.test_structured_trace_components)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_structured_trace_components
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_structured_trace_components.py", line 6, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_style_motion (unittest.loader._FailedTest.test_style_motion)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_style_motion
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_style_motion.py", line 8, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_svg_geometry_observations (unittest.loader._FailedTest.test_svg_geometry_observations)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_svg_geometry_observations
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_svg_geometry_observations.py", line 6, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_svg_import_adapter (unittest.loader._FailedTest.test_svg_import_adapter)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_svg_import_adapter
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_svg_import_adapter.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_svg_renderer (unittest.loader._FailedTest.test_svg_renderer)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_svg_renderer
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_svg_renderer.py", line 8, in <module>
+    from test_golden_b import split_transaction
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_golden_b.py", line 6, in <module>
+    from svm import Evaluator, RevisionStore, SplitEntityChange, SplitPart, Transaction
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_synthetic_camera_compensation (unittest.loader._FailedTest.test_synthetic_camera_compensation)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_synthetic_camera_compensation
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_synthetic_camera_compensation.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_synthetic_motion_recovery (unittest.loader._FailedTest.test_synthetic_motion_recovery)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_synthetic_motion_recovery
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_synthetic_motion_recovery.py", line 10, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_temporal_correspondence (unittest.loader._FailedTest.test_temporal_correspondence)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_temporal_correspondence
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_temporal_correspondence.py", line 8, in <module>
+    from svm import AdapterRequest, ArtifactKind, ArtifactStore, ProposalAcceptor, RevisionStore
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_temporal_identity_promotion (unittest.loader._FailedTest.test_temporal_identity_promotion)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_temporal_identity_promotion
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_temporal_identity_promotion.py", line 9, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+ERROR: test_temporal_motion_target_binding (unittest.loader._FailedTest.test_temporal_motion_target_binding)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_temporal_motion_target_binding
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1105-1297-0_26.1105.1297.0_x64__3k8sg7r9htsxt\dependencies\python\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_temporal_motion_target_binding.py", line 8, in <module>
+    from svm import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+FAIL: test_evaluate_reports_materialized_value_ids (test_cli.MinimalCliTest.test_evaluate_reports_materialized_value_ids)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_cli.py", line 38, in test_evaluate_reports_materialized_value_ids
+    self.assertEqual(completed.returncode, 0, completed.stderr)
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 189, in _run_module_as_main
+  File "<frozen runpy>", line 148, in _get_module_details
+  File "<frozen runpy>", line 112, in _get_module_details
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+FAIL: test_invalid_mutation_fails_without_output (test_cli.MinimalCliTest.test_invalid_mutation_fails_without_output)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_cli.py", line 80, in test_invalid_mutation_fails_without_output
+    self.assertEqual(completed.returncode, 2)
+AssertionError: 1 != 2
+
+======================================================================
+FAIL: test_mutate_writes_valid_document_without_overwriting_source (test_cli.MinimalCliTest.test_mutate_writes_valid_document_without_overwriting_source)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_cli.py", line 59, in test_mutate_writes_valid_document_without_overwriting_source
+    self.assertEqual(completed.returncode, 0, completed.stderr)
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 189, in _run_module_as_main
+  File "<frozen runpy>", line 148, in _get_module_details
+  File "<frozen runpy>", line 112, in _get_module_details
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+FAIL: test_reevaluate_reports_precise_invalidation_and_changed_values (test_cli.MinimalCliTest.test_reevaluate_reports_precise_invalidation_and_changed_values)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_cli.py", line 91, in test_reevaluate_reports_precise_invalidation_and_changed_values
+    self.assertEqual(completed.returncode, 0, completed.stderr)
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 189, in _run_module_as_main
+  File "<frozen runpy>", line 148, in _get_module_details
+  File "<frozen runpy>", line 112, in _get_module_details
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+======================================================================
+FAIL: test_validate_and_inspect (test_cli.MinimalCliTest.test_validate_and_inspect)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\codex\Structured-Vector-Motion\.review-r1\tests\test_cli.py", line 25, in test_validate_and_inspect
+    self.assertEqual(validated.returncode, 0, validated.stderr)
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 189, in _run_module_as_main
+  File "<frozen runpy>", line 148, in _get_module_details
+  File "<frozen runpy>", line 112, in _get_module_details
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\__init__.py", line 3, in <module>
+    from .anchored_regeneration import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\anchored_regeneration.py", line 6, in <module>
+    from .change_authority import known_change_actions, resolve_transaction_intents
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\change_authority.py", line 9, in <module>
+    from .evaluator import canonical_bytes
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\evaluator.py", line 10, in <module>
+    from .operations import (
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\operations.py", line 10, in <module>
+    from .path_bounds import PathBoundsError, canonical_path_bounds
+  File "D:\codex\Structured-Vector-Motion\.review-r1\svm\path_bounds.py", line 5, in <module>
+    from svgpathtools import parse_path  # pyright: ignore[reportMissingImports]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'svgpathtools'
+
+
+----------------------------------------------------------------------
+Ran 60 tests in 1.659s
+
+FAILED (failures=5, errors=55)
