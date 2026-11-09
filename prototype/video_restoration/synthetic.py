@@ -85,7 +85,7 @@ def _draw_target(
     return clean, target
 
 
-def _generate(root: Path, seed: int) -> None:
+def _generate(root: Path, seed: int, without: frozenset[str]) -> None:
     rng = np.random.Generator(np.random.PCG64(seed))
     folders = ("input", "mask/roi", "mask/stable", "mask/ghost", "mask/defect")
     for folder in (*folders, "evaluation/clean", "evaluation/edge", "evaluation/interior"):
@@ -96,6 +96,8 @@ def _generate(root: Path, seed: int) -> None:
     roi, stable = _rectangle(ROI_XYXY), _rectangle(STABLE_XYXY)
     defect_region = _rectangle(DEFECT_XYXY)
     defect_pixels = int(defect_region.sum())
+    defect_frames = () if "defect" in without else DEFECT_FRAMES
+    flicker_offsets = (0,) * FRAME_COUNT if "flicker" in without else FLICKER_OFFSETS
     previous_target = np.zeros_like(roi)
     previous_clean = background
     centers = [(72 + 4 * index, 132 + OBJECT_Y_OFFSETS[index]) for index in range(FRAME_COUNT)]
@@ -104,7 +106,9 @@ def _generate(root: Path, seed: int) -> None:
         edge = _expand(target, 1) & _expand(~target, 1)
         interior = target & ~_expand(~target, 2)
         ghost = previous_target & ~_expand(target, GHOST_PROTECTION_RADIUS)
-        defect = defect_region & (index in DEFECT_FRAMES)
+        if "ghost" in without:
+            ghost.fill(False)
+        defect = defect_region & (index in defect_frames)
 
         degraded = clean.copy()
         degraded[ghost] = (
@@ -112,11 +116,11 @@ def _generate(root: Path, seed: int) -> None:
             + GHOST_NUMERATOR * previous_clean[ghost]
             + GHOST_DENOMINATOR // 2
         ) // GHOST_DENOMINATOR
-        if index in DEFECT_FRAMES:
+        if index in defect_frames:
             degraded[defect] = DEFECT_RGB + rng.integers(
                 -DEFECT_NOISE, DEFECT_NOISE + 1, size=(defect_pixels, 3)
             )
-        degraded += FLICKER_OFFSETS[index]
+        degraded += flicker_offsets[index]
         if degraded.min() < 0 or degraded.max() > 255:
             raise ValueError("Fixture parameters clipped a degraded frame")
 
@@ -154,6 +158,7 @@ def _generate(root: Path, seed: int) -> None:
         },
         "injection_order": ["ghost", "defect", "flicker"],
         "ghost": {
+            "enabled": "ghost" not in without,
             "lag_frames": 1,
             "opacity": {"numerator": GHOST_NUMERATOR, "denominator": GHOST_DENOMINATOR},
             "protection_radius_chebyshev_px": GHOST_PROTECTION_RADIUS,
@@ -161,18 +166,20 @@ def _generate(root: Path, seed: int) -> None:
             "support": "prior target silhouette outside expanded current silhouette",
         },
         "defect": {
-            "frames_zero_based": DEFECT_FRAMES,
+            "frames_zero_based": defect_frames,
             "replacement_rgb": DEFECT_RGB,
             "noise_inclusive_rgb": [-DEFECT_NOISE, DEFECT_NOISE],
         },
-        "flicker": {"additive_rgb_offset_by_frame": FLICKER_OFFSETS, "scope": "full frame"},
+        "flicker": {"additive_rgb_offset_by_frame": flicker_offsets, "scope": "full frame"},
     }
     (root / "evaluation/fixture.json").write_text(
         json.dumps(fixture, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n"
     )
 
 
-def generate(output: Path, seed: int = DEFAULT_SEED) -> None:
+def generate(
+    output: Path, seed: int = DEFAULT_SEED, *, without: frozenset[str] = frozenset()
+) -> None:
     """Write one complete fixture to a fresh directory."""
     if seed < 0:
         raise ValueError("Seed must be a nonnegative integer")
@@ -181,7 +188,7 @@ def generate(output: Path, seed: int = DEFAULT_SEED) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     with TemporaryDirectory(dir=output.parent, prefix=".synthetic-") as temporary:
         staging = Path(temporary) / "fixture"
-        _generate(staging, seed)
+        _generate(staging, seed, without)
         staging.rename(output)
 
 
@@ -189,9 +196,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--seed", default=DEFAULT_SEED, type=int)
+    parser.add_argument(
+        "--without",
+        action="append",
+        default=[],
+        choices=("flicker", "ghost", "defect"),
+        help="disable one degradation, repeat for additional degradations",
+    )
     args = parser.parse_args()
     try:
-        generate(args.output, args.seed)
+        generate(args.output, args.seed, without=frozenset(args.without))
     except (OSError, ValueError) as error:
         parser.exit(2, f"Fixture generation failed: {error}\n")
     return 0
