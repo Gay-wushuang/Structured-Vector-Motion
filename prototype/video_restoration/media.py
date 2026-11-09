@@ -41,13 +41,17 @@ def _run(arguments: list[str], output: Path, *, verify: bool = False) -> bytes:
 
 
 def _verify(ffmpeg: str, ffprobe: str, path: str, output: Path, frames: np.ndarray) -> dict:
-    probe = json.loads(
-        _run(
-            [ffprobe, "-v", "error", "-show_streams", "-show_frames", "-of", "json", path],
-            output,
-            verify=True,
-        )
+    probe_data = _run(
+        [ffprobe, "-v", "error", "-show_streams", "-show_frames", "-of", "json", path],
+        output,
+        verify=True,
     )
+    try:
+        probe = json.loads(probe_data)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        raise MediaError(f"{path}: ffprobe returned invalid JSON", exit_code=7) from error
+    if not isinstance(probe, dict):
+        raise MediaError(f"{path}: ffprobe did not return a metadata object", exit_code=7)
     width = frames.shape[2]
     expected = {
         "codec_type": "video",

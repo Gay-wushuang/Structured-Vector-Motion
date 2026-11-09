@@ -41,7 +41,7 @@ def load_sequence(directory: Path, *, mask: bool = False) -> tuple[np.ndarray, l
             image.verify()
         with Image.open(io.BytesIO(data)) as image:
             metadata = {"icc_profile", "transparency", "exif", "srgb", "gamma", "chromaticity"}
-            if image.n_frames != 1 or metadata & image.info.keys():
+            if getattr(image, "n_frames", 1) != 1 or metadata & image.info.keys():
                 raise ValueError(
                     f"{path}: animation or embedded color/EXIF metadata is unsupported"
                 )
