@@ -9,6 +9,7 @@ import numpy as np
 
 from .sequence import (
     FRAME_COUNT,
+    FRAME_NAMES,
     HEIGHT,
     WIDTH,
     digest,
@@ -40,23 +41,43 @@ def _gradient(frames: np.ndarray) -> np.ndarray:
     return np.hypot(dx, dy)
 
 
-def evaluate(run: Path, mask_path: Path, evaluation: Path) -> None:
-    manifest = json.loads((run / "manifest.json").read_text(encoding="utf-8"))
+def evaluate(
+    run: Path,
+    mask_path: Path,
+    evaluation: Path,
+    *,
+    width: int = WIDTH,
+    height: int = HEIGHT,
+    frame_count: int = FRAME_COUNT,
+    names: tuple[str, ...] = FRAME_NAMES,
+    manifest_name: str = "manifest.json",
+) -> None:
+    manifest = json.loads((run / manifest_name).read_text(encoding="utf-8"))
     metrics = json.loads((run / "metrics.json").read_text(encoding="utf-8"))
-    original, original_records = load_sequence(run / "frames-original")
-    repaired, repaired_records = load_sequence(run / "frames-repaired")
-    masks, mask_records = load_masks(mask_path)
+    original, original_records = load_sequence(
+        run / "frames-original", width=width, height=height, names=names
+    )
+    repaired, repaired_records = load_sequence(
+        run / "frames-repaired", width=width, height=height, names=names
+    )
+    masks, mask_records = load_masks(mask_path, width=width, height=height, names=names)
     verify_records(original_records, manifest["frames_original"], "original")
     verify_records(repaired_records, manifest["frames_repaired"], "repaired")
     for name, records in mask_records.items():
         verify_records(records, manifest["masks"][name], name)
-    clean, clean_records = load_sequence(evaluation / "clean")
-    edges, edge_records = load_sequence(evaluation / "edge", mask=True)
-    interior, interior_records = load_sequence(evaluation / "interior", mask=True)
+    clean, clean_records = load_sequence(
+        evaluation / "clean", width=width, height=height, names=names
+    )
+    edges, edge_records = load_sequence(
+        evaluation / "edge", mask=True, width=width, height=height, names=names
+    )
+    interior, interior_records = load_sequence(
+        evaluation / "interior", mask=True, width=width, height=height, names=names
+    )
     fixture_data = (evaluation / "fixture.json").read_bytes()
     fixture = json.loads(fixture_data)
     x0, y0, x1, y1 = fixture["regions"]["appearance_xyxy"]
-    if not (0 <= x0 < x1 <= WIDTH and 0 <= y0 < y1 <= HEIGHT):
+    if not (0 <= x0 < x1 <= width and 0 <= y0 < y1 <= height):
         raise ValueError("static scoring rectangle is outside the frame or empty")
     static = (slice(None), slice(y0, y1), slice(x0, x1))
     if not masks["roi"][static].all() or np.any((edges | interior)[static]):
@@ -66,6 +87,8 @@ def evaluate(run: Path, mask_path: Path, evaluation: Path) -> None:
 
     before = np.abs(original.astype(np.int16) - clean)
     after = np.abs(repaired.astype(np.int16) - clean)
+    before_pixel = before.max(axis=-1)
+    after_pixel = after.max(axis=-1)
     patch_error = [errors[static].mean(axis=(1, 2, 3)) for errors in (before, after)]
     patch_delta = [np.abs(np.diff(errors)) for errors in patch_error]
     patch_luma_std = [
@@ -78,9 +101,14 @@ def evaluate(run: Path, mask_path: Path, evaluation: Path) -> None:
         .mean()
         for frames in (original, repaired)
     ]
+    object_std_clean = float(
+        np.stack([frame[area].mean(axis=0) for frame, area in zip(clean, interior, strict=True)])
+        .std(axis=0)
+        .mean()
+    )
     gradients = [float(_gradient(frames)[edges].mean()) for frames in (original, repaired, clean)]
     motion = np.array(fixture["scene"]["target_center_xy_by_frame"])
-    if motion.shape != (FRAME_COUNT, 2):
+    if motion.shape != (frame_count, 2):
         raise ValueError("fixture motion center sequence has invalid shape")
     metrics["evaluation"] = {
         "status": "scored",
@@ -95,6 +123,27 @@ def evaluate(run: Path, mask_path: Path, evaluation: Path) -> None:
         "ghost_rgb_residual_above_1_dn": _masked_pair(
             np.maximum(before - 1, 0), np.maximum(after - 1, 0), masks["ghost"]
         ),
+        "ghost_pixel_outcomes": {
+            "support_pixels": int(np.count_nonzero(masks["ghost"])),
+            "before_above_1_dn": int(np.count_nonzero((before_pixel > 1) & masks["ghost"])),
+            "after_above_1_dn": int(np.count_nonzero((after_pixel > 1) & masks["ghost"])),
+            "recovered_pixels": int(
+                np.count_nonzero((before_pixel > 1) & (after_pixel <= 1) & masks["ghost"])
+            ),
+            "preserved_unresolved_pixels": int(
+                np.count_nonzero((after_pixel > 1) & masks["ghost"])
+            ),
+        },
+        "defect_pixel_outcomes": {
+            "support_pixels": int(np.count_nonzero(masks["defect"])),
+            "before_above_1_dn": int(np.count_nonzero((before_pixel > 1) & masks["defect"])),
+            "after_above_1_dn": int(np.count_nonzero((after_pixel > 1) & masks["defect"])),
+        },
+        "remaining_error_pixels_in_suspect_masks": int(
+            np.count_nonzero(
+                np.any(repaired != clean, axis=-1) & (masks["ghost"] | masks["defect"])
+            )
+        ),
         "flicker_static_patch_mean_luma_temporal_std_dn": _pair(*patch_luma_std),
         "flicker_static_patch_temporal_rgb_mae_delta_dn": {
             **_pair(patch_delta[0].mean(), patch_delta[1].mean()),
@@ -104,6 +153,8 @@ def evaluate(run: Path, mask_path: Path, evaluation: Path) -> None:
             "per_frame_rgb_mae_after": patch_error[1].tolist(),
         },
         "appearance_object_mean_rgb_temporal_std_dn": _pair(*object_std),
+        "appearance_object_mean_rgb_temporal_std_clean_dn": object_std_clean,
+        "flicker_static_patch_mean_luma_temporal_std_clean_dn": float(patch_luma_std[0]),
         "appearance_object_interior_rgb_mae_dn": _masked_pair(before, after, interior),
         "motion_edge_rgb_mae_dn": _masked_pair(before, after, edges),
         "motion_edge_gradient_mean_dn_per_px": dict(

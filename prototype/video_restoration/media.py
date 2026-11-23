@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .sequence import FPS, FRAME_COUNT, HEIGHT, digest
+from .sequence import FPS, FRAME_COUNT, digest
 
 
 class MediaError(ValueError):
@@ -40,7 +40,16 @@ def _run(arguments: list[str], output: Path, *, verify: bool = False) -> bytes:
     return process.stdout
 
 
-def _verify(ffmpeg: str, ffprobe: str, path: str, output: Path, frames: np.ndarray) -> dict:
+def _verify(
+    ffmpeg: str,
+    ffprobe: str,
+    path: str,
+    output: Path,
+    frames: np.ndarray,
+    *,
+    fps: int = FPS,
+    frame_count: int = FRAME_COUNT,
+) -> dict:
     probe_data = _run(
         [ffprobe, "-v", "error", "-show_streams", "-show_frames", "-of", "json", path],
         output,
@@ -53,18 +62,19 @@ def _verify(ffmpeg: str, ffprobe: str, path: str, output: Path, frames: np.ndarr
     if not isinstance(probe, dict):
         raise MediaError(f"{path}: ffprobe did not return a metadata object", exit_code=7)
     width = frames.shape[2]
+    height = frames.shape[1]
     expected = {
         "codec_type": "video",
         "codec_name": "h264",
         "pix_fmt": "yuv420p",
         "width": width,
-        "height": HEIGHT,
-        "r_frame_rate": f"{FPS}/1",
-        "avg_frame_rate": f"{FPS}/1",
-        "time_base": f"1/{FPS}",
+        "height": height,
+        "r_frame_rate": f"{fps}/1",
+        "avg_frame_rate": f"{fps}/1",
+        "time_base": f"1/{fps}",
         "start_pts": 0,
-        "duration_ts": FRAME_COUNT,
-        "nb_frames": str(FRAME_COUNT),
+        "duration_ts": frame_count,
+        "nb_frames": str(frame_count),
         "color_range": "tv",
         "color_space": "bt709",
         "color_transfer": "bt709",
@@ -74,8 +84,11 @@ def _verify(ffmpeg: str, ffprobe: str, path: str, output: Path, frames: np.ndarr
     if len(streams) != 1 or any(streams[0].get(key) != value for key, value in expected.items()):
         raise MediaError(f"{path}: ffprobe stream metadata mismatch: {streams}", exit_code=7)
     pts = [frame.get("best_effort_timestamp") for frame in probe.get("frames", [])]
-    if pts != list(range(FRAME_COUNT)):
-        raise MediaError(f"{path}: expected contiguous decoded PTS 0..23, got {pts}", exit_code=7)
+    if pts != list(range(frame_count)):
+        raise MediaError(
+            f"{path}: expected contiguous decoded PTS 0..{frame_count - 1}, got {pts}",
+            exit_code=7,
+        )
     decoded = _run(
         [
             ffmpeg,
@@ -111,7 +124,7 @@ def _verify(ffmpeg: str, ffprobe: str, path: str, output: Path, frames: np.ndarr
     return {
         **expected,
         "decoded_frames": len(pts),
-        "duration_seconds": FRAME_COUNT / FPS,
+        "duration_seconds": frame_count / fps,
         "decoded_pixel_sha256": digest(decoded),
         "decoded_rgb_mae_dn": float(per_frame.mean()),
         "decoded_max_frame_rgb_mae_dn": float(per_frame.max()),
@@ -119,7 +132,15 @@ def _verify(ffmpeg: str, ffprobe: str, path: str, output: Path, frames: np.ndarr
 
 
 def export_media(
-    output: Path, original: np.ndarray, repaired: np.ndarray, ffmpeg_name: str, ffprobe_name: str
+    output: Path,
+    original: np.ndarray,
+    repaired: np.ndarray,
+    ffmpeg_name: str,
+    ffprobe_name: str,
+    *,
+    fps: int = FPS,
+    frame_count: int = FRAME_COUNT,
+    names: tuple[str, str, str] = ("original.mp4", "repaired.mp4", "comparison.mp4"),
 ) -> dict:
     ffmpeg, ffprobe = _tool(ffmpeg_name), _tool(ffprobe_name)
     versions = {
@@ -141,9 +162,9 @@ def export_media(
         "-crf",
         "16",
         "-g",
-        "12",
+        str(fps),
         "-keyint_min",
-        "12",
+        str(fps),
         "-sc_threshold",
         "0",
         "-threads",
@@ -157,15 +178,15 @@ def export_media(
         "-color_range",
         "tv",
         "-video_track_timescale",
-        str(FPS),
+        str(fps),
         "-movflags",
         "+faststart+write_colr",
     ]
     sources = [
-        ("original.mp4", ["frames-original"], original),
-        ("repaired.mp4", ["frames-repaired"], repaired),
+        (names[0], ["frames-original"], original),
+        (names[1], ["frames-repaired"], repaired),
         (
-            "comparison.mp4",
+            names[2],
             ["frames-original", "frames-repaired"],
             np.concatenate((original, repaired), axis=2),
         ),
@@ -179,7 +200,7 @@ def export_media(
             for source in directories:
                 arguments += [
                     "-framerate",
-                    str(FPS),
+                    str(fps),
                     "-start_number",
                     "0",
                     "-i",
@@ -199,7 +220,15 @@ def export_media(
             media[name] = {
                 "encode_argv": ["ffmpeg", *arguments[1:-1], name],
                 "sha256": digest((staging / name).read_bytes()),
-                "verification": _verify(ffmpeg, ffprobe, relative_path, output, expected_frames),
+                "verification": _verify(
+                    ffmpeg,
+                    ffprobe,
+                    relative_path,
+                    output,
+                    expected_frames,
+                    fps=fps,
+                    frame_count=frame_count,
+                ),
             }
         published = []
         try:

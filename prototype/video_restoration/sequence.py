@@ -20,23 +20,32 @@ def digest(data: bytes) -> str:
     return "sha256:" + hashlib.sha256(data).hexdigest()
 
 
-def load_sequence(directory: Path, *, mask: bool = False) -> tuple[np.ndarray, list[dict]]:
+def load_sequence(
+    directory: Path,
+    *,
+    mask: bool = False,
+    width: int = WIDTH,
+    height: int = HEIGHT,
+    names: tuple[str, ...] = FRAME_NAMES,
+) -> tuple[np.ndarray, list[dict]]:
     """Decode only the canonical ordered sequence, hashing the bytes actually decoded."""
     entries = sorted(item.name for item in directory.iterdir())
-    if entries != list(FRAME_NAMES):
-        raise ValueError(f"{directory}: expected only 000000.png through 000023.png")
+    if entries != list(names):
+        raise ValueError(f"{directory}: expected only {names[0]} through {names[-1]}")
     frames = []
     records = []
-    for tick, name in enumerate(FRAME_NAMES):
+    for tick, name in enumerate(names):
         path = directory / name
         data = path.read_bytes()
         expected_color = 0 if mask else 2
         if (
             len(data) < 33
             or data[:16] != b"\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR"
-            or struct.unpack(">IIBBBBB", data[16:29]) != (WIDTH, HEIGHT, 8, expected_color, 0, 0, 0)
+            or struct.unpack(">IIBBBBB", data[16:29]) != (width, height, 8, expected_color, 0, 0, 0)
         ):
-            raise ValueError(f"{path}: expected non-interlaced 256x256 8-bit canonical PNG")
+            raise ValueError(
+                f"{path}: expected non-interlaced {width}x{height} 8-bit canonical PNG"
+            )
         with Image.open(io.BytesIO(data)) as image:
             image.verify()
         with Image.open(io.BytesIO(data)) as image:
@@ -60,11 +69,19 @@ def load_sequence(directory: Path, *, mask: bool = False) -> tuple[np.ndarray, l
     return np.stack(frames), records
 
 
-def load_masks(directory: Path) -> tuple[dict[str, np.ndarray], dict[str, list[dict]]]:
+def load_masks(
+    directory: Path,
+    *,
+    width: int = WIDTH,
+    height: int = HEIGHT,
+    names: tuple[str, ...] = FRAME_NAMES,
+) -> tuple[dict[str, np.ndarray], dict[str, list[dict]]]:
     masks = {}
     records = {}
     for role in MASK_ROLES:
-        masks[role], records[role] = load_sequence(directory / role, mask=True)
+        masks[role], records[role] = load_sequence(
+            directory / role, mask=True, width=width, height=height, names=names
+        )
     roi, stable, ghost, defect = (masks[role] for role in MASK_ROLES)
     if not np.any(stable) or not np.any(roi) or np.any(np.all(roi, axis=(1, 2))):
         raise ValueError("stable and ROI must have support, and ROI must be smaller than the frame")
@@ -77,10 +94,12 @@ def load_masks(directory: Path) -> tuple[dict[str, np.ndarray], dict[str, list[d
     return masks, records
 
 
-def save_sequence(directory: Path, frames: np.ndarray) -> list[dict]:
-    directory.mkdir()
+def save_sequence(
+    directory: Path, frames: np.ndarray, *, names: tuple[str, ...] = FRAME_NAMES
+) -> list[dict]:
+    directory.mkdir(parents=True)
     records = []
-    for tick, (name, frame) in enumerate(zip(FRAME_NAMES, frames, strict=True)):
+    for tick, (name, frame) in enumerate(zip(names, frames, strict=True)):
         path = directory / name
         Image.fromarray(frame).save(path, compress_level=6)
         records.append(

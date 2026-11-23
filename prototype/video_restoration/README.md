@@ -65,6 +65,53 @@ python -m prototype.video_restoration.evaluate --run "$run/result" --mask "$run/
 
 本地结果目录 `build/video-restoration/result/` 包含 `original.mp4`、`repaired.mp4`、`comparison.mp4`、`frames-original/`、`frames-repaired/`、`metrics.json` 和 `manifest.json`。大批生成文件及下载工具放在 Git 忽略的 `build/` 内。
 
+## R1-002 · SVM Motion 集成（8 秒）
+
+`motion` 入口把授权 Document 的真实求值结果接入同一修复边界。场景为固定相机、静态背景、两个显式 Group（平移/旋转/等比缩放），640 × 360、12 fps、96 帧、8 秒。链路是：
+
+```text
+Document -> MotionEvaluator(FINAL) -> EvaluatedScene -> SVGRenderer
+-> resvg 0.44.0 -> RGB8 PNG -> 受控退化 -> 修复 -> 无损 PNG + MP4
+```
+
+每条输出帧在渲染前断言所有 Operation 为 `CLEAN`、`evaluated_quality == FINAL`、`stale_outputs is None`。外部光栅化使用 [resvg](https://github.com/RazrFalcon/resvg) 0.44.0 的静态二进制，避免浏览器版本差异；遮罩图以白底黑形重新光栅化，阈值得到逐帧主体轮廓。
+
+三个阶段彼此独立，修复阶段只读 `input/` 与 `mask/`：
+
+```powershell
+$run = 'build/r1-002/final'
+python -m prototype.video_restoration.motion source --run $run --resvg resvg.exe
+python -m prototype.video_restoration.motion repair --run $run --ffmpeg ffmpeg --ffprobe ffprobe
+python -m prototype.video_restoration.motion evaluate --run $run
+```
+
+或一次跑完并执行验收断言：
+
+```powershell
+python -m prototype.video_restoration.motion selfcheck --run $run --resvg resvg.exe
+```
+
+实测环境：Python `3.12.9`、NumPy `2.5.5`、Pillow `13.0.0`、OpenCV `4.14.0`、FFmpeg/ffprobe `9.0.2-essentials_build`。`source`、`repair`、`evaluate` 分别约 17 s、13 s、7 s，`selfcheck` 合计约 33 s。
+
+| 8 位码值指标 | 退化输入 | 修复后 | clean 基线 |
+| --- | ---: | ---: | ---: |
+| 局部缺陷 RGB MAE | 22.764509 | 0 | 0 |
+| 静态评分区亮度均值的时间标准差 | 5.385165 | 0 | 0 |
+| 拖影掩膜超过 1 DN 的平均残差 | 37.087059 | 9.979636 | 0 |
+| 目标内部 RGB 均值的时间标准差 | 5.831233 | 2.138445 | 2.138445 |
+| 目标内部 RGB MAE | 4.498374 | 0 | 0 |
+| 运动边缘 RGB MAE | 4.497446 | 0 | 0 |
+| ROI RGB MAE | 4.671146 | 0.051315 | 0 |
+| 全帧 RGB MAE | 4.604780 | 1.776416 | 0 |
+
+运动边缘梯度保持 `1.0 × clean`，ROI 外变化像素 `0`。67,602 个拖影掩膜像素中 47,047 个恢复，20,237 个因供体不足保留并在 `metrics.json` 与逐帧报告中标记。目标内部的残余标准差等于 clean 基线，说明该值是真实旋转/缩放外观变化而非未修复闪烁；未做任何时间平滑。两次独立运行在 Document、输入帧、掩膜、SVG、PNG、`metrics.json`、修复帧和三支 MP4 上逐字节一致。
+
+受控素材与真实运动不同：闪烁是全帧加性偏移，拖影是前一帧轮廓的 2/5 混合，缺陷是小矩形替换。修复阶段不读取 `document.svm.json`、`evaluation/`、clean 帧或真值。
+
+## 契约状态
+
+`c-video-repair-contract@0.1`（草案修订 `R1-002`）仍为 **DRAFT**；`main` 尚无 `docs/c-video-repair/`，G1 未通过。因此正式 `ingest`/`repair`/`export`/`evaluate`/`verify` 子命令与规范命名迁移 **未实现、未运行**，本轮不声称满足该契约。旧 `synthetic`/`demo`/`evaluate` 入口保持兼容；参数化改动已用 2 秒固定样例回归，共享指标、无损帧与三支 MP4 均与旧结果逐字节一致。
+
 ## 已知局限
 
 - 入口限定为固定帧数、尺寸和帧率的 RGB8 PNG 序列。自然视频、MP4 输入、音轨、可变帧率和移动相机未纳入支持域。
