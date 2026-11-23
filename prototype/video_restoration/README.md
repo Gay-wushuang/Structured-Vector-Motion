@@ -108,6 +108,8 @@ python -m prototype.video_restoration.motion selfcheck --run $run --resvg resvg.
 
 受控素材与真实运动不同：闪烁是全帧加性偏移，拖影是前一帧轮廓的 2/5 混合，缺陷是小矩形替换。修复阶段不读取 `document.svm.json`、`evaluation/`、clean 帧或真值。
 
+本次运行的证据副本位于 `prototype/video_restoration/evidence/r1-002/`：三支 8 秒 MP4、三支 2 秒回归 MP4、对应 `metrics.json`、`document.svm.json`、完整 `run-manifest.json` 和两帧预览。帧序列与掩膜体积较大，只保留在 Git 忽略的 `build/r1-002/final/`。
+
 ## 契约状态
 
 `c-video-repair-contract@0.1`（草案修订 `R1-002`）仍为 **DRAFT**；`main` 尚无 `docs/c-video-repair/`，G1 未通过。因此正式 `ingest`/`repair`/`export`/`evaluate`/`verify` 子命令与规范命名迁移 **未实现、未运行**，本轮不声称满足该契约。旧 `synthetic`/`demo`/`evaluate` 入口保持兼容；参数化改动已用 2 秒固定样例回归，共享指标、无损帧与三支 MP4 均与旧结果逐字节一致。
