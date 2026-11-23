@@ -596,7 +596,7 @@
       "before_above_1_dn": 2688,
       "support_pixels": 2688
     },
-    "fixture_sha256": "sha256:327af2c6d7eb8646dd2b0d1a89c9e1127c199ed2455e78084a77de8311a56078",
+    "fixture_sha256": "sha256:52141d5f8c7c4783a8410e64070f5a5a9daa25f5c5508320757f713f4a21a3df",
     "flicker_static_patch_mean_luma_temporal_std_clean_dn": 5.385164807134504,
     "flicker_static_patch_mean_luma_temporal_std_dn": {
       "after": 0.0,

@@ -116,7 +116,9 @@ def save_sequence(
 def write_json(path: Path, content: dict) -> None:
     temporary = path.with_suffix(".tmp")
     temporary.write_text(
-        json.dumps(content, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8"
+        json.dumps(content, indent=2, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+        newline="\n",
     )
     temporary.replace(path)
 

@@ -4,7 +4,7 @@
   "document_sha256": "sha256:8f22b6a806194b89b9f01849db79b2889dfa8e8642f3baa28eaae7f6dd30a004",
   "draft_revision": "R1-002",
   "duration_seconds": "8",
-  "elapsed_seconds": 17.985,
+  "elapsed_seconds": 19.01,
   "environment": {
     "numpy": "2.5.5",
     "opencv": "4.14.0",
@@ -12,7 +12,7 @@
     "python": "3.12.9"
   },
   "evaluation": {
-    "metrics_sha256": "sha256:da427d3b6537ea20f2f6accf45b4e1329bbea363126abc99421d1083f3227cba",
+    "metrics_sha256": "sha256:5bac855554cdcfbe60fb8a0364c0afb782f8afb1ca365bea4fb935c500a0c96d",
     "outside_roi_max_abs_rgb_difference_dn": 0,
     "status": "scored"
   },
@@ -7487,7 +7487,7 @@
   "repair_module_sha256": "sha256:bcd4cc7f7e89c356a27cf2938723923e9fe2f9a66e680e6b190913d48f4ea955",
   "repair_status": "contains_refusals",
   "scope": "authored SVM Motion ground truth, controlled video repair",
-  "source_manifest_sha256": "sha256:5f7e801a48dd5f3233f6298578c77bebccb2760c1cb38f24779b1f9a213f22d0",
+  "source_manifest_sha256": "sha256:0b19bcf8b1e54849601bc078dbcfaf335e3c8792c0d32b510d1144ecd33965c9",
   "status": "partial",
   "timebase_ticks_per_second": 12,
   "width": 640,
