@@ -1,391 +1,85 @@
-# C-MVP v0.1 — Acceptance Criteria
+# C-MVP v0.1 · 验收标准
 
-Status: **DRAFT** — thresholds are PROPOSED until the C planning line freezes
-them before holdout evaluation. A failed holdout MUST be reported as a failure;
-thresholds MUST NOT be lowered afterwards.
-
-Contract identity: `c-video-repair-contract@0.1`.
-
-## 1. Acceptance principles
-
-1. Acceptance is about the controlled synthetic clip, not general video repair.
-2. The repair process never sees the clean reference. Scoring is a separate
-   process.
-3. Every metric has a fixed region, formula, unit, aggregation, and
-   zero-denominator rule. Regions are declared before the run.
-4. Lower temporal error alone is not success. Spatial fidelity, silhouette,
-   motion, and unauthorized-region checks must also pass.
-5. Lossless PNG comparisons are authoritative. MP4 is checked for playability
-   and synchronization, not used for pixel metrics.
-6. A `PARTIAL` run is a failure for acceptance, even if some frames improved.
-7. No skipped video check may be reported as a pass. A missing encoder or
-   decoder is a failure, not a skip.
-
-## 2. Roles
-
-| Role | Responsibility |
+| 项目 | 内容 |
 | --- | --- |
-| User / C planning | confirm the visible result, the controlled-scope disclosure, and the final sign-off |
-| Practice line | produce the run and its manifest |
-| CI line | independently validate inputs, outputs, metrics, and export |
-| Review line | inspect code, media, metrics, and boundary compliance |
-| Docs line | freeze this contract and record the acceptance result |
+| 版本 | `c-video-repair-contract@0.1`，草案修订 `R1-002` |
+| 状态 | **DRAFT**。现有数值门槛原样保留为 G1 提案，尚未冻结。 |
+| 适用范围 | A 固定素材的独立评分、保真与导出验收，B 正式演示的独立核验。 |
+| 已验证事实 | 已对照原草案、实践原型评分代码和独立审查记录。原型的默认样例分数属于开发诊断。 |
+| 待实现能力 | 独立 oracle、留出集与零退化对照、媒体逐帧验收和 B 来源验证。 |
+| 未决问题 | 留出数据与区域封存、S4/H4 受控漂移、媒体固定工具试验，见[策划分派](../planning/video-repair-v0-dispatch.md#g1-待决问题)。 |
 
-CI MUST NOT import the practice implementation's scoring functions as its
-oracle. CI implements the formulas below independently.
+## 1. 评分对象与场景
 
-## 3. User acceptance conditions
+A 的每个 clip 为 24 帧、12/1 fps、256 × 256 RGB8。提供 `S1..S5` 开发集及对应不同种子、冻结 SHA 的 `H1..H5` 留出集。C0 指各场景的离线干净参考。另构造独立的无退化直通测试 N0，评分只比较其输入和输出，全部像素须不变。N0 使用独立的测试输入，不把 C0 送入 repair。CI 独立实现评分，不导入实践实现的评分 helper 作为 oracle。
 
-A user-facing acceptance requires all of the following:
+| 开发 / 留出 | 退化 | 必测改善 |
+| --- | --- | --- |
+| S1 / H1 | 局部缺陷或遮损 | M1 |
+| S2 / H2 | 静态背景可见的亮度闪烁 | M2 |
+| S3 / H3 | 短暂拖影 | M3 |
+| S4 / H4 | 授权区域内、可由静态证据观测的缓慢亮度/颜色漂移 | M4 |
+| S5 / H5 | 四项组合 | M1–M4 各项独立判定 |
 
-| ID | Condition |
+B 使用真实 SVM Document，参照[需求](requirements-v0.1.md)验证 5–10 秒连续的 FINAL 当前来源。执行同样的区域、像素、时间、保真、媒体和隔离检查，令公式中的 `T` 取实际帧数。预先声明 B 的演示退化类型并按相应单项/组合门槛评分。B 至少交一段覆盖四项的受控组合演示，必须使用双方已约定的评分区域和独立报告。A 留出通过与 B 演示通过分别记录，任一缺失则 C 板块整体交付未通过。
+
+## 2. 四项主指标
+
+记 `X` 为退化输入 `in` 或修复输出 `out`，`r_t^X(p,c)=X_t(p,c)-ref_t(p,c)` 为带符号 RGB 残差。数值单位为 8 位码值（DN），按 `t, y, x, R/G/B` 固定顺序聚合。相对改善为 `1 - metric(out)/metric(in)`，用未舍入值判定。
+
+| ID / 公式 ID | 定义与区域 | 输入下界 | 单项 | 组合 |
+| --- | --- | ---: | ---: | ---: |
+| M1 / `cvr-metric-roi-mae@0.1-r1.002` | `mean(t,p∈E,c) abs(r_t(p,c))`。E 为预先固定的受损评分 ROI，覆盖目标修复区域。 | 0.5 DN | ≥ 30% | ≥ 20% |
+| M2 / `cvr-metric-flicker@0.1-r1.002` | `mean(t=1..T-1,p∈B,c) abs(r_t(p,c)-r_(t-1)(p,c))`。B 为固定静态背景评分掩膜，距移动目标和拖影至少 2 px，位于可评分的光度干预范围。 | 0.2 DN | ≥ 30% | ≥ 20% |
+| M3 / `cvr-metric-ghost-residual@0.1-r1.002` | `mean(t,p∈G,c) max(0,abs(r_t(p,c))-1)`。G 为固定拖尾评分掩膜，在整段的参考物体轮廓之外。 | 1.0 DN | ≥ 30% | ≥ 20% |
+| M4 / `cvr-metric-appearance@0.1-r1.002` | 对每个通道求 `m_(t,c)=mean(p∈I_t) r_t(p,c)`，再求 `mean(c) population_std(t,m_(t,c))`。I_t 为离线冻结的非空目标内部掩膜。 | 0.5 DN | ≥ 30% | ≥ 20% |
+
+必测指标在空 ROI、空 per-frame I_t、输入低于下界或非有限值时输出 `METRIC_UNDEFINED`，改善率为 `null`，该用例失败。非该场景必测的指标如无有效退化（包括 N0）可记 `NOT_APPLICABLE`，须有原因。组合样例的四项均必测，不允许以均值冲销失败项。
+
+M2 在逐像素参考残差上先作带符号差分，然后取绝对值，避免亮暗交替被抵消。参考 128、输入 140/116 交替时，相邻差为 24 DN。报告每个时间步的聚合、全段均值、最大步长和输入/输出两套数值。M3 报告最大通道残差，以及时空中任一通道的扣底残差超过 8 DN 的像素数。M4 报告各通道和亮度的时间标准差，亮度采用 `0.2126R+0.7152G+0.0722B` 的码值权重。以参考残差衡量外观，避免把参考自身的外观变化计入退化。
+
+## 3. 空间和运动保护
+
+令 `S(X)=mean_t mean(p∈I_t,c) abs(r_t(p,c))`。令 `Ee(X)` 为所有帧的参考物体 bbox 内亮度梯度幅值的等帧权均值。采用向右和向下的一阶亮度差，像素画布边缘钳制，幅值为两轴差平方和开方。报告 `S(in/out)`、`Ee(in/out/ref)` 与每帧轮廓支持。缺失参考区域、无意义的零边缘分母或空的预测轮廓使对应必选护栏失败。
+
+| ID | 通过条件 |
 | --- | --- |
-| U1 | `before.mp4`, `after.mp4`, and `comparison.mp4` are playable and synchronized |
-| U2 | The designated degradation is visibly reduced in the declared ROI in its single-degradation clip |
-| U3 | The combined clip visibly improves in all four dimensions without a new visible artifact |
-| U4 | The moving object keeps its silhouette and trajectory; no freeze, jump, or time shift |
-| U5 | Pixels outside the declared protection domain are unchanged |
-| U6 | The run is reproducible on the frozen environment |
-| U7 | The report states "synthetic controlled experiment", lists limitations, and does not claim general video repair |
-| U8 | The repair input does not contain the clean reference or ground truth |
+| Q1/Q9 | 保护域外每个无损像素与输入相同，变化计数为 0。 |
+| Q2 | 逐帧物体轮廓 IoU ≥ 0.98。输出轮廓以 fixture 预先确定并独立执行的颜色/分割规则得到。 |
+| Q3 | 逐帧输出质心到同索引参考质心的欧氏误差 ≤ 0.5 px。 |
+| Q4/T3 | 同索引参考质心为最近匹配之一，检查相邻参考帧且不环绕。只允许相同参考位置的并列，并报告并列。展示索引与 PTS 同时须精确对应。 |
+| Q5 | `Ee(out) / Ee(in) ≥ 0.90`。 |
+| Q6 | S4/H4 的 `S(out) ≤ 0.90 × S(in)`；其余退化 clip（含组合）`S(out) ≤ 1.05 × S(in)`。B 若另行提供单项外观演示，适用 S4/H4 的护栏。 |
+| Q7/Q8 | 披露授权掩膜内、羽化扩展区、掩膜外且光度授权内的变化像素数。局部替换不得越过 repair 掩膜；其余改变只允许在显式光度 ROI 内。 |
+| Q10 | 每帧改变的 ROI 像素比例 ≤ 配置上限，默认 0.25。 |
+| T1 | 静态区域 B 的逐帧平均亮度的总体标准差 ≤ 输入相应指标 + 0.2 DN。 |
+| T2 | B 内相邻帧 RGB 变化 MAE 的最大值 ≤ 输入相应指标 + 1.0 DN。 |
+| T4 | 参考质心轨迹有变化时，输出质心轨迹也必须有变化。 |
+| T5 | 在 E 区域内，输出第 t 帧对参考 t 的 MAE ≤ 对参考 t-1 和 t+1 各自的 MAE，只比较存在的邻帧。 |
+| T6 | B 静态来源 valid 且与目标/拖影距离合格。 |
+| T7 | 首/末帧若需要局部替换，至少两次有效观测，否则明确 `UNRESOLVED`。正式通过不得有 `UNRESOLVED`。 |
 
-Visual inspection is necessary but not sufficient; the metric and guard checks
-below are also required.
+若同一片段保真护栏失败，即使四项主指标都改善也判失败。人审检查局部变化、视觉闪烁、拖尾、外观和完整同步播放，记录首尾帧与代表时点证据。
 
-## 4. Input format validation
+## 4. 输入、失败、确定性与媒体
 
-The ingest/repair commands MUST validate the following before doing any work.
-
-| ID | Check | Failure |
+| ID | 必测项 | 期望 |
 | --- | --- | --- |
-| V01 | `contract_version == c-video-repair-contract@0.1` | `CVR-E001`, exit 2 |
-| V02 | exactly 24 frames, contiguous `0000..0023` | `CVR-E002` / `CVR-E005`, exit 2 |
-| V03 | every frame is 256 × 256 | `CVR-E003`, exit 2 |
-| V04 | rational fps is exactly `12/1` | `CVR-E004`, exit 2 |
-| V05 | RGB8, no alpha, no palette, no interlace | `CVR-E006`, exit 2 |
-| V06 | every `file_sha256` and `pixel_sha256` matches | `CVR-E013`, exit 3 |
-| V07 | no missing, duplicate, extra, or out-of-order frame | `CVR-E005`, exit 2 |
-| V08 | masks are 256 × 256 grayscale8 with values `{0,255}` | `CVR-E008`, exit 2 |
-| V09 | mask support is non-empty | `CVR-E009`, exit 2 |
-| V10 | mask support is strictly smaller than the full frame | `CVR-E009`, exit 2 |
-| V11 | mask support is contained in `repair_roi` | `CVR-E010`, exit 2 |
-| V12 | `repair_roi` and `evaluation_roi` are valid half-open rectangles | `CVR-E007`, exit 2 |
-| V13 | `feather_px` is an integer in `[0,8]` | `CVR-E011`, exit 2 |
-| V14 | `clean_reference_in_input == false` and no eval path is reachable | `CVR-E014`, exit 3 |
-| V15 | audio is absent or explicitly dropped and recorded | `CVR-E016`, exit 4 |
-| V16 | frame rate is constant; no rotation metadata | `CVR-E017`, exit 4 |
-| V17 | config has no unknown field or unsupported mode | `CVR-E018`, exit 4 |
-| V18 | `spatial_fallback` is `null` | `CVR-E019`, exit 4 |
-| V19 | the output directory does not contain a sealed run | `CVR-E012`, exit 2 |
+| V01–V19 | 版本、尺寸、帧数、顺序、CFR、整数 tick、PNG 编码、摘要、掩膜、ROI、羽化、参考隔离、输入音轨、配置及目录冲突 | 对照[管线退出码](pipeline-contract-v0.1.md#5-状态发布及退出)。合法重复画面可有不同 PTS，缺失或重复索引失败。 |
+| E | 负例覆盖短序列、损坏 PNG、满/整组空掩膜、持续遮损以及目标穿越供体坐标、偏移越限、超大写域、缺工具、编码/解码失败、旧产物、输出损坏及中途退出 | 断言具体诊断、退出码与状态。校验阶段失败无修复帧；部分或失败不出现本次 `SUCCESS`。 |
+| R1–R3/R7 | 同一固定环境重复修复 | PNG 像素和修复语义摘要一致，指标差 ≤ `1e-9`，目录/运行日志时钟不影响身份。 |
+| R4–R6 | 跨平台使用同一规范 PNG 输入、掩膜和配置 | 修复像素和 `pixel_sha256` 一致，指标差 ≤ `1e-9`，逐平台执行 MP4 解码检查。 |
+| R8 | 评测树移走或不可读，输入只读 | 修复的像素、逐帧结果和修复语义摘要一致，原始输入 SHA 不变；使用归档原片重摄取可核对同一源。 |
+| X1–X3 | 无损 PNG 数量、命名、格式和摘要 | A 固定 24 帧、`0000..0023`、256 × 256 RGB8。B 依批准的对应 profile。文件和像素 SHA 匹配。 |
+| X4–X9 | ffprobe 与完整解码 | 每个文件 1 路 H.264 `yuv420p` 视频、0 音轨、BT.709 矩阵、有限范围、sRGB transfer；A 单路 256 × 256、对照 512 × 256；B 单路 W × H、对照 2W × H。所有帧无解码错误，逐帧展示 PTS 精确匹配。元数据时长容差为 ±0.01 秒。 |
+| X10–X11/X15 | 逐 PTS 完整内容 | before 比输入 PNG，after 比修复 PNG，comparison 左右半幅分别对照各自对应 PNG。逐帧 RGB MAE ≤ 2.0 DN，PSNR ≥ 40 dB。 |
+| X12–X14 | 可复现、无旧结果、媒体可播放 | 重算摘要，核对 run ID 与实际输入、配置、算法和候选代码 SHA，标准解码器完整播放。 |
 
-Validation is fail-fast and atomic. A failed validation leaves no repaired
-frames and no `SUCCESS` manifest.
+MP4 的 MAE 是每帧（对照各半幅分别计算）全部 RGB 码值的绝对误差平均。PSNR 用相同范围的均方误差，`10log10(255²/MSE)`，零误差视为正无穷并以显式状态报告。两项为原始草案提案，逐帧聚合与同步对照补充规则须用开发素材及色条/暗阶在 G1 前验证。原型中的 `8 DN` 媒体校验上限仅属旧 profile。
 
-## 5. Metric definitions
+## 5. 冻结与通过条件
 
-### 5.1 Notation
-
-- `T = 24`, frames `t = 0..23`.
-- `ref_t`, `in_t`, `out_t` are RGB8 frames.
-- `c` ranges over `R, G, B`.
-- `E` is the fixed `evaluation_roi` rectangle.
-- `B` is the fixed static-background sample mask.
-- `G` is the fixed declared trailing region.
-- `I_t` is the fixed target-interior mask from the reference.
-- `O_t` is the reference object silhouette.
-- All means iterate `t` ascending, then `y` ascending, then `x` ascending, then
-  `c` in `R,G,B` order. This fixed order is part of deterministic reporting.
-- `|R|` denotes the number of pixels in a region `R`; `|I_t|` is the per-frame
-  target-interior support.
-- Units are 8-bit code values in `[0,255]`.
-- Report each value with 6 decimal places.
-
-### 5.2 M1 — ROI mean absolute error (local repair)
-
-```text
-MAE(X) = (1 / (T * |E| * 3)) * sum_t sum_{p in E} sum_c |X_t(p,c) - ref_t(p,c)|
-I1     = 1 - MAE(out) / MAE(in)
-```
-
-- Primary clip: `S1`.
-- Threshold: `I1 >= 0.30`.
-- Zero-denominator rule: if `MAE(in) < 0.5`, the metric is `METRIC_UNDEFINED`
-  and acceptance fails.
-- The region `E` is fixed before the run and must cover the repaired area. It
-  must not be cropped to easy pixels after seeing the result.
-
-### 5.3 M2 — Flicker temporal error
-
-The flicker metric measures the temporal variation of the reference error on a
-static background sample set. It does not measure true object motion because
-`B` excludes the moving object.
-
-```text
-e_t(X) = (1 / (|B| * 3)) * sum_{p in B} sum_c |X_t(p,c) - ref_t(p,c)|
-F(X)   = (1 / (T - 1)) * sum_{t=1..23} |e_t(X) - e_{t-1}(X)|
-I2     = 1 - F(out) / F(in)
-```
-
-- Primary clip: `S2`.
-- Threshold: `I2 >= 0.30`.
-- Zero-denominator rule: if `F(in) < 0.2`, the metric is `METRIC_UNDEFINED` and
-  acceptance fails.
-- Also report the full `e_t` series and `max_t |e_t - e_{t-1}|`. A lower mean
-  does not excuse a single large spike.
-- `B` must exclude the moving object and the ghost region by at least 2 pixels.
-
-### 5.4 M3 — Ghost residual energy
-
-The residual-energy metric ignores a 1-code-value rounding floor and measures
-the remaining trailing error inside a pre-declared region.
-
-```text
-residual(X) = (1 / (T * |G| * 3)) * sum_t sum_{p in G} sum_c max(0, |X_t(p,c) - ref_t(p,c)| - 1)
-I3          = 1 - residual(out) / residual(in)
-```
-
-- Primary clip: `S3`.
-- Threshold: `I3 >= 0.30`.
-- Zero-denominator rule: if `residual(in) < 1.0`, the metric is
-  `METRIC_UNDEFINED` and acceptance fails.
-- `|G|` is the number of pixels in `G`; the same region is used for input and
-  output.
-- Also report `max residual` and the count of pixels with residual greater
-  than 8 code values.
-- `G` is fixed by the fixture before the run and is not selected from the output.
-
-### 5.5 M4 — Appearance temporal stability
-
-```text
-m_t,c(X) = mean_{p in I_t} X_t(p,c)
-A(X)     = (1/3) * sum_c std_t(m_t,c(X))       # population std, denominator T
-I4       = 1 - A(out) / A(in)
-
-S(X)     = mean_t [ (1 / (|I_t| * 3)) * sum_{p in I_t} sum_c |X_t(p,c) - ref_t(p,c)| ]
-Ee(X)    = mean edge-energy magnitude inside the object bounding box
-```
-
-- Primary clip: `S4`.
-- Threshold: `I4 >= 0.30`.
-- Zero-denominator rule: if `A(in) < 0.5`, the metric is `METRIC_UNDEFINED` and
-  acceptance fails.
-- Spatial guard: for `S4`, `S(out) <= 0.90 * S(in)`. For every other clip,
-  `S(out) <= 1.05 * S(in)`.
-- Blur guard: `Ee(out) / Ee(in) >= 0.90` inside the object bounding box.
-  Edge energy is the mean forward-difference gradient magnitude:
-  `sqrt((I(x+1,y)-I(x,y))^2 + (I(x,y+1)-I(x,y))^2)` with clamped borders.
-- These two guards exist so that blurring or flat-filling cannot lower `A`.
-
-### 5.6 Combined clip
-
-For `S5`, all four metrics MUST improve:
-
-```text
-I1 >= 0.20, I2 >= 0.20, I3 >= 0.20, I4 >= 0.20
-```
-
-All four values MUST be strictly positive even if one is below the combined
-threshold; a single non-improving dimension fails the combined clip.
-
-### 5.7 Threshold table
-
-| Clip | Metric | Threshold | Status |
-| --- | --- | ---: | --- |
-| `S1` | `I1` ROI MAE improvement | >= 0.30 | PROPOSED |
-| `S2` | `I2` flicker temporal improvement | >= 0.30 | PROPOSED |
-| `S3` | `I3` ghost residual improvement | >= 0.30 | PROPOSED |
-| `S4` | `I4` appearance stability improvement | >= 0.30 | PROPOSED |
-| `S5` | `I1..I4` each | >= 0.20 | PROPOSED |
-| all | `S(out)` spatial error | per §5.5 | PROPOSED |
-| all | `Ee` edge-energy ratio | >= 0.90 | PROPOSED |
-
-The 30% single-degradation target comes from the C planning dispatch. The 20%
-combined target and the spatial/edge guards are proposals until G1 freeze.
-
-## 6. Spatial-quality tests
-
-| ID | Check | Threshold | Notes |
-| --- | --- | --- | --- |
-| Q1 | unauthorized-region exact equality | 0 differing pixels | decoded RGB equality outside `protection_domain` |
-| Q2 | silhouette IoU per frame | `>= 0.98` for every `t` | output object mask derived by the fixture's fixed color rule |
-| Q3 | object centroid error | `<= 0.5 px` per frame | Euclidean distance |
-| Q4 | frame-index match | best-match lag `0` for every frame | prevents time shift |
-| Q5 | edge-energy ratio | `>= 0.90` in the object bbox | prevents blur |
-| Q6 | spatial error `S(out)` | per §5.5 | prevents flat-fill |
-| Q7 | changed pixels inside mask support and feather | reported, not hidden | required transparency |
-| Q8 | changed pixels outside mask support but inside `protection_domain` | only allowed for declared photometric correction | must be reported |
-| Q9 | pixels outside `protection_domain` | exactly equal to input | lossless PNG only |
-| Q10 | no global frame replacement | changed fraction in `repair_roi <= max_changed_fraction` | default 0.25 |
-
-`Q1` and `Q9` are the same check from two directions: decoded output pixels
-outside the protection domain must be identical to the decoded input. PNG file
-bytes may differ because of re-encoding; pixel equality is authoritative.
-
-## 7. Temporal-consistency tests
-
-| ID | Check | Threshold |
-| --- | --- | --- |
-| T1 | no added flicker in the static background | `std_t(mean_B(out)) <= std_t(mean_B(in)) + 0.2` |
-| T2 | no new alternating pattern in `B` | `max_t mean_B(|out_t - out_{t-1}|) <= max_t mean_B(|in_t - in_{t-1}|) + 1.0` |
-| T3 | no object time shift | centroid trajectory best-match lag `0`; per-frame centroid error `<= 0.5 px` |
-| T4 | no freeze | per-frame object centroid is not constant across all 24 frames unless the reference is constant |
-| T5 | no frame reordering | output frame `t` must not match reference `t-1` or `t+1` better than `t` under `E` MAE |
-| T6 | flicker metric does not mistake motion for flicker | `B` is static and excludes the object/ghost by at least 2 px |
-| T7 | first/last frame handling | frame 0 and frame 23 are either repaired with at least two valid observations or marked `UNRESOLVED`; no silent fallback |
-
-A temporal improvement that freezes the object, shifts time, or blurs the
-silhouette fails `T3`, `T4`, `T5`, or `Q2/Q5`.
-
-## 8. Export-validity tests
-
-| ID | Check | Expected |
-| --- | --- | --- |
-| X1 | repaired PNG count and names | exactly 24, contiguous `0000..0023` |
-| X2 | repaired PNG format | RGB8, 256 × 256, no alpha |
-| X3 | repaired PNG digests | match manifest `file_sha256` and `pixel_sha256` |
-| X4 | `before.mp4` stream | 1 video, 0 audio, `h264`, `yuv420p`, 256×256 |
-| X5 | `after.mp4` stream | 1 video, 0 audio, `h264`, `yuv420p`, 256×256 |
-| X6 | `comparison.mp4` stream | 1 video, 0 audio, `h264`, `yuv420p`, 512×256 |
-| X7 | frame count and rate | 24 frames, `12/1`, duration `2.0 ± 0.01 s` |
-| X8 | decode pass | all 24 frames decode without error |
-| X9 | alignment | all three MP4s have the same frame count, PTS range, and duration |
-| X10 | `before.mp4` content | decodes to the input frames within MP4 tolerance |
-| X11 | `after.mp4` content | decodes to the repaired frames within MP4 tolerance |
-| X12 | manifest consistency | semantic digest recomputes; output digests match |
-| X13 | no stale output | `run_id` matches inputs, config, algorithm, and code commit |
-| X14 | playable result | a standard decoder plays the file to the end |
-
-MP4 tolerance is proposed as MAE `<= 2.0` code values and PSNR `>= 40 dB`
-against the source PNG sequence. The actual tolerance must be frozen by CI
-before the holdout run.
-
-## 9. Reproducibility tests
-
-| ID | Check | Expected |
-| --- | --- | --- |
-| R1 | repeat run in the same frozen environment | identical PNG pixels and `pixel_sha256` |
-| R2 | repeat run in the same frozen environment | identical `semantic_digest` |
-| R3 | repeat run in the same frozen environment | metrics agree within `1e-9` |
-| R4 | cross-platform PNG comparison | identical decoded pixels and `pixel_sha256` |
-| R5 | cross-platform metrics | agree within `1e-9` |
-| R6 | cross-platform MP4 | not byte-identical is acceptable; decode checks pass |
-| R7 | run log and timestamps | never part of semantic identity |
-| R8 | moved/removed eval directory | repair output is unchanged; isolation confirmed |
-
-If a run uses unrecorded randomness, wall-clock time, locale, or a mutable
-external resource, `R1`–`R3` fail and the run is not acceptable.
-
-## 10. Failure scenarios and expected behavior
-
-Every failure must produce a non-zero exit code, a stable diagnostic code, and
-a user-readable message. The message must name the failing file or field but
-must not leak the clean reference.
-
-| Scenario | Exit | Diagnostic | Expected behavior |
-| --- | ---: | --- | --- |
-| missing frame | 2 | `CVR-E005` | no repair; list the missing index |
-| wrong resolution | 2 | `CVR-E003` | no repair; state expected 256×256 |
-| wrong frame rate | 2 | `CVR-E004` | no repair; state expected 12/1 |
-| alpha or palette PNG | 2 | `CVR-E006` | no repair; state expected RGB8 |
-| input hash mismatch | 3 | `CVR-E013` | no repair; identify the frame |
-| clean reference in input | 3 | `CVR-E014` | no repair; isolation violation |
-| mask wrong size | 2 | `CVR-E008` | no repair; identify the mask |
-| mask values not 0/255 | 2 | `CVR-E008` | no repair; list the offending value |
-| empty mask | 2 | `CVR-E009` | no repair |
-| full-frame mask | 2 | `CVR-E009` | no repair; local repair contract |
-| mask outside ROI | 2 | `CVR-E010` | no repair; state the ROI |
-| invalid ROI | 2 | `CVR-E007` | no repair; state the half-open bounds |
-| feather out of range | 2 | `CVR-E011` | no repair |
-| audio present | 4 | `CVR-E016` | reject unless `--drop-audio` |
-| VFR or rotation metadata | 4 | `CVR-E017` | reject |
-| unknown algorithm/mode | 4 | `CVR-E018` | reject |
-| spatial fallback requested | 4 | `CVR-E019` | reject |
-| object-interior repair | 4 | `CVR-E020` | reject |
-| insufficient neighbors | 5 | `CVR-E021` | mark `UNRESOLVED`, `PARTIAL` |
-| flicker offset > 32 | 5 | `CVR-E022` | fail; do not clamp silently |
-| ghost out of domain | 5 | `CVR-E023` | fail; explain the condition |
-| changed fraction too high | 5 | `CVR-E024` | fail; report the fraction |
-| FFmpeg missing | 6 | `CVR-E025` | fail; do not skip |
-| encoder non-zero | 6 | `CVR-E026` | fail; preserve the command and stderr |
-| output digest mismatch | 7 | `CVR-E027` | fail; no success manifest |
-| ffprobe mismatch | 7 | `CVR-E028` | fail; report the stream facts |
-| unauthorized pixel changed | 7 | `CVR-E029` | fail; report the count |
-| stale output | 3 | `CVR-E013` | fail; require a new run directory |
-| output directory has a sealed run | 2 | `CVR-E012` | fail; do not overwrite |
-| internal error | 8 | `CVR-E030` | preserve diagnostics; no success claim |
-
-Additional rules:
-
-- A run with any `UNRESOLVED` frame is `PARTIAL` and fails acceptance.
-- A run whose metrics are `METRIC_UNDEFINED` fails acceptance; it must not be
-  reported as "no change needed".
-- A run with a missing metrics file, a missing media file, or a missing
-  manifest fails acceptance.
-- Error messages must be stable enough for CI to assert on the diagnostic code,
-  not on prose.
-
-## 11. Holdout protocol
-
-1. Development clips `S1`–`S5` may be used to calibrate the algorithm and to
-   validate the metric implementation.
-2. Holdout clips `H1`–`H5` are generated with the same fixture builder and a
-   different seed. They are not used for algorithm tuning.
-3. Thresholds and region definitions are frozen before the first holdout run.
-4. The holdout is run once. A failure is reported with the raw metrics; it is
-   not repaired by lowering a threshold.
-5. If the development data shows a threshold is unreasonable, the practice line
-   submits evidence to the C planning line before freeze. After freeze, no
-   change is allowed without a new contract version.
-6. Holdout results support only the synthetic controlled claim. They do not
-   establish natural-video robustness.
-
-## 12. Non-regression checks
-
-The following must pass on the candidate commit, independently of the video
-acceptance:
-
-```powershell
-python -m unittest discover -s tests -v
-python -m ruff format --check .
-python -m ruff check .
-python -m pyright
-python -m compileall -q svm tests
-```
-
-Also verify:
-
-- no change under `svm/`, `schema/`, or `spec/` caused by the C track;
-- Golden A and Golden B still pass;
-- no existing test is skipped to hide a video failure;
-- no threshold or policy is weakened.
-
-A video-only change that breaks an existing Golden test is a regression and
-cannot be accepted.
-
-## 13. Sign-off checklist
-
-| # | Item | Owner | Evidence |
-| ---: | --- | --- | --- |
-| 1 | Contract version and thresholds frozen | C planning | this document + freeze record |
-| 2 | Input bundle validates | CI | validation log |
-| 3 | Repair output is non-destructive | CI | `Q1`, `Q9`, `Q10` |
-| 4 | Four metrics pass on single-degradation clips | CI | `metrics.json` |
-| 5 | Combined clip passes | CI | `metrics.json` |
-| 6 | Fidelity guards pass | CI | `Q2`–`Q6`, `T1`–`T7` |
-| 7 | MP4s are playable and aligned | CI + review | `X1`–`X14` |
-| 8 | Reproductibility passes | CI | `R1`–`R8` |
-| 9 | Isolation confirmed | CI | moved/removed eval directory |
-| 10 | SVM boundary respected | review | diff + `integration-boundary.md` |
-| 11 | Limitations disclosed | docs + review | run manifest + report |
-| 12 | Final verdict recorded | C planning | PASS / CHANGES_REQUIRED / BLOCKED |
-
-## 14. Final verdict rule
-
-- **PASS** requires every required artifact, metric, guard, export check,
-  reproducibility check, and non-regression check to pass.
-- **CHANGES_REQUIRED** is used when the implementation or its evidence has a
-  defect that the owner must fix.
-- **BLOCKED** is used when missing media, a missing tool, or missing evidence
-  makes a judgment impossible.
-- A PASS for the synthetic controlled clip is not a claim of general video
-  repair capability.
+1. G1 前用开发样例验证公式、区域、估计误差和色彩工具配置。独立登记留出种子、输入/参考/掩膜 SHA、所有阈值、口径、代码及构建环境。由策划线审核后冻结。需要修订时提供开发证据并经策划线决议。
+2. 正式留出开始后禁止根据结果调低阈值、更换区域或重挑数据。保留第一次正式结果、失败原因和完整数据。因实施缺陷修订候选时，保留证据和同一门槛并记录重新验收范围。
+3. `verify` 仅在全部必选检查通过后返回 0。缺工具、缺素材、必选检查没运行或证据不足标 `BLOCKED`；已识别缺陷或数值不达标标 `CHANGES_REQUIRED`。两者均不得计通过。G3 另需同一候选 SHA 的独立审查与策划签收。
+4. 候选需独立通过全量 unittest（含 Golden A/B）、Ruff format、Ruff lint、Pyright、compileall。保留当前 CI 矩阵和失败记录。旧日志和 README 自评均不得替代同 SHA 的正式 CI 运行。

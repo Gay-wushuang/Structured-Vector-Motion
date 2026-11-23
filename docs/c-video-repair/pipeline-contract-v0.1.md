@@ -1,121 +1,58 @@
-# C-MVP v0.1 — Pipeline and Interface Contract
+# C-MVP v0.1 · 管线与接口契约
 
-Status: **DRAFT** — interface contract for the C track. It defines what the
-practice and CI lines must implement and verify; it does not implement repair.
+| 项目 | 内容 |
+| --- | --- |
+| 版本 | `c-video-repair-contract@0.1`，草案修订 `R1-002` |
+| 状态 | **DRAFT**，G1 审核后由 C 板块策划线冻结。 |
+| 适用范围 | 外部 CLI、文件、状态、媒体与追溯接口。A/B 规格见[需求](requirements-v0.1.md)。 |
+| 已验证事实 | 实践代码 `b310f57e6a21562798f5ccad2a1897ba4d99c47e` 有 `synthetic`、`demo`、`evaluate` 三个模块入口。 |
+| 待实现能力 | 下表含全部正式入口，均无完整契约实现或验收证据。 |
+| 未决问题 | 兼容窗口、固定工具版本与传递函数往返验证、掩膜 fixture、B profile，见[策划分派](../planning/video-repair-v0-dispatch.md#g1-待决问题)。 |
 
-Contract identity: `c-video-repair-contract@0.1`.
+## 1. 统一接口
 
-This contract is intentionally outside the `svm` package. It does not extend
-the public `svm` CLI, does not add a Core Operation, and does not add a Document
-schema field. The external entry point is a demo/tool script owned by the
-practice line.
+正式命令计划采用 `python -m prototype.video_restoration <command>`，在仓库根目录执行，与现有基于模块的实验路径一致。命令之间仅用约定文件交接。
 
-## 1. Roles and commands
-
-| Role | Responsibility | Reads | Writes |
+| 正式命令 | 参数 | 读取与产出 | 实现状态 |
 | --- | --- | --- | --- |
-| Fixture builder | generate clean/degraded controlled clips | SVM Document / fixture parameters | `eval/` reference data, degraded input bundles |
-| Ingest | normalize a source into the canonical bundle | source video/PNG bundle | canonical `input/` bundle |
-| Repair | local repair, flicker/ghost suppression | canonical input, masks, config | `output/frames-repaired/`, repair manifest |
-| Export | encode MP4s and comparison | repaired frames, input frames | `before.mp4`, `after.mp4`, `comparison.mp4` |
-| Evaluate | reference-based scoring | repair output, `eval/` reference | `metrics.json` |
-| Verify | independent acceptance | all of the above | `acceptance-report.json` |
+| `ingest` | `--source PATH --output DIR [--decoder-profile ID] [--drop-audio]` | 源 RGB8 帧包或受控 MP4 → 规范 PNG 包及原始输入记录。 | 待实现。原型直接读取固定格式 PNG，无 MP4 输入。 |
+| `repair` | `--input DIR --masks DIR --config FILE --output DIR` | 退化 PNG、显式掩膜、配置 → 前后无损帧、修复记录及清单。 | 待实现。原型 `demo` 同时做修复和导出。 |
+| `export` | `--run DIR --encoder EXEC --ffprobe EXEC` | 已封存的前后 PNG → `before.mp4`、`after.mp4`、`comparison.mp4`、媒体摘要及阶段状态。 | 正式命令待实现。已有部分编码、ffprobe 和完整解码能力在 `demo` 中。 |
+| `evaluate` | `--run DIR --reference DIR --output FILE` | 前后 PNG、离线 reference/评分区域 → `<run>/metrics.json`，绑定 run identity 和已封存帧。 | 正式参数、公式及报告待实现。同名原型模块已实现离线诊断。 |
+| `verify` | `--run DIR --reference DIR --contract VERSION --expected-code-sha SHA --output FILE` | 已导出和评分的运行 → 独立核验、`<run>/acceptance-report.json` 和最终状态。 | 待实现。由 CI 线拥有独立验证逻辑。 |
 
-The reference-based `evaluate` and `verify` commands are separate processes.
-They are the only commands allowed to read `eval/`. The repair process MUST NOT
-receive an `eval/` path.
+原型入口属于 R1-001 兼容路径，状态仅描述实践分支的实际接口。
 
-## 2. Proposed external CLI
+| 已实现的原型入口 | 用法 | 实际语义 |
+| --- | --- | --- |
+| `python -m prototype.video_restoration.synthetic` | `--output DIR [--seed N] [--without STAGE]...` | 生成 24 帧开发素材，导出 `input/`、四组掩膜 `mask/` 和离线 `evaluation/`。 |
+| `python -m prototype.video_restoration.demo` | `--input DIR --mask DIR --output DIR [--ffmpeg EXEC] [--ffprobe EXEC]` | 修复并编码。退出 0 仍可能是 `partial`；媒体 `verified` 只说明原型已验证媒体。 |
+| `python -m prototype.video_restoration.evaluate` | `--run DIR --mask DIR --evaluation DIR` | 更新原型 `metrics.json`，计算原型现用的诊断公式，未执行正式验收。 |
 
-The exact executable path is owned by the practice line. This contract fixes
-the subcommand names, arguments, exit codes, and file effects. A proposed entry
-point is:
+兼容期保留原型入口和原型出件语义。正式 CLI 在新运行目录发布规范命名和格式。读入旧结果时，`original.mp4 → before.mp4`、`repaired.mp4 → after.mp4` 是媒体角色映射。旧 `comparison.mp4` 仍需逐 PTS 复验。旧 `manifest.json` 可作为 `svm-c-r1-restoration@1` 的历史记录阅读，禁止仅改名为 `run-manifest.json`。旧六位帧名 `000000.png` 等，经显式 ingest 或迁移写到新目录，生成四位规范文件名并重新校验文件和像素摘要。旧 `metrics.json` 的公式与证据按原型解释，正式验收须从原始证据重跑。新结果不同时生成新旧别名，兼容窗口由策划线审核。
 
-```text
-python demo/005-controlled-video-repair/cvr.py <subcommand> ...
+## 2. 输入输出示例
+
+以下是正式接口目标的 PowerShell 示例。这里的 `fixtures/s1-source` 是含规范元数据的退化源，`fixtures/s1-eval` 位于独立离线目录树。样例中的 SHA 用实际候选提交的完整 SHA 替换。
+
+```powershell
+$codeSha = '<implementation git SHA>'
+$run = 'build/cvr/s1-run'
+python -m prototype.video_restoration ingest --source fixtures/s1-source --output build/cvr/s1-input
+python -m prototype.video_restoration repair --input build/cvr/s1-input --masks fixtures/s1-masks --config fixtures/s1-config.json --output $run
+python -m prototype.video_restoration export --run $run --encoder ffmpeg --ffprobe ffprobe
+python -m prototype.video_restoration evaluate --run $run --reference fixtures/s1-eval --output "$run/metrics.json"
+python -m prototype.video_restoration verify --run $run --reference fixtures/s1-eval --contract c-video-repair-contract@0.1 --expected-code-sha $codeSha --output "$run/acceptance-report.json"
 ```
 
-The `svm` console script MUST NOT gain any of these subcommands in v0.1.
-
-### 2.1 `ingest`
-
 ```text
-cvr.py ingest --source <path> --output <bundle-dir> \
-  [--decoder-profile <profile-id>] [--drop-audio]
-```
-
-- Accepts a canonical PNG bundle or a single MP4.
-- Verifies dimensions, frame count, frame rate, pixel format, and silence.
-- Writes the canonical `input/` layout from §3 and a normalized
-  `video-manifest.json`.
-- Rejects audio unless `--drop-audio` is explicitly supplied; records the drop.
-- Rejects variable frame rate, rotation metadata, and non-24-frame sources.
-- Never overwrites a non-empty output directory.
-
-### 2.2 `repair`
-
-```text
-cvr.py repair --input <bundle-dir> --masks <mask-dir> \
-  --config <config.json> --output <run-dir>
-```
-
-- Reads only the canonical input bundle, masks, and config.
-- Writes `frames-repaired/`, `run-manifest.json`, and `run.log`.
-- Does not encode MP4 and does not compute reference-based metrics.
-- Fails closed if any input digest, mask digest, or config field is invalid.
-
-### 2.3 `export`
-
-```text
-cvr.py export --run <run-dir> --encoder <ffmpeg-path> [--ffprobe <path>]
-```
-
-- Encodes `before.mp4`, `after.mp4`, and `comparison.mp4`.
-- Verifies the encoded files with `ffprobe` and a full decode pass.
-- Updates the run manifest with media digests and encoder identity.
-- A missing or failing encoder is a hard failure (`EXIT_TOOL_FAILURE`), not a
-  skipped step.
-
-### 2.4 `evaluate`
-
-```text
-cvr.py evaluate --run <run-dir> --reference <eval-dir> --output <metrics.json>
-```
-
-- Reads the sealed repair output and the evaluation-only reference.
-- Verifies every output digest before scoring.
-- Computes the metrics in `acceptance-criteria-v0.1.md`.
-- Writes a metrics report with formula identities, ROI identities, input values,
-  output values, relative improvements, thresholds, and pass/fail flags.
-- MUST NOT modify repair frames.
-
-### 2.5 `verify`
-
-```text
-cvr.py verify --run <run-dir> --reference <eval-dir> \
-  --contract <contract-version> --output <acceptance-report.json>
-```
-
-- Independently re-checks input validation, output validity, metrics,
-  determinism, and export properties.
-- Exits `0` only if every required check passes.
-- Writes a machine-readable report with one row per check.
-
-## 3. Directory layout
-
-A run directory is self-contained and immutable after sealing:
-
-```text
-<run-dir>/
-  input/                         # symlink/copy of the canonical bundle, read-only
-    video-manifest.json
-    frames/frame-0000.png ... frame-0023.png
-  masks/
-    mask-manifest.json
-    frame-0000.png ... frame-0023.png   # or constant.png
+s1-run/
+  input/video-manifest.json
+  input/frames/frame-0000.png ... frame-0023.png  # before 的无损快照
+  masks/mask-manifest.json
+  masks/repair/...                              # 其他掩膜见 §4
   config.json
-  frames-repaired/
-    frame-0000.png ... frame-0023.png
+  frames-repaired/frame-0000.png ... frame-0023.png
   before.mp4
   after.mp4
   comparison.mp4
@@ -125,585 +62,110 @@ A run directory is self-contained and immutable after sealing:
   run.log
 ```
 
-`<run-dir>` MUST be created atomically. The repair process writes to
-`<run-dir>.tmp-<run_id>/` and renames it only after the manifest is sealed. A
-failed run MAY leave a `FAILED` manifest and diagnostics, but MUST NOT leave a
-`SUCCESS` manifest.
+run 中的输入为只读快照，有明确的包内路径及摘要。参考目录含 `reference-manifest.json`、干净帧和评分掩膜，只提供给独立的 evaluate/verify 进程。可追回的原 MP4 保留在 ingest 输出包的 `source/`，run 记录输入包和源摘要，发布证据须能按摘要找到此包及原视频。整套结果写在新的互不重叠的路径，禁止覆盖源或已有运行目录。
 
-## 4. Canonical input bundle
+## 3. PNG、时间与 MP4 摄取
 
-### 4.1 `video-manifest.json`
+- PNG 为非隔行 PNG truecolor type 2、RGB8、无 alpha 和 palette。直接使用 sRGB 编码码值，拒绝会触发样本转换的色彩声明，禁止隐式色彩或 gamma 转换。第 `i` 个文件为 `frames/frame-NNNN.png`，与 manifest 索引一致。拒绝缺帧、多帧、重复/乱序索引和损坏文件；合法相同像素帧可占不同展示位置。
+- A 和 B 共享格式。A 的 `timebase_ticks_per_second = 12` 且 `frame_ticks[i] = i`。B 的 Timebase、采样起点及每帧 Motion tick 按批准的 profile 记录。`presentation_pts(i)` 以秒为单位，等于 `i * fps.denominator / fps.numerator`。tick、PTS 使用整数或有理数，所有媒体展示时长为 `frame_count / fps`，不编码右端点。
+- `video-manifest.json` 记录 `contract_version`、`draft_revision`、`scenario_kind`、`clip_id`、`profile_id`、宽高、`pixel_format: "RGB8"`、`color_space: "sRGB"`、`frame_count`、有理数 `fps`、`timebase_ticks_per_second`、`frame_ticks`、精确有理数 `duration_seconds`（如 `"2/1"`）、`endpoint_rule: "left-closed-right-open"` 和 `frames`。每帧记录 `index`、`file`、`file_sha256`、`pixel_sha256`。另记录 `bundle_digest`、`clean_reference_in_input: false` 及允许公开的来源摘要。干净 SVG/PNG、Document 定位、注入种子和真值仅放离线来源记录。
+- 受限 MP4 摄取仅面向 A，输入为 H.264/8-bit `yuv420p`、符合 A 的尺寸、帧数和 CFR，色彩遵循 §7 的显式可逆记录策略（编码本身有损）。拒绝 VFR、旋转元数据及未知色彩配置。默认拒绝音轨，只有 `--drop-audio` 可显式丢弃并记录。以选中视频 stream 的 time base 和每帧源 PTS 建立 `source_pts → index → presentation_pts/Tick` 映射。保存原媒体的 SHA 和字节快照、stream、编码/色彩信息、解码版本及可重放参数。冻结原始快照的可重取方式，复核时仅用快照重做 ingest。规范 PNG 包是 repair 的内容身份。
 
-```json
-{
-  "contract_version": "c-video-repair-contract@0.1",
-  "scenario_kind": "synthetic-controlled",
-  "clip_id": "S3-ghost",
-  "width": 256,
-  "height": 256,
-  "pixel_format": "RGB8",
-  "color_space": "sRGB",
-  "frame_count": 24,
-  "fps": {"numerator": 12, "denominator": 1},
-  "timebase_ticks_per_second": 12,
-  "frame_ticks": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
-  "duration_seconds": "2.0",
-  "endpoint_rule": "left-closed-right-open",
-  "frames": [
-    {
-      "index": 0,
-      "file": "frames/frame-0000.png",
-      "file_sha256": "sha256:<hex>",
-      "pixel_sha256": "sha256:<hex>"
-    }
-  ],
-  "bundle_digest": "sha256:<hex>",
-  "provenance": {
-    "generator": "<fixture-builder-id>",
-    "generator_version": "<version>",
-    "seed": 0,
-    "clean_reference_in_input": false
-  }
-}
-```
+## 4. ROI、掩膜与配置
 
-Rules:
+| 输入 | 约束与用途 |
+| --- | --- |
+| `repair_roi` | 图像坐标原点为左上，半开矩形 `[x0,y0,x1,y1]`，必须在画布内。 |
+| `repair` | 静态背景局部替换的写入授权。可按 `roles` 提供互斥的 `defect`、`ghost` 子掩膜，支持必须在授权内。主掩膜总支持非空、每帧不得覆盖整幅画面。常量掩膜必须有支持；逐帧掩膜允许无待修像素的某帧为空，整组不能全空。 |
+| `donor_valid` | 同坐标背景供体的可靠性许可。逐帧明确排除损坏、拖影、遮挡和经过该像素的前景。写入掩膜不提供供体有效性；读入合格供体后仍需验证邻域证据的一致性。 |
+| `static_sample` | 估计光度的只读静态样本，离移动目标和拖影至少 2 px，可在写入 ROI 外。 |
+| `photometric_roi` | 显式光度写入矩形，位于 `protection_domain` 内。仅声明的这种修正可改变 `repair` 掩膜外合法像素。 |
+| `feather_px` | 整数 `[0,8]`。`protection_domain` 为 `repair_roi` 扩展该距离后裁剪到画布；扩展本身不授权写入。 |
+| `evaluation_roi` 及评分掩膜 | 在评测树预先固定，禁止提供给 repair。其像素区域与修复授权不同。 |
 
-- `frame_ticks[i] == i` in v0.1.
-- `bundle_digest` is the SHA-256 of canonical JSON containing the contract
-  version, dimensions, timing, color-space declaration, and the ordered list of
-  `file_sha256` and `pixel_sha256` values. It does not include paths, timestamps,
-  or the `provenance.seed` field.
-- `frames` MUST be sorted by `index` and contain exactly 24 entries.
-- The manifest MUST NOT reference `eval/`, ground truth, or a clean reference.
-- `provenance.seed` is recorded, not part of the bundle identity; the degraded
-  pixels are the identity.
+`mask-manifest.json` 记录版本、修订、宽高、`repair_roi`、`feather_px`、
+`mask_semantics: "255=role-active,0=role-inactive"` 和 `roles`。
+每个角色记录用途、来源（用户提供或受控测试刺激）、`kind: "constant" | "per-frame"` 和按索引排序的文件记录。文件记录含相对路径、文件/像素 SHA、支持像素数。掩膜均为与画布同尺寸的灰度 8-bit PNG，取值只可 0/255。常量角色文件用索引 0，逐帧角色逐索引声明。显式掩膜可由受控实验提供疑似受损或不可用观测的范围。不得编码或嵌入 clean 像素、真实运动轨迹或注入参数。报告披露其来源，禁止声称自动识别。
 
-### 4.2 PNG requirements
-
-- PNG color type 2 (truecolor), bit depth 8, no alpha, no palette, no
-  interlacing.
-- No `iCCP`, `gAMA`, `cHRM`, or `sRGB` chunk that changes decoded samples.
-- Dimensions exactly 256 × 256.
-- File names are zero-padded to four digits.
-- `pixel_sha256` is computed over raw RGB8 bytes, row-major, top-left origin,
-  with no row padding.
-
-### 4.3 MP4 ingest profile
-
-When the source is MP4:
-
-```text
-container: MP4
-video codec: H.264
-pixel format: yuv420p
-frame count: 24
-frame rate: 12/1 constant
-size: 256x256
-audio: none (or explicitly dropped and recorded)
-color: BT.709 matrix, TV range (recorded; conversion is explicit)
-```
-
-The ingest command records the FFmpeg/ffprobe versions and the exact command.
-The resulting PNG bundle is canonical; the MP4 file hash is recorded only as
-`source_media_file_sha256`, never as the Video Artifact identity.
-
-## 5. Mask bundle
-
-### 5.1 `mask-manifest.json`
+配置例（以下键和取值为草案）：
 
 ```json
 {
   "contract_version": "c-video-repair-contract@0.1",
-  "mask_kind": "per-frame",
-  "width": 256,
-  "height": 256,
-  "values": [0, 255],
-  "repair_roi": [64, 64, 192, 192],
-  "evaluation_roi": [64, 64, 192, 192],
-  "feather_px": 1,
-  "support_pixels": 4096,
-  "frames": [
-    {
-      "index": 0,
-      "file": "masks/frame-0000.png",
-      "file_sha256": "sha256:<hex>",
-      "pixel_sha256": "sha256:<hex>",
-      "support_pixels": 4096
-    }
-  ]
-}
-```
-
-Rules:
-
-- `mask_kind` is `constant` or `per-frame`.
-- For `constant`, `frames` has one entry and the same mask applies to all 24
-  frames; `support_pixels` is the constant support.
-- Mask PNGs are grayscale 8-bit, 256 × 256, values only `0` and `255`.
-- Support MUST be non-empty, contained in `repair_roi`, and strictly smaller
-  than the full frame.
-- `repair_roi` and `evaluation_roi` are half-open `[x0, y0, x1, y1]`.
-- `feather_px` is in `[0, 8]`. The protection domain is `repair_roi` expanded
-  by `feather_px` and clipped to the frame. It is not a repair mask dilation.
-- The manifest MUST record a `mask_semantics` string:
-  `"255=repair-allowed,0=preserve"`.
-
-## 6. Configuration
-
-### 6.1 `config.json`
-
-```json
-{
-  "contract_version": "c-video-repair-contract@0.1",
-  "clip_id": "S3-ghost",
+  "draft_revision": "R1-002",
+  "clip_id": "S1",
   "repair": {
     "mode": "temporal-median",
     "window_radius": 2,
     "minimum_observations": 2,
-    "max_changed_fraction": 0.25,
+    "max_changed_fraction": "1/4",
     "spatial_fallback": null
   },
   "photometric": {
     "enabled": true,
-    "model": "integer-luma-offset",
-    "roi": "repair_roi",
-    "static_sample_mask": "masks/static-sample.png",
-    "max_abs_offset": 32,
+    "roi": [64, 64, 192, 192],
+    "max_abs_luma_offset": 32,
     "max_abs_channel_offset": 16
   },
   "ghost": {
     "enabled": true,
-    "search_radius_px": 4,
     "min_clean_observations": 2,
-    "max_ghost_roi_fraction": 0.25
+    "max_displacement_px": 4
   },
-  "appearance": {
-    "metric_only": true
-  },
-  "determinism": {
-    "rounding": "round-half-to-even",
-    "random_seed": null
-  }
+  "determinism": {"rounding": "round-half-to-even", "random_seed": null}
 }
 ```
 
-Rules:
+未知字段、模式或非空 fallback 失败。光度校正从退化帧的静态样本估计。进行局部替换时，选声明窗口内的同坐标可靠邻帧，排除当前帧，边界只用实际存在的邻帧，至少两次可信观测。证据不足或不一致时保持原像素，记录 `UNRESOLVED`。拖影需满足短暂且与物体分离，限制声明允许的拖影位移及 ROI 内变化比例，违反时失败。修复阶段的像素差和残留诊断只基于可见输入；参考残影能量由 evaluate 计算。
 
-- Unknown top-level fields, unknown `contract_version`, and unknown `mode`
-  values MUST fail closed (`EXIT_UNSUPPORTED`).
-- `spatial_fallback` MUST be `null` in v0.1. Any non-null value is
-  `EXIT_UNSUPPORTED`.
-- `random_seed` MUST be `null` in v0.1. A non-null seed is allowed only if a
-  later contract revision explicitly adds a stochastic algorithm.
-- `photometric.roi` is either `"repair_roi"` or an explicit half-open rectangle
-  contained in the protection domain.
-- `static_sample_mask` is an explicit grayscale mask that excludes the moving
-  object and ghost by at least 2 pixels. It is a user/fixture input, not inferred
-  from the clean reference.
-- `max_changed_fraction` is the maximum fraction of `repair_roi` pixels that may
-  change. Exceeding it fails the run.
+## 5. 状态、发布及退出
 
-## 7. Processing stages
-
-The repair command performs these stages in order:
-
-### Stage A — validation
-
-1. Verify the input bundle digest and every frame hash.
-2. Verify the mask manifest and every mask hash.
-3. Verify config schema and supported domain.
-4. Verify `clean_reference_in_input == false`.
-5. Verify the output directory is new or empty.
-
-Any failure is terminal; no repair frame is written.
-
-### Stage B — photometric stabilization
-
-1. Build the static sample set from `static_sample_mask`.
-2. Estimate a per-frame integer luma offset and, if enabled, per-channel
-   integer offsets, using only the degraded frames.
-3. Reject if the offset exceeds the configured bound.
-4. Apply the correction only inside the declared photometric ROI.
-5. Record the per-frame offsets in the run manifest.
-
-This stage is deterministic integer arithmetic. It does not use the clean
-reference.
-
-### Stage C — temporal evidence repair
-
-1. For each masked pixel, collect co-located observations from neighboring
-   frames within `window_radius`.
-2. Exclude frames where the pixel is outside the mask support or marked
-   unreliable.
-3. Require at least `minimum_observations` valid observations.
-4. Replace the pixel with the per-channel temporal median of valid observations.
-5. Leave the pixel unchanged if the requirement is not met; mark it
-   `UNRESOLVED`.
-6. Record changed-pixel counts and unresolved counts.
-
-No motion compensation, optical flow, warping, or subpixel alignment is used in
-v0.1. A moving-object interior is outside the guaranteed domain.
-
-### Stage D — ghost handling
-
-Ghost handling is a declared application of Stage C inside a ghost ROI:
-
-1. The ghost ROI/mask is explicit.
-2. The temporal window must contain at least `min_clean_observations` frames in
-   which the ghost is absent.
-3. If the ghost is present in every frame, or overlaps the object, or the
-   changed fraction exceeds the bound, fail closed.
-4. Record residual energy before/after as an output diagnostic; reference-based
-   scoring happens only in `evaluate`.
-
-### Stage E — sealing
-
-1. Re-read every output frame and compute `file_sha256` and `pixel_sha256`.
-2. Verify that pixels outside `protection_domain` are bit-identical to the input.
-3. Write `run-manifest.json` with status and per-frame results.
-4. Rename the temporary directory to the final run directory.
-
-If Stage E fails, the run is `FAILED` and no success manifest is written.
-
-## 8. Output manifest
-
-### 8.1 `run-manifest.json`
-
-```json
-{
-  "contract_version": "c-video-repair-contract@0.1",
-  "run_id": "run:<hex>",
-  "status": "SUCCESS",
-  "exit_code": 0,
-  "scenario": {
-    "kind": "synthetic-controlled",
-    "clip_id": "S3-ghost",
-    "frame_count": 24,
-    "width": 256,
-    "height": 256,
-    "pixel_format": "RGB8",
-    "fps": {"numerator": 12, "denominator": 1},
-    "timebase_ticks_per_second": 12,
-    "frame_ticks": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
-    "duration_seconds": "2.0",
-    "endpoint_rule": "left-closed-right-open"
-  },
-  "input": {
-    "bundle_digest": "sha256:<hex>",
-    "video_manifest_sha256": "sha256:<hex>",
-    "mask_manifest_sha256": "sha256:<hex>",
-    "config_sha256": "sha256:<hex>",
-    "clean_reference_in_input": false
-  },
-  "scope": {
-    "repair_roi": [64, 64, 192, 192],
-    "evaluation_roi": [64, 64, 192, 192],
-    "feather_px": 1,
-    "protection_domain": [63, 63, 193, 193],
-    "mask_semantics": "255=repair-allowed,0=preserve",
-    "photometric_roi": [64, 64, 192, 192]
-  },
-  "algorithm": {
-    "id": "cvr-temporal-median@0.1",
-    "implementation": "<module/function>",
-    "parameters": {"window_radius": 2, "minimum_observations": 2},
-    "random_seed": null,
-    "tool_versions": {
-      "python": "3.12.x",
-      "png_codec": "cvr-png-rgb8-filter0@0.1",
-      "ffmpeg": "<version or null>"
-    },
-    "code_commit": "<git sha>"
-  },
-  "output": {
-    "frames": [
-      {
-        "index": 0,
-        "file": "frames-repaired/frame-0000.png",
-        "file_sha256": "sha256:<hex>",
-        "pixel_sha256": "sha256:<hex>",
-        "status": "REPAIRED",
-        "changed_pixels": 1234,
-        "unresolved_pixels": 0
-      }
-    ],
-    "media": {
-      "before_mp4": {"file_sha256": "sha256:<hex>", "role": "presentation-only"},
-      "after_mp4": {"file_sha256": "sha256:<hex>", "role": "presentation-only"},
-      "comparison_mp4": {"file_sha256": "sha256:<hex>", "role": "presentation-only"}
-    }
-  },
-  "metrics": {"file": "metrics.json", "file_sha256": "sha256:<hex>"},
-  "determinism": {
-    "class": "D0",
-    "platform": "<os-arch>",
-    "mp4_byte_identity_claimed": false
-  },
-  "errors": []
-}
-```
-
-Rules:
-
-- `run_id = "run:" + sha256(canonical JSON of contract version, bundle digest,
-  mask manifest digest, config digest, algorithm id, and code commit)`.
-- `status` is `SUCCESS`, `PARTIAL`, or `FAILED`.
-- `exit_code` must match the process exit code.
-- `output.frames` contains exactly 24 entries in index order.
-- Per-frame `status` is `UNCHANGED`, `REPAIRED`, `UNRESOLVED`, or `SKIPPED`.
-- `output.media` is present only after a successful `export`.
-- `metrics` is present only after a successful `evaluate`.
-- An `execution` block MAY contain timestamps, durations, host names, and log
-  paths. It is excluded from `semantic_digest`.
-- `semantic_digest` is computed over canonical JSON of the manifest with the
-  `execution` block removed.
-
-## 9. Metrics report
-
-### 9.1 `metrics.json`
-
-```json
-{
-  "contract_version": "c-video-repair-contract@0.1",
-  "clip_id": "S3-ghost",
-  "reference": {
-    "reference_manifest_sha256": "sha256:<hex>",
-    "frames": [{"index": 0, "pixel_sha256": "sha256:<hex>"}]
-  },
-  "metrics": [
-    {
-      "id": "ghost_residual_energy",
-      "formula": "cvr-metric-ghost-residual@0.1",
-      "unit": "code_value",
-      "region": "declared_trailing_region",
-      "input": 12.345678,
-      "output": 4.567890,
-      "relative_improvement": 0.630000,
-      "threshold": 0.30,
-      "pass": true
-    }
-  ],
-  "guards": [
-    {
-      "id": "unauthorized_region_exact",
-      "formula": "cvr-guard-unauthorized@0.1",
-      "value": 0,
-      "threshold": 0,
-      "pass": true
-    }
-  ],
-  "overall": {"pass": true}
-}
-```
-
-Rules:
-
-- Every metric row has a stable `id` and a versioned `formula`.
-- `region` refers to a region declared in the fixture or mask manifest; it is
-  not chosen during evaluation.
-- `input` is the degraded input measured against the clean reference.
-- `output` is the repaired output measured against the clean reference.
-- `relative_improvement = 1 - output / input` when `input > 0`; otherwise the
-  metric is `null` and `pass` is `false` with `reason: "ZERO_DENOMINATOR"`.
-- `overall.pass` is true only if every required metric and guard passes.
-- The report does not contain paths to the clean reference beyond hashes.
-
-## 10. Export profile
-
-### 10.1 Frame encoding
-
-- Repaired PNG: color type 2, bit depth 8, filter 0, stored DEFLATE blocks.
-- Encoder identity: `cvr-png-rgb8-filter0@0.1`.
-- This makes PNG bytes deterministic independent of the zlib version, in the
-  same spirit as the existing SVM mask encoder
-  (`spec/16-opencv-artifact-analysis.md`, "binary mask" paragraph).
-- File size is not a constraint for 24 frames at 256 × 256.
-
-### 10.2 MP4 profile
-
-```text
-ffmpeg -y -hide_banner -loglevel error \
-  -framerate 12 -start_number 0 -i frames/frame-%04d.png \
-  -an -vf "scale=in_range=full:out_range=tv:out_color_matrix=bt709" \
-  -c:v libx264 -pix_fmt yuv420p -preset medium -crf 16 \
-  -g 12 -keyint_min 12 -sc_threshold 0 \
-  -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv \
-  -movflags +faststart \
-  output.mp4
-```
-
-- `before.mp4` uses the input frames; `after.mp4` uses the repaired frames.
-- `comparison.mp4` uses `hstack` of the two frame sequences, followed by the
-  same RGB-to-YUV conversion:
-  `-filter_complex "[0:v][1:v]hstack=inputs=2,scale=in_range=full:out_range=tv:out_color_matrix=bt709[v]" -map "[v]"`,
-  producing 512 × 256, left before, right after.
-- All MP4s are silent (`-an`).
-- Frame count, frame rate, duration, and PTS range must match.
-- Encoder identity, version, and exact arguments are recorded in the manifest.
-- MP4 bytes are not semantic identity. Decoded frames are checked in `verify`.
-- If the frozen FFmpeg build does not support an option above, the run must
-  record the substitute command and fail `verify` unless the decoded checks
-  still pass.
-
-### 10.3 Media verification
-
-`verify` MUST run `ffprobe` and a full decode. Required checks:
-
-| Check | Expected |
-| --- | --- |
-| video stream count | 1 |
-| audio stream count | 0 |
-| codec | `h264` |
-| pixel format | `yuv420p` |
-| width × height | 256 × 256 (comparison: 512 × 256) |
-| `nb_frames` | 24 |
-| `avg_frame_rate` | `12/1` |
-| duration | 2.0 s ± 0.01 s |
-| decode errors | 0 |
-| decoded frame count | 24 |
-
-## 11. Hashing and canonicalization
-
-| Identity | Definition |
-| --- | --- |
-| `file_sha256` | SHA-256 of file bytes |
-| `pixel_sha256` | SHA-256 of raw RGB8 bytes, row-major, top-left origin |
-| `bundle_digest` | SHA-256 of canonical JSON of ordered frame hashes plus metadata |
-| `mask_manifest_sha256` | SHA-256 of `mask-manifest.json` bytes |
-| `config_sha256` | SHA-256 of `config.json` bytes |
-| `run_id` | SHA-256 of canonical inputs + config + algorithm identity + code commit |
-| `semantic_digest` | SHA-256 of canonical manifest JSON minus `execution` |
-
-Canonical JSON:
-
-- UTF-8;
-- object keys sorted lexicographically;
-- separators `,` and `:` with no extra whitespace;
-- arrays preserve order;
-- integers are written as integers; floats that affect identity are
-  prohibited, except metric report values, which use `.12g`;
-- a single trailing newline is appended when writing a file;
-- paths, timestamps, hostnames, and durations are excluded from semantic
-  identity.
-
-## 12. Exit codes and diagnostic codes
-
-### 12.1 Exit codes
-
-| Code | Name | Meaning |
-| ---: | --- | --- |
-| 0 | `EXIT_OK` | all required work succeeded |
-| 2 | `EXIT_INVALID_INPUT` | missing/invalid input, mask, ROI, config, or output directory |
-| 3 | `EXIT_INPUT_DRIFT` | hash/digest mismatch, stale input, or isolation violation |
-| 4 | `EXIT_UNSUPPORTED` | valid input outside the supported contract domain |
-| 5 | `EXIT_INSUFFICIENT_EVIDENCE` | not enough observations; partial/unresolved result |
-| 6 | `EXIT_TOOL_FAILURE` | encoder/decoder/external tool missing or failed |
-| 7 | `EXIT_OUTPUT_INVALID` | output verification failed |
-| 8 | `EXIT_INTERNAL` | unexpected internal error |
-
-### 12.2 Diagnostic codes
-
-Diagnostics are stable strings in `run-manifest.json.errors` and in stderr.
-
-| Code | Exit | Condition |
-| --- | ---: | --- |
-| `CVR-E001` | 2 | unknown contract version |
-| `CVR-E002` | 2 | frame count is not 24 |
-| `CVR-E003` | 2 | frame size is not 256 × 256 |
-| `CVR-E004` | 2 | frame rate is not 12/1 |
-| `CVR-E005` | 2 | missing, extra, duplicate, or out-of-order frame |
-| `CVR-E006` | 2 | invalid PNG structure, bit depth, color type, alpha, or interlace |
-| `CVR-E007` | 2 | invalid ROI or ROI outside the frame |
-| `CVR-E008` | 2 | mask dimensions or values are invalid |
-| `CVR-E009` | 2 | empty mask or full-frame mask |
-| `CVR-E010` | 2 | mask support outside `repair_roi` |
-| `CVR-E011` | 2 | feather outside `[0, 8]` |
-| `CVR-E012` | 2 | output directory already contains a sealed run |
-| `CVR-E013` | 3 | input or mask hash mismatch |
-| `CVR-E014` | 3 | clean reference present in the repair input |
-| `CVR-E015` | 4 | unsupported pixel format or color space |
-| `CVR-E016` | 4 | audio present without explicit drop |
-| `CVR-E017` | 4 | variable frame rate or rotation metadata |
-| `CVR-E018` | 4 | unsupported algorithm mode or config field |
-| `CVR-E019` | 4 | spatial fallback requested |
-| `CVR-E020` | 4 | moving-object interior repair requested |
-| `CVR-E021` | 5 | insufficient temporal observations |
-| `CVR-E022` | 5 | flicker offset exceeds the bound |
-| `CVR-E023` | 5 | ghost out of domain |
-| `CVR-E024` | 5 | changed-pixel fraction exceeds the bound |
-| `CVR-E025` | 6 | FFmpeg/ffprobe missing |
-| `CVR-E026` | 6 | encoder/decoder non-zero exit |
-| `CVR-E027` | 7 | output digest or semantic digest mismatch |
-| `CVR-E028` | 7 | ffprobe mismatch or decode failure |
-| `CVR-E029` | 7 | unauthorized-region pixel changed |
-| `CVR-E030` | 8 | internal error |
-
-## 13. Failure and partial-output rules
-
-1. Validation failures produce no repaired frames and no success manifest.
-2. Insufficient evidence produces `status: "PARTIAL"`, `EXIT_INSUFFICIENT_EVIDENCE`,
-   and a per-frame `UNRESOLVED` status. It does not satisfy acceptance.
-3. A tool failure after frames are written produces `status: "FAILED"` and no
-   media success claim.
-4. A failed run MUST NOT leave a `SUCCESS` manifest, a `before.mp4`/`after.mp4`
-   pair with a success claim, or a `metrics.json` with `overall.pass: true`.
-5. Re-running with the same `run_id` into the same directory MUST fail; a new
-   run uses a new directory.
-6. `run.log` MAY contain absolute paths and timestamps; it is never part of
-   semantic identity.
-
-## 14. SVM Core and Revision boundary
-
-C-MVP v0.1 does not modify SVM state. The rules are:
-
-1. No new `svm` CLI command, Operation, Schema field, Change type, or policy.
-2. No file, network, clock, or UI read inside Operation evaluation
-   (`INV-EVAL-003`).
-3. Repaired frames are external Derived Artifacts, not Immutable Values and not
-   Entity geometry (`spec/05-system-boundaries.md`, "Immutable Value").
-4. If a later round needs a Document change, it MUST go through:
-   Artifact -> Adapter -> Proposal -> registered Change -> atomic Transaction
-   -> `ProposalAcceptor.accept()` -> new Revision.
-5. `RevisionStore.commit()` MUST NOT be called by the repair tool, an Adapter,
-   or a plugin. It is a trusted internal mechanism
-   (`spec/05-system-boundaries.md`, "Proposal and Proposal Acceptor";
-   `svm/proposals.py:185-253`).
-6. The repair tool MUST NOT present repaired frames as FINAL SVM output, and
-   MUST NOT use a stale or PREVIEW SVM result as a substitute
-   (`INV-EVAL-005`).
-
-## 15. Interface table for practice and CI
-
-| Item | Frozen by this contract | Owner |
+| 成功交接点 | 清单状态 | 约束 |
 | --- | --- | --- |
-| Canonical input layout | §3, §4 | practice implements; CI fixtures |
-| Mask layout and coordinates | §5 | practice implements; CI fixtures |
-| Config schema | §6 | practice implements; CI validates |
-| CLI subcommands and exit codes | §2, §12 | practice implements; CI invokes |
-| Run manifest fields | §8 | practice emits; CI parses |
-| Metrics formulas | `acceptance-criteria-v0.1.md` | CI implements independently |
-| MP4 profile | §10 | practice implements; CI verifies |
-| Determinism checks | §11, §12 | CI implements |
-| SVM boundary | §14 | review verifies |
+| repair | `REPAIRED` | 用同层临时目录完成校验、写入和摘要，原子改名后发布；前后无损帧和输入快照封存。 |
+| export | `EXPORTED` | 全部三路媒体通过属性和完整解码检查后才发布阶段记录。 |
+| evaluate | `SCORED` | 独立输出 `metrics.json`。退出 0 表示完成计算，分数和门槛结果另行报告，未授予运行成功。 |
+| verify | `SUCCESS` | 独立复验通过并写妥 `acceptance-report.json` 后，原子更新 `run-manifest.json`；这是唯一可发布成功的时点。 |
 
-The practice line MUST NOT change a frozen threshold to make a failing test
-pass. A proposed threshold change goes back to the C planning line before the
-holdout run.
+阶段串行、独占写入。每步先核对上一步状态和摘要，把新产物写到临时位置，验证后以替换清单作为状态提交点。正式 evaluate/verify 的输出路径必须是表内 run 工件路径，禁止指向原文件或预先存在的其他输出。中断遗留的产物只能按清单引用和摘要读取。执行失败写 `FAILED` 或只留无成功标志的临时诊断；证据不足写 `PARTIAL` 并退出 5。部分输出不得沿正式流水线验收。若同目录已有终态运行，新请求失败并保护原运行；重试使用新目录。缺失产物、核验失败、阈值未过或报告发布失败时，本次运行不得出现 `SUCCESS`。逐帧状态用 `UNCHANGED`、`REPAIRED`、`UNRESOLVED`。未解析区域与变化区域分别计数。
 
-## 16. Open contract questions
+| 退出码 | 稳定诊断 | 对应情形 |
+| ---: | --- | --- |
+| 0 | `EXIT_OK` | 当前阶段完成。只有 verify 的 0 表示验收通过。 |
+| 2 | `CVR-E001`–`CVR-E012` | 版本、帧数、尺寸、帧率/tick、帧索引、PNG、ROI、掩膜格式、支持、范围、羽化、目录冲突，依序对应。 |
+| 3 | `CVR-E013`、`CVR-E014` | SHA 不符或运行输入过期；参考隔离违规。 |
+| 4 | `CVR-E015`–`CVR-E020` | 不支持的色彩、音轨、VFR/旋转、配置、空间 fallback、移动物体内部背景替换，依序对应。 |
+| 5 | `CVR-E021`–`CVR-E024` | 证据不足、光度上限、拖影超域、变化比例超限，依序对应。 |
+| 6 | `CVR-E025`、`CVR-E026` | 所需工具缺失；编码/解码工具调用失败。 |
+| 7 | `CVR-E027`–`CVR-E029`、`CVR-E031` | 输出摘要、媒体验证、越权像素、验收指标/护栏不通过。 |
+| 8 | `CVR-E030` | 非预期内部错误。 |
 
-These are deliberately unresolved until the C planning line freezes them:
+## 6. 清单与可复核身份
 
-1. Canonical input: PNG bundle (recommended) versus MP4-only. This contract
-   recommends the PNG bundle because H.264 decoding is not a stable pixel
-   identity across decoder versions.
-2. Exact comparison layout: 512 × 256 side-by-side is proposed; labels are
-   prohibited in v0.1.
-3. MP4 CRF and encoder preset: `crf 16`, `preset medium` is proposed; the
-   values affect only presentation, not pixel metrics.
-4. Cross-platform MP4 tolerance: proposed MAE <= 2.0 code values and
-   PSNR >= 40 dB; CI must freeze the actual tolerance.
-5. Whether any future repair result becomes an SVM Document. The recommendation
-   is "no" for v0.1; if required, it needs a separate accepted Proposal and
-   Change design.
+| 工件 | 必需字段及身份 |
+| --- | --- |
+| `run-manifest.json` | 版本、修订、`run_id`、`semantic_digest`、当前阶段状态和最近一次阶段退出码；场景及输入/掩膜/配置 SHA；实际完整 Git `code_sha`、算法 ID、参数、种子（确定性时 `null`）、工具版本；每帧时间、结果状态、文件与像素 SHA、变更/未解决计数；披露 ROI、授权域、掩膜角色与支持；媒体时序、相对路径、文件 SHA 及工具记录；错误码和不含本机路径的诊断。 |
+| `metrics.json` | 版本、修订、clip/profile ID、run ID、修复语义摘要、输入与代码 SHA、评分代码 SHA、参考和评分区域 SHA；每条公式 ID、单位、区域、输入值、输出值、改善率、阈值、状态及原因。护栏逐条输出，保留时间序列等所需诊断。 |
+| `acceptance-report.json` | 版本、修订、run ID、修复语义摘要、输入与实施/评分/验收代码 SHA、指标文件 SHA 和三路媒体 SHA；逐检查 ID、通过/失败/未运行、实测值、期望、诊断；总体 `PASS`、`CHANGES_REQUIRED` 或 `BLOCKED`。B 的离线源证据按摘要绑定到报告。 |
+
+- `file_sha256` 哈希精确文件字节，`pixel_sha256` 哈希从左上按行扫描的解码字节，无行填充（PNG 为 RGB 通道交错，掩膜为灰度单通道）。文件和像素 SHA 都用 `sha256:<64 lower-case hex>`。
+- `bundle_digest` 哈希输入 manifest 的显式投影，键为 `contract_version`、`draft_revision`、`profile_id`、`width`、`height`、`pixel_format`、`color_space`、`frame_count`、`fps`、`timebase_ticks_per_second`、`frame_ticks`、`duration_seconds`、`endpoint_rule`、`frames`。帧只投影 `index`、`file_sha256`、`pixel_sha256`。mask/config 摘要为其 JSON 文件 SHA。
+- `run_id` 为 `run:<hex>`，哈希规范对象 `{contract_version, draft_revision, bundle_digest, mask_manifest_sha256, config_sha256, algorithm_id, code_sha}`。验收独立核对实际候选实现 SHA，仅有 repair.py 文件摘要不足以标识实现。
+- `semantic_digest` 为修复封存时对 `{run_id, frames}` 的哈希。帧按索引记录 `index`、`pixel_sha256`、`status`、`changed_pixels`、`unresolved_pixels`。清单阶段和 MP4 摘要更新不改变封存的修复身份。媒体、评分和验收报告以各自的文件 SHA 和 run ID 相互校验，无双向哈希依赖。
+- 哈希规范 JSON 用 UTF-8、键按 Unicode 码点排序、非 ASCII 字符直接编码、标准 JSON 字符转义、紧凑标点、保留数组顺序、无 BOM 或尾换行。参与语义哈希的数值用整数或规范字符串/有理数。指标按未舍入值判定，JSON 数值保留足够复核的精度，展示可用六位小数。
+- 路径只写包内相对 POSIX 路径，拒绝绝对路径、上级跳转及通过连接点越界。工具参数中以角色占位符记录本机位置，去除 hostname、个人路径和临时目录。真实起止时间、耗时与日志不进入语义身份；上传日志同样不得泄露这些路径或评测参考位置。
+
+可复核的 A 输入时间示例为 `frame_count=24`、`fps={"numerator":12,"denominator":1}`、`frame_ticks=[0,1,...,23]`，最后一帧的展示 PTS 为 `23/12`。当 H3 的 M3 输入为 `5.0` DN、输出为 `3.0` DN 时，指标行记录公式 `cvr-metric-ghost-residual@0.1-r1.002`、区域 G 的摘要、`relative_improvement=0.4`、`threshold=0.30` 和通过状态。此算例仅说明字段，单条指标通过不能发布运行成功。
+
+## 7. 外部媒体 profile
+
+无损输出 PNG 与输入尺寸、帧数、顺序相同。编码器固定并记录，PNG 文件哈希用于工件完整性，解码像素哈希用于规范像素比较。
+
+| 媒体 | 规范 |
+| --- | --- |
+| `before.mp4` / `after.mp4` | 单路 H.264、`yuv420p`、静音、faststart，尺寸为 profile 的宽高。 |
+| `comparison.mp4` | 同样编码，宽度 2 倍，画布内同一 PTS 左 before 右 after。禁止裁切、标签、边框或重定时。 |
+| 色彩和 PTS | RGB8 sRGB 码值转换为 BT.709 矩阵、有限范围 YCbCr；其 primaries 与输入 sRGB 一致，保留 sRGB transfer 并显式标记 `iec61966-2-1`。禁止给未转换的 sRGB 码值标 BT.709 transfer。每路从 0 按有理间隔展示，完全匹配 profile PTS、总帧数、时长。 |
+| 外部工具候选 | FFmpeg/libx264，`preset medium`、`crf 16`，固定 A 规格为 GOP 12，使用固定工具环境和显式 ffprobe/完整解码。用色条与暗阶验证标记、范围和解码 RGB。 |
+
+编码使用暂存目录并核查输出映射。ffprobe 检查元数据及逐帧展示时间，完整解码检查每个 PTS：before 与输入、after 与修复帧、对照左右半幅分别与各自源帧比较。解码需明确执行相反的 BT.709 矩阵与范围换算并保留 sRGB transfer。误差阈值和聚合由[验收标准](acceptance-criteria-v0.1.md)定义。跨平台 MP4 字节哈希只用于验证各自工件。缺 FFmpeg/ffprobe 或解码链路未完成时验收失败。

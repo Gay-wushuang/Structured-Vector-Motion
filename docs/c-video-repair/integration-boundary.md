@@ -1,309 +1,43 @@
-# C-MVP v0.1 — Integration Boundary and Capability Inventory
+# C-MVP v0.1 · SVM 接入边界
 
-Status: **DRAFT** — verified against baseline commit
-`cf4815357909f4e462f26619d33e6bfcb1e16236` (`main`, 2026-11-09). This document
-records what exists, what is partial, what is specification-only, and what is
-missing. It does not propose a Core change.
+| 项目 | 内容 |
+| --- | --- |
+| 版本 | `c-video-repair-contract@0.1`，草案修订 `R1-002` |
+| 状态 | **DRAFT**，等待 C 板块策划线 G1 审核。 |
+| 适用范围 | Motion 来源、外部媒体链路、修复结果与 Document/Revision 权限。 |
+| 已验证事实 | 下表为文档分支 `5561d8b` 和实践分支 `b310f57` 的源码盘点。 |
+| 待实现能力 | 正式 Motion 导出及审计、参考进程隔离、外部媒体工具配置与正式验收。 |
+| 未决问题 | 正式 Document 及 Revision 选择、采样/光栅化和 FFmpeg 工具环境，见[策划分派](../planning/video-repair-v0-dispatch.md#g1-待决问题)。 |
 
-Contract identity: `c-video-repair-contract@0.1`.
+## 1. 已有能力和证据
 
-## 1. Why this document exists
-
-C-MVP introduces video frames, ROI masks, repair algorithms, metrics, and MP4
-export. None of those may silently become SVM Core semantics. This document
-maps every C-MVP component to an existing SVM boundary from
-`spec/05-system-boundaries.md` and identifies the gaps that must remain outside
-Core.
-
-The governing rule is:
-
-> Adapters propose changes. Backends execute accepted definitions.
-
-C-MVP v0.1 proposes no Document change, so it is not an Adapter. It processes
-external evidence, so it is an **Artifact Processor**; it packages media, so it
-also uses an **Exporter/MediaEncoder** capability. It never executes an
-accepted SVM Operation and never receives Revision Store authority.
-
-## 2. Verified capability inventory
-
-Status values:
-
-- **implemented** — executable code and tests exist;
-- **partial** — a narrow or external path exists, but not as a Core capability;
-- **specified** — a normative role is defined, but no implementation exists;
-- **missing** — no code, test, specification, or dependency exists.
-
-| Capability | Status | Evidence |
+| 来源 | 已核对行为 | C 板块可采用的接口 |
 | --- | --- | --- |
-| Document validation / evaluation / revisions | implemented | `svm/document.py`, `svm/evaluator.py`, `svm/revisions.py`; Golden A/B in `tests/test_golden_a.py`, `tests/test_golden_b.py` |
-| Motion sampling at integer ticks | implemented | `svm/motion.py:370-435` (`MotionEvaluator`, `evaluate`, `sample_document`); `spec/21-motion-semantics.md` |
-| SVG rendering of an Evaluated Scene | implemented | `svm/renderers/svg.py:24-74`; `spec/08-svg-renderer.md`; Golden D/E/F frames |
-| Content-addressed Artifact store | implemented (in-memory) | `svm/artifacts.py:111-167` (`ArtifactStore.import_bytes`, SHA-256 identity); no persistent store |
-| Proposal acceptance / atomic Transaction | implemented | `svm/proposals.py:185-253`; `svm/revisions.py:2079-2130`; `svm/change_authority.py:60` |
-| OpenCV raster analysis | implemented (grayscale only) | `svm/adapters/opencv_analysis.py:186-200`; `spec/16-opencv-artifact-analysis.md` |
-| Controlled raster geometry observations | implemented (grayscale binary stills) | `svm/adapters/raster_geometry_observations.py`; `spec/56-controlled-raster-observations.md` |
-| Controlled raster camera recovery | implemented (grayscale binary stills) | `spec/57-controlled-raster-camera-recovery.md`; `spec/58-explicit-multi-object-raster-recovery.md`; `examples/035`, `examples/036`, `examples/037` |
-| Temporal correspondence evidence | implemented (frozen primitive artifacts) | `svm/adapters/temporal_correspondence.py`; `spec/35-temporal-correspondence.md`; Golden R0 |
-| RGB raster rendering | missing in Core | no raster renderer in `svm/renderers/`; `svm/renderers/svg.py` only |
-| Headless rasterization for demos | partial (external, local browser) | `demo/004-real-pop-animation/build_demo.py:258-281`; `demo/001-group-motion/build_demo.py:269-303` |
-| MP4 encoding | missing in Core | no `MediaEncoder` class; demos shell out to FFmpeg at `demo/004-real-pop-animation/build_demo.py:282-303` and `demo/001-group-motion/build_demo.py:247-267` |
-| Video decoding / frame extraction | missing | no video code or test; no FFmpeg/OpenCV video dependency in `pyproject.toml:11-35`; `svm/cli.py:677-823` has no video command |
-| Video Artifact type | missing | no video media type or manifest schema |
-| User ROI / repair mask type | missing | OpenCV produces a derived binary mask (`spec/16`), but there is no user repair-mask contract |
-| Local video repair algorithm | missing | no code or test |
-| Flicker / ghost / appearance algorithms | missing | no code or test |
-| Video metrics / comparison / acceptance report | missing | no code or test |
-| Export profile for C-MVP | missing | `spec/05-system-boundaries.md:296-308` defines the Exporter role only |
-| C-MVP tests | missing | `tests/` has no `test_video_repair_*` module |
+| [Core 模型](../../spec/00-svm-core-model.md)、[系统边界](../../spec/05-system-boundaries.md)、[不变量](../../spec/01-invariants.md) | Document 定义接受的语义，Artifact 属外部证据，Immutable Value 属确定性计算结果。Proposal 接受由 Core 独立授权。 | 只读 Motion 数据作为来源，修复产物留在外部。 |
+| [Motion](../../spec/21-motion-semantics.md)、[Motion Revision](../../spec/22-motion-revisions.md)、[MotionEvaluator](../../svm/motion.py)、[SVGRenderer](../../svm/renderers/svg.py) | 整数 tick 采样获得 Motion Frame 和求值场景，SVGRenderer 输出 SVG。已有质量及缓存语义。 | 从确切快照逐 tick 取得 FINAL 且当前的结果，输出 SVG，由外部工具光栅化。 |
+| [Artifact 存储](../../svm/artifacts.py)、[现有 CLI](../../svm/cli.py) | 已有内容寻址与 Core CLI，未提供 C 视频专用持久化存储或 C 命令。 | 用外部包保留可重取的不可变输入副本，以 SHA 验证。 |
+| [OpenCV 分析](../../spec/16-opencv-artifact-analysis.md)、[光栅观测](../../spec/56-controlled-raster-observations.md)、[相机恢复](../../spec/57-controlled-raster-camera-recovery.md)、[多对象恢复](../../spec/58-explicit-multi-object-raster-recovery.md) | 受控灰度静态光栅证据和显式恢复，支持域受限。 | 坐标等约定可借鉴。RGB 视频修复需要本契约的独立证据。 |
+| [Motion 示例 001](../../demo/001-group-motion/build_demo.py)、[Motion 示例 004](../../demo/004-real-pop-animation/build_demo.py) | 外部示例通过本机浏览器截帧与 FFmpeg 导出，存在固定工具路径和产物目录的假设。 | 复用采样和导出思路。正式 B 要记录可重现的外部工具配置、清理旧输出污染并验证每一帧。 |
+| [实践原型](https://github.com/Hesperr233/Structured-Vector-Motion/tree/b310f57e6a21562798f5ccad2a1897ba4d99c47e/prototype/video_restoration) | 有程序合成 A 规格素材、显式四组掩膜、受限修复、三路 MP4 和离线评分。该源码位于实践分支，README 中的实测是原型自报证据。 | 以兼容入口复核行为。正式接口及其状态以[管线契约](pipeline-contract-v0.1.md)为准。 |
+| [pyproject.toml](../../pyproject.toml)、[CI workflow](../../.github/workflows/ci.yml) | 现有开发/几何/SVG/追踪/分析依赖及 Ubuntu/Windows × Python 3.11/3.12 质量矩阵。没有 C 媒体验收 job。 | 视频工具仅为实践或 CI 的显式实验依赖。 |
 
-### 2.1 What the existing raster path actually supports
+## 2. 输入、输出和访问权
 
-The existing OpenCV/raster path is not a video path:
-
-- It accepts only an 8-bit opaque grayscale PNG, color type 0, no alpha, no
-  palette, no transparency (`spec/16-opencv-artifact-analysis.md:25-30`;
-  `svm/adapters/opencv_analysis.py:186-200`).
-- It requires exactly two sample values (one background, one foreground) and no
-  gradients or antialiasing for controlled raster recovery
-  (`spec/56-controlled-raster-observations.md:20-26`).
-- It consumes a fixed set of stills at explicit ticks; it does not decode a
-  container or a frame sequence (`spec/58-explicit-multi-object-raster-recovery.md:24-41`).
-- It explicitly excludes RGB, photographs, optical flow, neural tracking,
-  perspective, deformation, non-uniform scale, optimizer, and video ingestion
-  (`spec/58-explicit-multi-object-raster-recovery.md:139-141`).
-
-Therefore C-MVP MUST NOT describe `spec/56`–`spec/58` as existing video repair
-capability. They are controlled grayscale still-image recovery contracts.
-
-### 2.2 What the existing Motion path actually supports
-
-Motion is a Document definition with integer ticks and sampling
-(`spec/21-motion-semantics.md:15-19`, `:36-43`). It does not ingest video and
-does not produce a raster frame. `MotionEvaluator.evaluate(tick)` returns a
-`MotionFrame` whose scene can be rendered by `SVGRenderer`
-(`svm/motion.py:387-435`). A C-MVP frame is an external raster frame, not an
-SVM Motion Frame.
-
-### 2.3 What the existing export path actually supports
-
-There is no Core exporter. The demo builders run a local browser screenshot and
-FFmpeg:
-
-- `demo/004-real-pop-animation/build_demo.py:258-281` selects
-  `msedge.exe` or `chrome.exe` and uses `--headless --screenshot`;
-- `demo/004-real-pop-animation/build_demo.py:282-303` invokes `ffmpeg` with
-  `libx264` and `yuv420p`;
-- `demo/001-group-motion/build_demo.py:247-303` follows the same pattern.
-
-These are Windows-local demo conveniences, not a portable C-MVP exporter. The
-C-MVP contract requires an explicit encoder path and version, and a decoded
-frame check, rather than relying on a hard-coded browser path.
-
-## 3. Boundary classification of C-MVP components
-
-| Component | Classification | Why |
+| 环节 | 可读取 | 产出或影响 |
 | --- | --- | --- |
-| MP4/PNG frame reader | Artifact Processor | transforms external bytes into normalized frames; no Document change |
-| ROI/mask reader | Artifact Processor | consumes explicit user evidence; no Document change |
-| Temporal repair | Artifact Processor | derives new raster evidence; no Operation execution, no Revision |
-| Flicker/ghost/appearance correction | Artifact Processor | derives new raster evidence; no Document change |
-| Raster frame writer | Renderer | converts a visual result to pixels; does not evaluate Document semantics |
-| MP4 encoder | Exporter / MediaEncoder | packages raster frames; does not define animation semantics |
-| Metrics / comparison | Exporter / report | packages evaluation results; not a Runtime Value |
-| A future Entity from repair | Adapter + Proposal + registered Change | would change the accepted Document; not in v0.1 |
+| A 合成器或 B Motion 渲染、光栅化与离线退化生成 | 受控场景；B 的只读 Document 和当前 FINAL 结果 | 干净序列及注入真值存放在离线评测树。退化 PNG、授权掩膜及规范元数据单独发布。 |
+| Ingest | 原始视频或退化 PNG 包 | 外部规范包、原始输入摘要和可重取快照。 |
+| Repair | 退化包、显式授权/供体/静态掩膜、配置 | 外部无损修复帧和运行记录，无 Document、Revision、Entity、Track 或 Immutable Value 写入。 |
+| Export | 运行内校验过的前后无损帧 | 三路演示媒体、可重放的工具参数和媒体摘要。 |
+| Evaluate / Verify | 已封存的修复证据、独立离线 reference 和评分区域 | 指标与验收报告。允许记录参考 SHA，禁止把评分数据反馈给 repair。 |
 
-None of these is a Backend: a Backend executes an already accepted Operation
-definition, and C-MVP has no such Operation. None is an Adapter in v0.1: an
-Adapter proposes a Document change, and C-MVP proposes none.
+C 工具由外部 Artifact Processor、光栅化和 Media Encoder/Exporter 组成。禁止新增 Core Operation、Change、Schema 字段、政策或 `svm` CLI 命令。禁止在 Operation 中访问视频文件、网络、时钟或 UI。修复后的外部帧、媒体和报告属于派生产物。只有源 Document 的当前 FINAL 求值可作为 B 的 SVM 来源证明。
 
-## 4. Prohibited coupling
+以后如确需改变已接受 Document，应另立任务。以外部 Artifact 作为证据，Adapter 构造针对确切 base Revision 的 Proposal，`ProposalAcceptor.accept()` 校验 Artifact、权限、约束和已注册 Change，再原子提交新 Revision。保留旧 Revision 的可求值性。外部工具不得直接调用 `RevisionStore.commit()`。依据 [Proposal 边界](../../spec/05-system-boundaries.md)及 [ProposalAcceptor](../../svm/proposals.py)。
 
-The following are hard prohibitions for C-MVP v0.1:
+## 3. 隔离与审查证据
 
-1. No new `svm` CLI subcommand, Operation, Schema field, Change type, policy, or
-   `spec/` number.
-2. No filesystem, network, clock, locale, or UI read inside SVM Operation
-   evaluation (`INV-EVAL-003`).
-3. No call to `RevisionStore.commit()` from the repair tool, an Adapter, or a
-   plugin. `commit()` is trusted internal infrastructure, not an external
-   acceptance API (`spec/05-system-boundaries.md:212-216`).
-4. No mutation of an accepted Document. A future change must use
-   `ProposalAcceptor.accept()` (`svm/proposals.py:185-204`).
-5. No presentation of repaired frames as SVM Immutable Values, Entity geometry,
-   FINAL evaluation output, or editable SVM content. This follows the
-   Artifact/Value distinction in `spec/05-system-boundaries.md:160-182`.
-6. No use of stale or PREVIEW SVM results as a substitute for FINAL
-   (`INV-EVAL-005`; `spec/04-invariant-coverage.md`).
-7. No extension of the OpenCV/raster support domain to RGB video. The existing
-   contract is grayscale-only and still-image-only (`spec/16`, `spec/56`–`spec/58`).
-8. No claim that a synthetic controlled success generalizes to natural video,
-   occlusion, multiple objects, or automatic masks.
-
-## 5. Recommended data flow
-
-```text
-SVM Document + MotionEvaluator + SVGRenderer
-        |
-        v
-clean SVG frames (fixture-only)
-        |
-        v
-external rasterization (fixture-only)
-        |
-        v
-clean RGB frames  ---------------------------> eval/ reference (scoring only)
-        |
-        v
-offline degradation generator (recorded seed/parameters)
-        |
-        v
-degraded input frames + explicit ROI/mask + config
-        |
-        v
-C-MVP repair tool (Artifact Processor)
-        |
-        v
-repaired PNG frames + run-manifest.json
-        |
-        +--> FFmpeg exporter --> before/after/comparison MP4
-        |
-        +--> separate evaluate process --> metrics.json
-        |
-        +--> separate verify process --> acceptance-report.json
-```
-
-The clean reference branch and the degraded input branch MUST be physically
-separate directories. The repair command receives only the degraded branch.
-
-## 6. Isolation enforcement
-
-Isolation is a testable property, not a code comment:
-
-1. The repair command's argument surface has no `--reference`, `--clean`, or
-   `--ground-truth` option.
-2. The input bundle manifest contains `"clean_reference_in_input": false`.
-3. The repair manifest is checked for any path or digest that resolves to the
-   evaluation directory; a hit is `CVR-E014`.
-4. CI moves or deletes the `eval/` directory and reruns repair. The repaired
-   frames must be identical to the original run.
-5. CI also runs repair with a read-only input bundle; success proves the input
-   is not overwritten.
-6. Scoring code lives in a separate module/process from repair code. CI must
-   not import the repair implementation's scoring helper as its oracle.
-
-## 7. Future path if a repair result must become SVM content
-
-If a later round requires a repaired region to become an SVM Entity or
-geometry, the following is the only allowed path:
-
-```text
-ReferenceArtifact (source frame or region evidence)
-+ DerivedArtifact (mask / analysis / metrics)
--> Adapter Proposal
--> registered Change (Change Authority Registry)
--> atomic Transaction
--> ProposalAcceptor.accept()
--> new Revision
-```
-
-Requirements for that future round:
-
-- the Change type must be registered in `svm/change_authority.py`;
-- the Proposal must target an exact base Revision;
-- the Proposal must declare required Artifact IDs and preview Artifacts;
-- `ProposalAcceptor` must validate base, permissions, constraints, and Artifact
-  identity;
-- the Transaction must be atomic;
-- the old Revision must remain evaluable;
-- no Adapter-specific branch may be added to `ProposalAcceptor`
-  (`spec/05-system-boundaries.md:200-216`).
-
-This is explicitly **not** part of C-MVP v0.1. The v0.1 deliverable is external
-frames, media, and reports.
-
-## 8. Interface ownership
-
-| Interface | Docs line owns | Practice line owns | CI line owns |
-| --- | --- | --- | --- |
-| Contract version and thresholds | yes | consumes | validates |
-| CLI subcommand names and exit codes | yes | implements | invokes |
-| Input/mask/config/manifest field names | yes | implements | parses |
-| Metric formulas and regions | yes | consumes | implements independently |
-| MP4 profile and ffprobe checks | yes | implements export | verifies |
-| Fixture generation and seeds | no | implements | consumes frozen fixtures |
-| Independent scoring code | no | no | implements |
-| Acceptance report | no | no | implements |
-| Review findings | no | no | no (review line owns) |
-
-The practice line MUST NOT edit this contract, the acceptance thresholds, or
-CI's scoring code. The CI line MUST NOT edit the repair implementation to make a
-test pass.
-
-## 9. Open issues and decisions for the C planning line
-
-| # | Issue | Recommendation | Impact |
-| ---: | --- | --- | --- |
-| 1 | Canonical input: PNG sequence vs MP4-only | PNG sequence is canonical; MP4 is ingest-only | avoids decoder-dependent pixel identity |
-| 2 | Path convention: `docs/c-video-repair/` (R1-001) vs `docs/video-repair/` (planning dispatch) | keep R1-001 path as canonical for the C track; do not duplicate | avoids two contract trees |
-| 3 | Threshold freeze before holdout | freeze 30% single / 20% combined and all guards | prevents post-hoc tuning |
-| 4 | MP4 cross-platform tolerance | freeze MAE <= 2.0 and PSNR >= 40 dB after a tool-environment trial | prevents byte-hash claims |
-| 5 | Persistent Artifact store | keep in-memory for v0.1; record file hashes in manifest | avoids new Core storage |
-| 6 | Whether repair output becomes SVM content | no for v0.1; require a separate Proposal design if needed | preserves Artifact/Value boundary |
-| 7 | Browser-based rasterization | do not use in C-MVP acceptance; use an explicit rasterizer or pre-rendered fixture PNGs | removes Windows-local dependency |
-| 8 | Audio / VFR handling | reject by default; explicit drop/convert with a recorded command | follows planning dispatch |
-
-## 10. Evidence index
-
-Repository sources used in this document:
-
-- `AGENTS.md` — project purpose, invariants, scope discipline.
-- `README.md:45-52` — reference SVG path.
-- `README.md:118-131` — bitmap trace boundary.
-- `README.md:287-294` — prototype is browser-only Editor State.
-- `spec/00-svm-core-model.md:124-145` — time and explicit v0.1 exclusions
-  (including video tracking).
-- `spec/01-invariants.md` — INV-ID, INV-EVAL, INV-TIME, INV-PROP.
-- `spec/04-invariant-coverage.md` — implemented/fail-closed/specified status.
-- `spec/05-system-boundaries.md:102-127` — Adapter role.
-- `spec/05-system-boundaries.md:129-159` — Artifact vs Immutable Value.
-- `spec/05-system-boundaries.md:184-218` — Proposal and acceptance authority.
-- `spec/05-system-boundaries.md:220-249` — Backend role.
-- `spec/05-system-boundaries.md:296-308` — Renderer and Exporter role.
-- `spec/16-opencv-artifact-analysis.md:25-30` — grayscale-only input.
-- `spec/16-opencv-artifact-analysis.md:56` — half-open pixel bounds.
-- `spec/16-opencv-artifact-analysis.md:60-63` — deterministic PNG encoder.
-- `spec/21-motion-semantics.md:15-46` — integer Timebase, sampling, interpolation.
-- `spec/35-temporal-correspondence.md:9-18` — frozen observation-artifact scope.
-- `spec/35-temporal-correspondence.md:52-57` — evidence-only acceptance.
-- `spec/56-controlled-raster-observations.md:20-41` — binary grayscale domain.
-- `spec/58-explicit-multi-object-raster-recovery.md:139-141` — excluded video,
-  RGB, optical flow, neural tracking, and occlusion.
-- `svm/artifacts.py:111-167` — in-memory content-addressed store.
-- `svm/proposals.py:185-253` — acceptance authority.
-- `svm/revisions.py:2079-2130` — Transaction and RevisionStore.
-- `svm/change_authority.py:60` — Change Authority Registry.
-- `svm/motion.py:370-435` — MotionEvaluator.
-- `svm/renderers/svg.py:24-74` — SVGRenderer.
-- `svm/adapters/opencv_analysis.py:186-200` — grayscale PNG analysis.
-- `svm/cli.py:677-823` — existing CLI; no video command.
-- `demo/004-real-pop-animation/build_demo.py:258-303` — browser + FFmpeg demo.
-- `demo/001-group-motion/build_demo.py:247-303` — browser + FFmpeg demo.
-- `pyproject.toml:11-35` — dependencies; no video/FFmpeg dependency.
-- `.github/workflows/ci.yml:31` — installed extras; no video job.
-- `tests/` — no `test_video_repair_*` module.
-
-## 11. Integration conclusion
-
-C-MVP v0.1 is an external, non-destructive Artifact Processor plus Renderer and
-Exporter. It is compatible with SVM's system boundaries only if:
-
-- it stays outside `svm/` and `schema/`;
-- it never reads the clean reference during repair;
-- it never treats repaired frames as SVM Immutable Values or Document content;
-- it never bypasses `ProposalAcceptor` if a future round changes the Document;
-- it discloses the synthetic controlled scope and its limitations.
-
-The current repository has enough Motion/SVG/Artifact/Revision infrastructure to
-generate a controlled clean reference, but it has no video ingestion, RGB
-rasterizer, repair algorithm, metrics, or media exporter. Those are C-track
-work, not existing capabilities.
+- repair 的参数无 reference、clean 或 ground-truth 路径。以独立进程及最小可见输入运行。打包不得穿越根目录或通过符号链接、junction 等形式访问评测树。评分代码不得作为运行时依赖。
+- 对相同输入执行隔离复核。把评测树移出工作目录或使其不可读，再在新目录运行，仅比较修复像素、修复语义摘要和逐帧报告。原输入只读运行并前后核对 SHA。使用隔离的临时数据完成破坏性反例。
+- 记录 B 的确切 Document / Revision、采样范围、逐帧 FINAL 当前状态、SVG/PNG 摘要和固定外部工具。只在离线报告保存干净源证据。三路媒体各自从封存的无损帧编码，并以解码内容检查同 PTS 的左右对应。
+- 审查需指定相同 implementation SHA、CI SHA、文档 SHA 与契约修订。历史测试日志和原型自报数据仅可追踪调查背景。完整验收使用[验收标准](acceptance-criteria-v0.1.md)。
