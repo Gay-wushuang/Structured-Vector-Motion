@@ -1,0 +1,16 @@
+﻿PASS outside_roi_changed_pixels
+PASS defect_after_zero
+PASS flicker_after_zero
+PASS ghost_reduced
+PASS appearance_matches_clean
+PASS edges_preserved
+PASS media_verified
+PASS r1-002 motion integration
+source: 96 frames at 12 fps
+source: rasterizer 0.44.0
+source: run build\r1-002\final
+repair: changed=10166579 outside_roi=0 status=partial exit=0
+repair: media verified
+evaluate: defect 22.764509 -> 0.000000
+evaluate: flicker std 5.385165 -> 0.000000
+evaluate: ghost residual 37.087059 -> 9.979636
