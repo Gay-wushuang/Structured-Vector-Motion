@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="{{CSP}}">
+  <title>SVM 重建候选预览</title>
+  <style>{{STYLE}}</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>SVM 重建候选预览</h1>
+      <p class="secondary" id="summary"></p>
+    </div>
+    <p class="research">研究预览 · 未进入 SVM 工程</p>
+  </header>
+  <main>
+    <section class="comparison" aria-label="原始视频与候选几何">
+      <figure>
+        <figcaption>原始视频帧</figcaption>
+        <div class="source-surface">
+          <img id="original" alt="原始视频帧">
+          <svg id="anchor-marker" aria-hidden="true" hidden>
+            <circle r="4"></circle>
+          </svg>
+        </div>
+      </figure>
+      <figure>
+        <figcaption>候选矢量几何</figcaption>
+        <svg id="vector" role="img" aria-label="当前帧中被观察到的候选图元"></svg>
+      </figure>
+    </section>
+    <section class="timeline" aria-label="观察时间轴">
+      <div class="transport">
+        <button type="button" id="back" aria-label="上一帧">←</button>
+        <button type="button" id="play">播放</button>
+        <button type="button" id="forward" aria-label="下一帧">→</button>
+        <input type="range" id="position" aria-label="时间轴帧位置" min="0" value="0" step="1">
+        <output id="time" for="position"></output>
+        <button type="button" id="export" title="下载当前帧的已观察几何">导出当前帧 SVG</button>
+      </div>
+      <div id="rows"></div>
+      <p class="secondary">灰斜纹表示未确定的位置，候选画面会留空。</p>
+      <div id="svg-result" hidden>
+        <a id="svg-download">下载 SVG 文件</a>
+        <label for="svg-text">SVG 源码</label>
+        <textarea id="svg-text" rows="3" readonly></textarea>
+      </div>
+    </section>
+    <section id="subjects" class="subjects" aria-label="当前帧观察"></section>
+    <section class="timeline review" aria-labelledby="segment-title">
+      <h2 id="segment-title">选择可编辑的平移片段</h2>
+      <form id="segment-form">
+        <label for="segment-subject">对象</label>
+        <select id="segment-subject"></select>
+        <label for="segment-start">起始 Tick</label>
+        <input id="segment-start" type="number" min="0" required>
+        <button id="segment-use-start" type="button">用当前帧</button>
+        <label for="segment-end">结束 Tick</label>
+        <input id="segment-end" type="number" min="0" required>
+        <button id="segment-use-end" type="button">用当前帧</button>
+        <button type="submit">检查片段</button>
+      </form>
+      <p id="segment-status" class="secondary" role="status"></p>
+      <div id="segment-result" hidden>
+        <a id="segment-download">下载片段选择 JSON</a>
+        <label for="segment-text">片段选择 JSON</label>
+        <textarea id="segment-text" rows="4" readonly></textarea>
+      </div>
+    </section>
+    <section id="review" class="timeline review" aria-labelledby="review-title" hidden>
+      <h2 id="review-title">重新锚定</h2>
+      <form id="anchor-form">
+        <label for="anchor-subject">对象</label>
+        <select id="anchor-subject"></select>
+        <label for="anchor-x">X</label>
+        <input id="anchor-x" type="number" min="0" required>
+        <label for="anchor-y">Y</label>
+        <input id="anchor-y" type="number" min="0" required>
+        <button type="submit" id="anchor-add" disabled>记录坐标</button>
+      </form>
+      <p id="anchor-status" class="secondary" role="status"></p>
+      <ul id="anchor-decisions" aria-label="待复核点"></ul>
+      <button type="button" id="export-anchors" disabled>导出复核 JSON</button>
+      <div id="anchor-result" hidden>
+        <a id="anchor-download">下载复核 JSON</a>
+        <label for="anchor-text">JSON 源码</label>
+        <textarea id="anchor-text" rows="4" readonly></textarea>
+      </div>
+    </section>
+  </main>
+  <script type="application/json" id="data">{{DATA}}</script>
+  <script>{{SCRIPT}}</script>
+</body>
+</html>

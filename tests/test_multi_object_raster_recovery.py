@@ -40,7 +40,7 @@ GROUPS = ("group:" + "1" * 64, "group:" + "b" * 64)
 ROLES = (*ANCHORS, *TARGETS)
 
 
-def prepare(*, swap=False, disagreement=False):
+def prepare(*, swap=False, disagreement=False, frame_sources=None):
     # No ground truth, generation, role inference, or source vector observations.
     store = RevisionStore.create(json.loads((FIXTURE / "recovery-base.svm.json").read_text()))
     artifacts = ArtifactStore()
@@ -48,11 +48,13 @@ def prepare(*, swap=False, disagreement=False):
         analyze(
             store,
             artifacts,
-            content=(
+            content=frame_sources[index]
+            if frame_sources is not None
+            else (
                 FIXTURE / ("disagree_012.png" if disagreement and t == 12 else f"tick_{t:03}.png")
             ).read_bytes(),
         )[1]
-        for t in TICKS
+        for index, t in enumerate(TICKS)
     ]
     selectors = json.loads((FIXTURE / "selectors.json").read_text())
     if swap:

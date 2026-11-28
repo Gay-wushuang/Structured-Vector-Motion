@@ -1,0 +1,65 @@
+:root {
+  color-scheme: dark;
+  font-family: "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  --shell: #141a20;
+  --panel: #1c252d;
+  --line: #34414a;
+  --primary: #e7ecee;
+  --muted: #adbac0;
+  --accent: #abd2bd;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0 auto; max-width: 1280px; padding: clamp(16px, 3vw, 36px); background: var(--shell); color: var(--primary); }
+header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+h1, p, figure { margin: 0; }
+h1 { font-size: 22px; line-height: 1.4; }
+.secondary { color: var(--muted); font-size: 12px; margin-top: 6px; }
+.research { color: #f3d1a7; font-size: 12px; border: 1px solid #625441; border-radius: 5px; padding: 5px 8px; }
+.comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+figure, .timeline, .subject { overflow: hidden; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+figcaption { padding: 9px 11px; font-weight: 650; }
+figure img, figure svg { display: block; width: 100%; height: auto; background-color: #24303a; }
+figure img { image-rendering: pixelated; }
+figure svg { background-image: radial-gradient(#51636a 1px, transparent 1px); background-size: 18px 18px; shape-rendering: crispEdges; }
+.source-surface { position: relative; }
+#original[data-anchorable="true"] { cursor: crosshair; }
+#anchor-marker { position: absolute; inset: 0; width: 100%; height: 100%; background: none; pointer-events: none; shape-rendering: auto; }
+#anchor-marker[hidden] { display: none; }
+#anchor-marker circle { fill: #ffdd94; stroke: #141a20; stroke-width: 1.5px; }
+.timeline { padding: 13px; margin: 15px 0; }
+.transport { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+input, button { font: inherit; }
+input[type="range"] { flex: 1 1 100px; min-width: 60px; accent-color: var(--accent); }
+button { color: var(--primary); background: #25323a; border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+button:hover { background-color: #3a4c55; }
+button:disabled { opacity: .45; cursor: default; }
+:is(button, input):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+output { font-variant-numeric: tabular-nums; min-width: 180px; text-align: right; }
+#rows { overflow-x: auto; margin-top: 12px; padding-bottom: 4px; }
+.track { display: flex; align-items: center; gap: 2px; margin-bottom: 4px; }
+.track-name { width: 100px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; }
+.mark { flex: 1 0 7px; height: 20px; min-width: 7px; background: #487464; border: 1px solid transparent; padding: 0; }
+.mark.unknown { background: repeating-linear-gradient(135deg, #35414c, #35414c 3px, #657078 3px, #657078 5px); }
+.mark[aria-current="true"] { border-color: #fff; }
+#svg-result, #anchor-result, #segment-result { margin-top: 12px; }
+#svg-result a, #anchor-result a, #segment-result a { color: var(--accent); margin-right: 10px; }
+#svg-text, #anchor-text, #segment-text { width: 100%; display: block; margin-top: 6px; }
+.subjects { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.subject { padding: 11px; }
+.subject p:first-child { font-weight: 650; overflow-wrap: anywhere; }
+.subject p + p { margin-top: 3px; color: var(--muted); }
+.subject[data-unknown="true"] p + p { color: #f3d1a7; }
+.review h2 { font-size: 15px; margin: 0 0 8px; }
+.review form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.review form select, .review form input { color: var(--primary); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; }
+.review form input { width: 65px; }
+#anchor-decisions { list-style: none; padding: 0; margin: 8px 0; }
+#anchor-decisions li { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
+
+@media (max-width: 580px) {
+  .comparison { grid-template-columns: 1fr; }
+  header { flex-wrap: wrap; }
+  .track-name { width: 76px; }
+}
