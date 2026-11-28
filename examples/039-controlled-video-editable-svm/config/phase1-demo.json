@@ -1,0 +1,25 @@
+{
+  "video": "examples/038-controlled-video-ingestion/scene.avi",
+  "base_document": "examples/037-explicit-multi-object-raster-recovery/recovery-base.svm.json",
+  "selectors": "examples/037-explicit-multi-object-raster-recovery/selectors.json",
+  "frame_indices": [0, 1, 2, 3],
+  "ticks": [0, 12, 24, 36],
+  "ticks_per_second": 12,
+  "anchors": ["entity:anchor-a", "entity:anchor-b"],
+  "targets": ["entity:target-a", "entity:target-b"],
+  "groups": [
+    "group:1111111111111111111111111111111111111111111111111111111111111111",
+    "group:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "edit": {
+    "role": "entity:target-a",
+    "property": "rotation_degrees",
+    "tick": 12,
+    "delta": 5.0
+  },
+  "render": {
+    "view_box": [0, 0, 1200, 900],
+    "width": 1200,
+    "height": 900
+  }
+}
