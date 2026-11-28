@@ -6,6 +6,27 @@ compatibility contract. Until the first public format freeze, its schema may
 change while `schema_version` remains `0.1`; every such change must update the
 schema, specification, fixtures, and tests atomically.
 
+## SVM Studio
+
+Start the editor from this checkout with `python -m svm.studio --open`, or
+double-click `start-studio.cmd` on Windows. Install the existing geometry and
+analysis extras with `python -m pip install -e ".[geometry,analysis]"` to use
+both SVG editing and the video workflows.
+
+Open the example animation, add or drag shapes, import supported SVG, and
+edit parameters and keyframes. Save an editable `.svm.json` Document or export
+the current frame as SVG. Undo and redo work within the current session.
+
+- **视频示例** opens the [controlled Phase 1 demo](examples/039-controlled-video-editable-svm/README.md)
+  with the recorded source on the same playhead as the editable render.
+  Group translation edits support a scoped preview and explicit acceptance.
+- **重建片段** guides the user through selecting a flat-color object in a bounded
+  lossless AVI/FFV1 source and reviewing an observed translation interval
+  before authoring editable geometry. The dialog includes a synthetic example.
+- The [armor sample replay](research/studio-motion-reconstruction/README.md#on-device-armor-sample-validation)
+  checks single-plate translation on the matching local clip and generates
+  before/after projects, SVGs, and a research report.
+
 The current v0.1 draft baseline contains:
 
 - the core model, invariants, and Document Format specification;

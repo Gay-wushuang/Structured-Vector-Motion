@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SVM Studio</title>
+    <link rel="stylesheet" href="/studio.css">
+    <script type="module" src="/studio.js"></script>
+  </head>
+  <body>
+    <header class="toolbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✳</span> SVM <span>Studio</span></div>
+      <div class="tools" aria-label="工程操作">
+        <button id="new">新建</button>
+        <button id="demo">示例</button>
+        <button id="recovery" title="启动时配置已生成的 Phase 1 恢复包" disabled>视频示例</button>
+        <button id="segment-open">重建片段</button>
+        <button id="open">打开工程</button>
+        <button id="import">导入 SVG</button>
+      </div>
+      <div class="tools history" aria-label="编辑历史">
+        <button id="undo" title="撤销 (Ctrl+Z)" aria-label="撤销" disabled>↶</button>
+        <button id="redo" title="重做 (Ctrl+Shift+Z)" aria-label="重做" disabled>↷</button>
+      </div>
+      <div class="tools right">
+        <button id="save" class="outline">保存工程</button>
+        <button id="export" class="primary">导出 SVG <span aria-hidden="true">↗</span></button>
+      </div>
+      <input id="project-file" type="file" accept=".json,application/json" hidden>
+      <input id="svg-file" type="file" accept=".svg,image/svg+xml" hidden>
+    </header>
+    <main class="workspace">
+      <aside class="layers pane" aria-label="图层">
+        <div class="pane-head"><h2>图层</h2><span id="layer-count"></span></div>
+        <div id="layer-list" class="layer-list"></div>
+        <div class="shape-tools">
+          <label class="color-input" title="新图形填色"><input id="fill" type="color" value="#9CC7B2" aria-label="新图形填色"></label>
+          <button id="rect" class="outline">＋ 矩形</button>
+          <button id="ellipse" class="outline">＋ 椭圆</button>
+        </div>
+      </aside>
+      <section class="canvas" aria-label="画布">
+        <div class="pane-head canvas-head">
+          <h1 id="project-title">SVM Studio</h1>
+          <div class="tools">
+            <button id="compare" class="outline" aria-pressed="false" hidden>原片对照</button>
+            <button id="fit" class="outline">适合画布</button>
+          </div>
+        </div>
+        <div id="stage" class="stage">
+          <figure id="reference-view" class="viewport" hidden>
+            <figcaption id="reference-caption">原片</figcaption>
+            <img id="reference-image" class="reference-image" alt="原始视频帧" draggable="false">
+          </figure>
+          <figure id="render-view" class="viewport">
+            <figcaption id="render-caption" hidden>SVM 渲染</figcaption>
+            <div id="artboard" class="artboard"></div>
+          </figure>
+        </div>
+        <div id="canvas-meta" class="canvas-meta"></div>
+      </section>
+      <aside class="inspector pane" aria-label="属性">
+        <div class="pane-head"><h2>属性</h2></div>
+        <div id="inspector" class="inspector-body"></div>
+        <div id="preview-controls" class="preview-controls" hidden>
+          <p>预览对象位移，保留其他关键帧</p>
+          <button id="preview-base" class="outline" aria-pressed="false">查看修改前</button>
+          <button id="clear-preview" class="outline">取消预览</button>
+          <button id="accept-preview" class="primary">接受修改</button>
+        </div>
+      </aside>
+      <section class="timeline pane" aria-label="时间轴">
+        <div class="pane-head timeline-head">
+          <h2>时间轴</h2>
+          <button id="previous-key" class="outline key-nav" aria-label="上一关键帧" title="上一关键帧" disabled>‹◆</button>
+          <button id="play" class="outline" aria-label="播放" title="播放 (空格)">▶</button>
+          <button id="next-key" class="outline key-nav" aria-label="下一关键帧" title="下一关键帧" disabled>◆›</button>
+          <output id="time-label" for="timeline-range"></output>
+          <label class="tick-control">Tick <input id="tick" type="number" min="0" max="1000000" step="1" value="0"></label>
+          <button id="selected-tracks" class="outline" aria-pressed="false">仅所选</button>
+          <span id="timebase"></span>
+        </div>
+        <div class="timeline-body">
+          <div class="track ruler">
+            <span>播放位置</span>
+            <div><input id="timeline-range" type="range" min="0" max="96" value="0" aria-label="播放位置"></div>
+          </div>
+          <div id="tracks"></div>
+        </div>
+      </section>
+    </main>
+    <dialog id="segment-dialog" aria-labelledby="segment-title">
+      <form id="segment-form">
+        <h2 id="segment-title">从研究候选创建可编辑平移片段</h2>
+        <button id="segment-demo" class="outline" type="button">载入合成示例</button>
+        <button id="guided-open" class="outline" type="button">从本机 AVI 点选对象</button>
+        <input id="guided-file" type="file" accept=".avi" hidden>
+        <label>原片 AVI <input id="segment-source" type="file" accept=".avi" required></label>
+        <label>候选观测 JSON <input id="segment-candidate" type="file" accept=".json" required></label>
+        <label>片段选择 JSON <input id="segment-selection" type="file" accept=".json" required></label>
+        <button id="segment-prepare" class="outline">重放并预览</button>
+      </form>
+      <div id="guided-control" hidden>
+        <p>点击首帧中的平涂对象，也可输入像素坐标。</p>
+        <img id="guided-image" alt="可点选对象的原片首帧">
+        <form id="guided-point">
+          <label>X <input id="guided-x" type="number" min="0" step="1" required></label>
+          <label>Y <input id="guided-y" type="number" min="0" step="1" required></label>
+          <button class="outline">分析连续观测</button>
+        </form>
+        <form id="guided-range" hidden>
+          <label>起始 Tick <select id="guided-start"></select></label>
+          <label>结束 Tick <select id="guided-end"></select></label>
+          <button class="outline">预览所选片段</button>
+        </form>
+      </div>
+      <p id="segment-status" role="status">选择与同一候选对应的三个文件。</p>
+      <div id="segment-preview" hidden>
+        <div class="segment-frames">
+          <figure><div id="segment-first"></div><figcaption>片段首帧</figcaption></figure>
+          <figure><div id="segment-last"></div><figcaption>片段末帧</figcaption></figure>
+        </div>
+        <button id="segment-accept" class="primary">确认创建新工程</button>
+      </div>
+      <button id="segment-close" class="outline">关闭</button>
+    </dialog>
+    <footer><span id="status" role="status">正在打开工作台…</span><span id="revision"></span></footer>
+  </body>
+</html>
